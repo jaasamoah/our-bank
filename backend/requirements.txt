@@ -1,0 +1,16 @@
+fastapi==0.115.0
+scalar-fastapi==1.0.3
+uvicorn[standard]==0.24.0
+sqlalchemy==2.0.38
+alembic==1.12.1
+psycopg2-binary==2.9.12
+python-jose[cryptography]==3.3.0
+passlib[bcrypt]==1.7.4
+python-multipart==0.0.6
+pydantic[email]==2.13.4
+pydantic-settings==2.4.0
+python-dotenv==1.0.0
+celery==5.3.4
+redis==5.0.1
+httpx==0.28.1
+cors==1.0.1
