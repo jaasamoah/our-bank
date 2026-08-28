@@ -1,1 +1,0 @@
-- [Passlib bcrypt pin](passlib-bcrypt.md) — passlib 1.7.4 + bcrypt 5.x breaks password hashing; pin bcrypt<=4.x for passlib compatibility.
