@@ -6,6 +6,8 @@ requires-python = ">=3.12"
 dependencies = [
     "alembic==1.12.1",
     "bcrypt==4.0.1",
+    "celery==5.3.4",
+    "cors==1.0.1",
     "fastapi==0.115.0",
     "httpx==0.28.1",
     "passlib[bcrypt]==1.7.4",
@@ -15,6 +17,7 @@ dependencies = [
     "python-dotenv==1.0.0",
     "python-jose[cryptography]==3.3.0",
     "python-multipart==0.0.6",
+    "redis==5.0.1",
     "scalar-fastapi==1.0.3",
     "sqlalchemy==2.0.38",
     "uvicorn[standard]==0.24.0",
