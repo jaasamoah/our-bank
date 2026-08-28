@@ -23,6 +23,7 @@ class User(Base):
     
     accounts = relationship("Account", back_populates="user")
     transactions = relationship("Transaction", back_populates="user")
+    investments = relationship("Investment", back_populates="user")
 
 class Account(Base):
     __tablename__ = "accounts"
@@ -53,3 +54,25 @@ class Transaction(Base):
     
     account = relationship("Account", back_populates="transactions")
     user = relationship("User", back_populates="transactions")
+
+
+class Investment(Base):
+    __tablename__ = "investments"
+
+    id = Column(Integer, primary_key=True, index=True)
+    user_id = Column(Integer, ForeignKey("users.id"), nullable=False, index=True)
+    symbol = Column(String, nullable=False)
+    name = Column(String, nullable=False)
+    asset_class = Column(String, nullable=False)
+    units = Column(Float, nullable=False, default=0.0)
+    average_cost = Column(Float, nullable=False, default=0.0)
+    current_price = Column(Float, nullable=False, default=0.0)
+    market_value = Column(Float, nullable=False, default=0.0)
+    cost_basis = Column(Float, nullable=False, default=0.0)
+    daily_change = Column(Float, nullable=False, default=0.0)
+    total_return = Column(Float, nullable=False, default=0.0)
+    allocation_percentage = Column(Float, nullable=False, default=0.0)
+    currency = Column(String, default="USD")
+    created_at = Column(DateTime(timezone=True), server_default=func.now())
+
+    user = relationship("User", back_populates="investments")

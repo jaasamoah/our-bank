@@ -25,7 +25,6 @@ export interface MockTransaction {
   date: string;
   amount: number;
   status: 'Completed' | 'Pending' | 'Failed';
-  icon: string;
 }
 
 export interface MockCard {
@@ -87,18 +86,18 @@ export const mockAccounts: MockAccount[] = [
 ];
 
 export const mockTransactions: MockTransaction[] = [
-  { id: 'txn_1', accountId: 'acc_checking', merchant: 'Whole Foods Market', category: 'Groceries', date: '2026-07-09', amount: -84.21, status: 'Completed', icon: '🛒' },
-  { id: 'txn_2', accountId: 'acc_checking', merchant: 'Payroll Deposit', category: 'Income', date: '2026-07-08', amount: 3200.0, status: 'Completed', icon: '💼' },
-  { id: 'txn_3', accountId: 'acc_credit', merchant: 'Delta Airlines', category: 'Travel', date: '2026-07-08', amount: -412.9, status: 'Completed', icon: '✈️' },
-  { id: 'txn_4', accountId: 'acc_checking', merchant: 'Netflix', category: 'Entertainment', date: '2026-07-07', amount: -15.99, status: 'Completed', icon: '🎬' },
-  { id: 'txn_5', accountId: 'acc_savings', merchant: 'Interest Payment', category: 'Interest', date: '2026-07-06', amount: 42.18, status: 'Completed', icon: '📈' },
-  { id: 'txn_6', accountId: 'acc_checking', merchant: 'Shell Gas Station', category: 'Transport', date: '2026-07-06', amount: -52.4, status: 'Completed', icon: '⛽' },
-  { id: 'txn_7', accountId: 'acc_credit', merchant: 'Amazon', category: 'Shopping', date: '2026-07-05', amount: -128.55, status: 'Pending', icon: '📦' },
-  { id: 'txn_8', accountId: 'acc_checking', merchant: 'Electric Co.', category: 'Utilities', date: '2026-07-04', amount: -96.3, status: 'Completed', icon: '💡' },
-  { id: 'txn_9', accountId: 'acc_savings', merchant: 'Transfer from Checking', category: 'Transfer', date: '2026-07-03', amount: 500.0, status: 'Completed', icon: '🔁' },
-  { id: 'txn_10', accountId: 'acc_checking', merchant: 'Blue Bottle Coffee', category: 'Dining', date: '2026-07-03', amount: -6.75, status: 'Completed', icon: '☕' },
-  { id: 'txn_11', accountId: 'acc_credit', merchant: 'Gym Membership', category: 'Health', date: '2026-07-02', amount: -49.99, status: 'Completed', icon: '💪' },
-  { id: 'txn_12', accountId: 'acc_checking', merchant: 'Rent Payment', category: 'Housing', date: '2026-07-01', amount: -1850.0, status: 'Completed', icon: '🏠' },
+  { id: 'txn_1', accountId: 'acc_checking', merchant: 'Whole Foods Market', category: 'Groceries', date: '2026-07-09', amount: -84.21, status: 'Completed' },
+  { id: 'txn_2', accountId: 'acc_checking', merchant: 'Payroll Deposit', category: 'Income', date: '2026-07-08', amount: 3200.0, status: 'Completed' },
+  { id: 'txn_3', accountId: 'acc_credit', merchant: 'Delta Airlines', category: 'Travel', date: '2026-07-08', amount: -412.9, status: 'Completed' },
+  { id: 'txn_4', accountId: 'acc_checking', merchant: 'Netflix', category: 'Entertainment', date: '2026-07-07', amount: -15.99, status: 'Completed' },
+  { id: 'txn_5', accountId: 'acc_savings', merchant: 'Interest Payment', category: 'Interest', date: '2026-07-06', amount: 42.18, status: 'Completed' },
+  { id: 'txn_6', accountId: 'acc_checking', merchant: 'Shell Gas Station', category: 'Transport', date: '2026-07-06', amount: -52.4, status: 'Completed' },
+  { id: 'txn_7', accountId: 'acc_credit', merchant: 'Amazon', category: 'Shopping', date: '2026-07-05', amount: -128.55, status: 'Pending' },
+  { id: 'txn_8', accountId: 'acc_checking', merchant: 'Electric Co.', category: 'Utilities', date: '2026-07-04', amount: -96.3, status: 'Completed' },
+  { id: 'txn_9', accountId: 'acc_savings', merchant: 'Transfer from Checking', category: 'Transfer', date: '2026-07-03', amount: 500.0, status: 'Completed' },
+  { id: 'txn_10', accountId: 'acc_checking', merchant: 'Blue Bottle Coffee', category: 'Dining', date: '2026-07-03', amount: -6.75, status: 'Completed' },
+  { id: 'txn_11', accountId: 'acc_credit', merchant: 'Gym Membership', category: 'Health', date: '2026-07-02', amount: -49.99, status: 'Completed' },
+  { id: 'txn_12', accountId: 'acc_checking', merchant: 'Rent Payment', category: 'Housing', date: '2026-07-01', amount: -1850.0, status: 'Completed' },
 ];
 
 export const mockCards: MockCard[] = [

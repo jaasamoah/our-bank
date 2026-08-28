@@ -1,14 +1,23 @@
 import React from 'react';
 import { NavLink } from 'react-router-dom';
+import {
+  ArrowsRightLeftIcon,
+  BanknotesIcon,
+  ChartBarIcon,
+  CreditCardIcon,
+  PresentationChartLineIcon,
+  UserCircleIcon,
+} from '@heroicons/react/24/outline';
 import { useAuth } from '../context/AuthContext';
 
 const navItems = [
-  { to: '/dashboard', label: 'Dashboard', icon: '📊' },
-  { to: '/accounts', label: 'Accounts', icon: '🏦' },
-  { to: '/transactions', label: 'Transactions', icon: '💳' },
-  { to: '/transfer', label: 'Transfer', icon: '🔁' },
-  { to: '/cards', label: 'Cards', icon: '🪪' },
-  { to: '/profile', label: 'Profile', icon: '👤' },
+  { to: '/dashboard', label: 'Dashboard', icon: ChartBarIcon },
+  { to: '/accounts', label: 'Accounts', icon: BanknotesIcon },
+  { to: '/investments', label: 'Investments', icon: PresentationChartLineIcon },
+  { to: '/transactions', label: 'Transactions', icon: ChartBarIcon },
+  { to: '/transfer', label: 'Transfer', icon: ArrowsRightLeftIcon },
+  { to: '/cards', label: 'Cards', icon: CreditCardIcon },
+  { to: '/profile', label: 'Profile', icon: UserCircleIcon },
 ];
 
 const Sidebar: React.FC<{ onNavigate?: () => void }> = ({ onNavigate }) => {
@@ -37,7 +46,7 @@ const Sidebar: React.FC<{ onNavigate?: () => void }> = ({ onNavigate }) => {
               }`
             }
           >
-            <span className="text-base">{item.icon}</span>
+            <item.icon className="h-5 w-5" aria-hidden="true" />
             {item.label}
           </NavLink>
         ))}

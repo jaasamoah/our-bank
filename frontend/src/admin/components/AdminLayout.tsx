@@ -1,4 +1,5 @@
 import React, { ReactNode, useState } from 'react';
+import { Bars3Icon } from '@heroicons/react/24/outline';
 import AdminSidebar from './AdminSidebar';
 
 const AdminLayout: React.FC<{ title: string; subtitle?: string; children: ReactNode }> = ({
@@ -31,7 +32,7 @@ const AdminLayout: React.FC<{ title: string; subtitle?: string; children: ReactN
               className="rounded-lg p-2 text-slate-500 hover:bg-slate-100 lg:hidden"
               aria-label="Open menu"
             >
-              ☰
+              <Bars3Icon className="h-5 w-5" aria-hidden="true" />
             </button>
             <div>
               <h1 className="text-xl font-bold text-slate-900 sm:text-2xl">{title}</h1>

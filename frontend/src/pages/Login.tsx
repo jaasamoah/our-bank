@@ -10,19 +10,17 @@ const Login = () => {
   const { login } = useAuth();
   const navigate = useNavigate();
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setError('');
     setLoading(true);
-    setTimeout(() => {
-      const result = login(username, password);
-      setLoading(false);
-      if (result.success) {
-        navigate('/dashboard');
-      } else {
-        setError(result.error ?? 'Something went wrong.');
-      }
-    }, 400);
+    const result = await login(username, password);
+    setLoading(false);
+    if (result.success) {
+      navigate('/dashboard');
+    } else {
+      setError(result.error ?? 'Something went wrong.');
+    }
   };
 
   return (

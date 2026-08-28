@@ -1,18 +1,29 @@
 import React from 'react';
 import { NavLink } from 'react-router-dom';
+import {
+  BellIcon,
+  BuildingLibraryIcon,
+  ChartBarIcon,
+  ClipboardDocumentListIcon,
+  CreditCardIcon,
+  CurrencyDollarIcon,
+  FolderIcon,
+  MagnifyingGlassIcon,
+  UsersIcon,
+} from '@heroicons/react/24/outline';
 import { useAdminAuth } from '../context/AdminAuthContext';
 
 const navItems = [
-  { to: '/admin/dashboard', label: 'Dashboard', icon: '📊' },
-  { to: '/admin/users', label: 'Users', icon: '👥' },
-  { to: '/admin/accounts', label: 'Accounts', icon: '🏦' },
-  { to: '/admin/transactions', label: 'Transactions', icon: '💳' },
-  { to: '/admin/cards', label: 'Cards', icon: '🪪' },
-  { to: '/admin/loans', label: 'Loans', icon: '📋' },
-  { to: '/admin/kyc', label: 'KYC Approvals', icon: '🔍' },
-  { to: '/admin/notifications', label: 'Notifications', icon: '🔔' },
-  { to: '/admin/fx-rates', label: 'FX Rates', icon: '💱' },
-  { to: '/admin/audit-logs', label: 'Audit Logs', icon: '🗂️' },
+  { to: '/admin/dashboard', label: 'Dashboard', icon: ChartBarIcon },
+  { to: '/admin/users', label: 'Users', icon: UsersIcon },
+  { to: '/admin/accounts', label: 'Accounts', icon: BuildingLibraryIcon },
+  { to: '/admin/transactions', label: 'Transactions', icon: CreditCardIcon },
+  { to: '/admin/cards', label: 'Cards', icon: CreditCardIcon },
+  { to: '/admin/loans', label: 'Loans', icon: ClipboardDocumentListIcon },
+  { to: '/admin/kyc', label: 'KYC Approvals', icon: MagnifyingGlassIcon },
+  { to: '/admin/notifications', label: 'Notifications', icon: BellIcon },
+  { to: '/admin/fx-rates', label: 'FX Rates', icon: CurrencyDollarIcon },
+  { to: '/admin/audit-logs', label: 'Audit Logs', icon: FolderIcon },
 ];
 
 const AdminSidebar: React.FC<{ onNavigate?: () => void }> = ({ onNavigate }) => {
@@ -44,7 +55,7 @@ const AdminSidebar: React.FC<{ onNavigate?: () => void }> = ({ onNavigate }) => 
               }`
             }
           >
-            <span className="text-base">{item.icon}</span>
+            <item.icon className="h-5 w-5" aria-hidden="true" />
             {item.label}
           </NavLink>
         ))}
