@@ -5,6 +5,7 @@ import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
 import Login from './pages/Login'
 import Dashboard from './pages/Dashboard'
 import Accounts from './pages/Accounts'
+import Investments from './pages/Investments'
 import Transactions from './pages/Transactions'
 import Transfer from './pages/Transfer'
 import Cards from './pages/Cards'
@@ -41,6 +42,7 @@ function App() {
               <Route path="/login" element={<Login />} />
               <Route path="/dashboard" element={<ProtectedRoute><Dashboard /></ProtectedRoute>} />
               <Route path="/accounts" element={<ProtectedRoute><Accounts /></ProtectedRoute>} />
+              <Route path="/investments" element={<ProtectedRoute><Investments /></ProtectedRoute>} />
               <Route path="/transactions" element={<ProtectedRoute><Transactions /></ProtectedRoute>} />
               <Route path="/transfer" element={<ProtectedRoute><Transfer /></ProtectedRoute>} />
               <Route path="/cards" element={<ProtectedRoute><Cards /></ProtectedRoute>} />

@@ -1,12 +1,18 @@
 import React from 'react';
+import {
+  BuildingLibraryIcon,
+  ChartBarIcon,
+  ClipboardDocumentListIcon,
+  UsersIcon,
+} from '@heroicons/react/24/outline';
 import AdminLayout from '../components/AdminLayout';
 import { managedUsers, managedTransactions, managedLoans, kycRecords, formatCurrency } from '../mock/adminData';
 
 const stats = [
-  { label: 'Total Users', value: '6', sub: '+1 this week', icon: '👥', color: 'bg-brand-50 text-brand-700' },
-  { label: 'Active Accounts', value: '8', sub: '1 frozen', icon: '🏦', color: 'bg-emerald-50 text-emerald-700' },
-  { label: 'Pending KYC', value: '1', sub: '1 rejected', icon: '🔍', color: 'bg-amber-50 text-amber-700' },
-  { label: 'Active Loans', value: '2', sub: '1 defaulted', icon: '📋', color: 'bg-red-50 text-red-700' },
+  { label: 'Total Users', value: '6', sub: '+1 this week', icon: UsersIcon, color: 'bg-brand-50 text-brand-700' },
+  { label: 'Active Accounts', value: '8', sub: '1 frozen', icon: BuildingLibraryIcon, color: 'bg-emerald-50 text-emerald-700' },
+  { label: 'Pending KYC', value: '1', sub: '1 rejected', icon: ChartBarIcon, color: 'bg-amber-50 text-amber-700' },
+  { label: 'Active Loans', value: '2', sub: '1 defaulted', icon: ClipboardDocumentListIcon, color: 'bg-red-50 text-red-700' },
 ];
 
 const AdminDashboard: React.FC = () => {
@@ -22,7 +28,9 @@ const AdminDashboard: React.FC = () => {
           {stats.map((s) => (
             <div key={s.label} className="rounded-2xl bg-white p-6 shadow-sm border border-slate-100">
               <div className="flex items-center justify-between mb-4">
-                <span className={`flex h-10 w-10 items-center justify-center rounded-xl text-xl ${s.color}`}>{s.icon}</span>
+                <span className={`flex h-10 w-10 items-center justify-center rounded-xl ${s.color}`}>
+                  <s.icon className="h-5 w-5" aria-hidden="true" />
+                </span>
               </div>
               <p className="text-3xl font-bold text-slate-900">{s.value}</p>
               <p className="text-sm font-medium text-slate-700 mt-1">{s.label}</p>

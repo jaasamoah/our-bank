@@ -61,3 +61,33 @@ class InvestmentSummary(BaseModel):
 class InvestmentPortfolioOut(BaseModel):
     summary: InvestmentSummary
     holdings: list[InvestmentOut]
+
+
+class CardOut(BaseModel):
+    id: int
+    account_id: int
+    holder_name: str
+    last_four: str
+    expiry: str
+    network: str
+    frozen: bool
+    created_at: datetime
+
+    class Config:
+        from_attributes = True
+
+
+class TransferRequest(BaseModel):
+    from_account_id: int
+    to_account_id: Optional[int] = None
+    payee_name: Optional[str] = None
+    amount: float
+    note: Optional[str] = None
+
+
+class TransferOut(BaseModel):
+    message: str
+    amount: float
+    from_account_id: int
+    to_account_id: Optional[int] = None
+    transaction_ids: list[int]

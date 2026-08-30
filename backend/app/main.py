@@ -6,8 +6,8 @@ from scalar_fastapi import get_scalar_api_reference
 
 from .auth import get_password_hash
 from .database import Base, SessionLocal, engine
-from .models import Account, Investment, Transaction, User, UserRole
-from .routers import accounts, auth, investments, transactions, users
+from .models import Account, Card, Investment, Transaction, User, UserRole
+from .routers import accounts, auth, cards, investments, transactions, users
 
 # Create tables
 Base.metadata.create_all(bind=engine)
@@ -125,6 +125,31 @@ def seed_demo_data():
                     )
                 )
 
+        has_cards = db.query(Card).filter(Card.user_id == demo_user.id).first() is not None
+        if not has_cards:
+            db.add_all(
+                [
+                    Card(
+                        user_id=demo_user.id,
+                        account_id=account_by_type["checking"].id,
+                        holder_name="Jordan Ellis",
+                        last_four="4821",
+                        expiry="09/28",
+                        network="Visa",
+                        frozen=False,
+                    ),
+                    Card(
+                        user_id=demo_user.id,
+                        account_id=account_by_type["credit"].id,
+                        holder_name="Jordan Ellis",
+                        last_four="1092",
+                        expiry="02/27",
+                        network="Mastercard",
+                        frozen=True,
+                    ),
+                ]
+            )
+
         db.commit()
     except Exception:
         db.rollback()
@@ -156,6 +181,7 @@ app.include_router(users.router, prefix="/api/users", tags=["Users"])
 app.include_router(accounts.router, prefix="/api/accounts", tags=["Accounts"])
 app.include_router(transactions.router, prefix="/api/transactions", tags=["Transactions"])
 app.include_router(investments.router, prefix="/api/investments", tags=["Investments"])
+app.include_router(cards.router, prefix="/api/cards", tags=["Cards"])
 
 @app.get("/")
 async def root():

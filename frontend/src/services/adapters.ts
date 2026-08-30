@@ -1,5 +1,5 @@
 import type { MockAccount, MockTransaction } from '../mock/data';
-import type { ApiAccount, ApiTransaction } from './api';
+import type { ApiAccount, ApiCard, ApiTransaction } from './api';
 
 const accountColors: Record<string, string> = {
   checking: 'from-brand-600 to-brand-800',
@@ -35,5 +35,20 @@ export function mapTransaction(transaction: ApiTransaction): MockTransaction {
     date: transaction.created_at,
     amount: transaction.amount,
     status: status === 'pending' ? 'Pending' : status === 'failed' ? 'Failed' : 'Completed',
+  };
+}
+
+export function mapCard(card: ApiCard, accountName?: string) {
+  return {
+    id: String(card.id),
+    accountId: String(card.account_id),
+    holder: card.holder_name,
+    number: `${card.last_four} •••• •••• ${card.last_four}`,
+    expiry: card.expiry,
+    network: card.network as 'Visa' | 'Mastercard',
+    frozen: card.frozen,
+    gradient: accountName?.toLowerCase().includes('rewards')
+      ? 'from-slate-700 via-slate-800 to-slate-950'
+      : 'from-brand-700 via-brand-800 to-slate-900',
   };
 }

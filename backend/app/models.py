@@ -24,6 +24,7 @@ class User(Base):
     accounts = relationship("Account", back_populates="user")
     transactions = relationship("Transaction", back_populates="user")
     investments = relationship("Investment", back_populates="user")
+    cards = relationship("Card", back_populates="user")
 
 class Account(Base):
     __tablename__ = "accounts"
@@ -38,6 +39,7 @@ class Account(Base):
     
     user = relationship("User", back_populates="accounts")
     transactions = relationship("Transaction", back_populates="account")
+    cards = relationship("Card", back_populates="account")
 
 class Transaction(Base):
     __tablename__ = "transactions"
@@ -76,3 +78,20 @@ class Investment(Base):
     created_at = Column(DateTime(timezone=True), server_default=func.now())
 
     user = relationship("User", back_populates="investments")
+
+
+class Card(Base):
+    __tablename__ = "cards"
+
+    id = Column(Integer, primary_key=True, index=True)
+    user_id = Column(Integer, ForeignKey("users.id"), nullable=False, index=True)
+    account_id = Column(Integer, ForeignKey("accounts.id"), nullable=False)
+    holder_name = Column(String, nullable=False)
+    last_four = Column(String, nullable=False)
+    expiry = Column(String, nullable=False)
+    network = Column(String, nullable=False)
+    frozen = Column(Boolean, default=False)
+    created_at = Column(DateTime(timezone=True), server_default=func.now())
+
+    user = relationship("User", back_populates="cards")
+    account = relationship("Account", back_populates="cards")

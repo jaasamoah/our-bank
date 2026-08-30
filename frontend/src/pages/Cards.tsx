@@ -1,19 +1,46 @@
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
+import { LockClosedIcon } from '@heroicons/react/24/outline';
 import Layout from '../components/Layout';
-import { mockCards, mockAccounts } from '../mock/data';
+import { getAccounts, getCards, updateCardFreeze } from '../services/api';
+import { mapAccount, mapCard } from '../services/adapters';
 
 const Cards = () => {
-  const [cards, setCards] = useState(mockCards);
+  const [cards, setCards] = useState<ReturnType<typeof mapCard>[]>([]);
+  const [accounts, setAccounts] = useState<ReturnType<typeof mapAccount>[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState('');
 
-  const toggleFreeze = (id: string) => {
-    setCards((prev) => prev.map((c) => (c.id === id ? { ...c, frozen: !c.frozen } : c)));
+  useEffect(() => {
+    Promise.all([getAccounts(), getCards()])
+      .then(([accountData, cardData]) => {
+        const mappedAccounts = accountData.map(mapAccount);
+        setAccounts(mappedAccounts);
+        setCards(cardData.map((card) => mapCard(card, mappedAccounts.find((account) => account.id === String(card.account_id))?.name)));
+      })
+      .catch(() => setError('We could not load your cards. Please refresh and try again.'))
+      .finally(() => setLoading(false));
+  }, []);
+
+  const toggleFreeze = async (id: string) => {
+    const card = cards.find((item) => item.id === id);
+    if (!card) return;
+    try {
+      const updated = await updateCardFreeze(Number(id), !card.frozen);
+      const accountName = accounts.find((account) => account.id === String(updated.account_id))?.name;
+      setCards((prev) => prev.map((item) => item.id === id ? mapCard(updated, accountName) : item));
+    } catch {
+      setError('We could not update that card. Please try again.');
+    }
   };
 
   return (
     <Layout title="Cards" subtitle="View, freeze, and manage your debit and credit cards.">
+      {loading && <div className="rounded-2xl bg-white p-8 text-center text-sm text-slate-500 shadow-card">Loading your cards…</div>}
+      {error && <div className="mb-6 rounded-2xl bg-red-50 p-4 text-sm text-red-700">{error}</div>}
+      {!loading && (
       <div className="grid grid-cols-1 gap-6 lg:grid-cols-2">
         {cards.map((card) => {
-          const account = mockAccounts.find((a) => a.id === card.accountId);
+          const account = accounts.find((a) => a.id === card.accountId);
           return (
             <div key={card.id} className="space-y-4">
               <div
@@ -40,7 +67,8 @@ const Cards = () => {
                 {card.frozen && (
                   <div className="absolute inset-0 flex items-center justify-center bg-slate-900/40 backdrop-blur-[1px]">
                     <span className="rounded-full bg-white/90 px-4 py-1.5 text-sm font-semibold text-slate-900">
-                      ❄️ Frozen
+                      <LockClosedIcon className="mr-1 inline h-4 w-4" aria-hidden="true" />
+                      Frozen
                     </span>
                   </div>
                 )}
@@ -68,6 +96,7 @@ const Cards = () => {
           );
         })}
       </div>
+      )}
 
       <div className="mt-6 rounded-2xl border-2 border-dashed border-slate-200 p-8 text-center">
         <p className="text-sm font-medium text-slate-500">Need another card?</p>

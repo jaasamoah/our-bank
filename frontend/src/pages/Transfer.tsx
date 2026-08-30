@@ -1,31 +1,51 @@
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import Layout from '../components/Layout';
-import { mockAccounts, mockPayees, formatCurrency } from '../mock/data';
+import { mockPayees, formatCurrency } from '../mock/data';
+import { getAccounts, sendTransfer } from '../services/api';
+import { mapAccount } from '../services/adapters';
 
 const Transfer = () => {
-  const [fromId, setFromId] = useState(mockAccounts[0].id);
+  const [fromId, setFromId] = useState('');
   const [toType, setToType] = useState<'own' | 'payee'>('own');
-  const [toId, setToId] = useState(mockAccounts[1].id);
+  const [toId, setToId] = useState('');
   const [payeeId, setPayeeId] = useState(mockPayees[0].id);
   const [amount, setAmount] = useState('');
   const [note, setNote] = useState('');
   const [success, setSuccess] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
+  const [accounts, setAccounts] = useState<ReturnType<typeof mapAccount>[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [submitting, setSubmitting] = useState(false);
 
-  const fromAccount = mockAccounts.find((a) => a.id === fromId)!;
+  useEffect(() => {
+    getAccounts()
+      .then((accountData) => {
+        const mappedAccounts = accountData.map(mapAccount);
+        setAccounts(mappedAccounts);
+        setFromId(mappedAccounts[0]?.id ?? '');
+        setToId(mappedAccounts[1]?.id ?? mappedAccounts[0]?.id ?? '');
+      })
+      .catch(() => setError('We could not load your accounts. Please refresh and try again.'))
+      .finally(() => setLoading(false));
+  }, []);
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setError(null);
     setSuccess(null);
 
     const numericAmount = parseFloat(amount);
+    const fromAccount = accounts.find((account) => account.id === fromId);
     if (!numericAmount || numericAmount <= 0) {
       setError('Enter a valid amount greater than $0.');
       return;
     }
     if (toType === 'own' && fromId === toId) {
       setError('Choose a different destination account.');
+      return;
+    }
+    if (!fromAccount) {
+      setError('Choose a source account.');
       return;
     }
     if (numericAmount > fromAccount.balance && fromAccount.type !== 'Credit') {
@@ -35,12 +55,28 @@ const Transfer = () => {
 
     const destination =
       toType === 'own'
-        ? mockAccounts.find((a) => a.id === toId)?.name
+        ? accounts.find((a) => a.id === toId)?.name
         : mockPayees.find((p) => p.id === payeeId)?.name;
 
-    setSuccess(`Transfer of ${formatCurrency(numericAmount)} to ${destination} was submitted (simulated).`);
-    setAmount('');
-    setNote('');
+    setSubmitting(true);
+    try {
+      const result = await sendTransfer({
+        from_account_id: Number(fromId),
+        to_account_id: toType === 'own' ? Number(toId) : undefined,
+        payee_name: toType === 'payee' ? destination : undefined,
+        amount: numericAmount,
+        note: note.trim() || undefined,
+      });
+      setSuccess(`${result.message}. ${formatCurrency(numericAmount)} is now reflected in your balances.`);
+      setAmount('');
+      setNote('');
+      const accountData = await getAccounts();
+      setAccounts(accountData.map(mapAccount));
+    } catch {
+      setError('We could not complete that transfer. Please check the amount and try again.');
+    } finally {
+      setSubmitting(false);
+    }
   };
 
   return (
@@ -54,7 +90,7 @@ const Transfer = () => {
               onChange={(e) => setFromId(e.target.value)}
               className="block w-full rounded-xl border border-slate-200 px-4 py-2.5 outline-none focus:border-brand-500 focus:ring-2 focus:ring-brand-100"
             >
-              {mockAccounts.map((a) => (
+              {accounts.map((a) => (
                 <option key={a.id} value={a.id}>
                   {a.name} — {formatCurrency(a.balance)}
                 </option>
@@ -95,7 +131,7 @@ const Transfer = () => {
                 onChange={(e) => setToId(e.target.value)}
                 className="block w-full rounded-xl border border-slate-200 px-4 py-2.5 outline-none focus:border-brand-500 focus:ring-2 focus:ring-brand-100"
               >
-                {mockAccounts.map((a) => (
+                {accounts.map((a) => (
                   <option key={a.id} value={a.id}>
                     {a.name}
                   </option>
@@ -145,11 +181,12 @@ const Transfer = () => {
           {error && <div className="rounded-xl bg-red-50 px-4 py-2.5 text-sm text-red-600">{error}</div>}
           {success && <div className="rounded-xl bg-emerald-50 px-4 py-2.5 text-sm text-emerald-700">{success}</div>}
 
-          <button
+            <button
             type="submit"
-            className="w-full rounded-xl bg-brand-700 px-4 py-2.5 text-sm font-semibold text-white transition-colors hover:bg-brand-800"
+              disabled={loading || submitting}
+              className="w-full rounded-xl bg-brand-700 px-4 py-2.5 text-sm font-semibold text-white transition-colors hover:bg-brand-800 disabled:cursor-not-allowed disabled:opacity-60"
           >
-            Review &amp; send
+             {submitting ? 'Sending…' : 'Review & send'}
           </button>
         </form>
 
@@ -176,7 +213,7 @@ const Transfer = () => {
           <div className="rounded-2xl bg-brand-50 p-6">
             <h3 className="mb-1 text-sm font-semibold text-brand-800">Good to know</h3>
             <p className="text-sm text-brand-700">
-              This is a simulated transfer — no real money moves and nothing is sent to a bank.
+              Transfers between your Horizon accounts update immediately. Payee transfers are recorded as completed demo transactions.
             </p>
           </div>
         </div>

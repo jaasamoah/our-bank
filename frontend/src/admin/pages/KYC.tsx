@@ -1,4 +1,5 @@
 import React, { useState } from 'react';
+import { CheckIcon, ExclamationTriangleIcon, XMarkIcon } from '@heroicons/react/24/outline';
 import AdminLayout from '../components/AdminLayout';
 import { kycRecords } from '../mock/adminData';
 import type { KYCRecord } from '../mock/adminData';
@@ -26,7 +27,7 @@ const AdminKYC: React.FC = () => {
       <div className="space-y-6">
         {pending > 0 && (
           <div className="rounded-2xl bg-amber-50 border border-amber-200 px-5 py-4 flex items-center gap-3">
-            <span className="text-amber-500 text-xl">⚠️</span>
+            <ExclamationTriangleIcon className="h-5 w-5 text-amber-500" aria-hidden="true" />
             <p className="text-sm font-medium text-amber-800">{pending} KYC submission{pending > 1 ? 's' : ''} pending review</p>
           </div>
         )}
@@ -71,10 +72,10 @@ const AdminKYC: React.FC = () => {
               {k.status === 'Pending' && (
                 <div className="flex gap-2">
                   <button onClick={() => setStatus(k.id, 'Verified')} className="flex-1 rounded-xl py-2 text-xs font-semibold text-emerald-700 bg-emerald-50 hover:bg-emerald-100 transition">
-                    ✓ Approve
+                    <CheckIcon className="mr-1 inline h-4 w-4" aria-hidden="true" /> Approve
                   </button>
                   <button onClick={() => setStatus(k.id, 'Rejected')} className="flex-1 rounded-xl py-2 text-xs font-semibold text-red-700 bg-red-50 hover:bg-red-100 transition">
-                    ✕ Reject
+                    <XMarkIcon className="mr-1 inline h-4 w-4" aria-hidden="true" /> Reject
                   </button>
                 </div>
               )}
@@ -85,7 +86,7 @@ const AdminKYC: React.FC = () => {
               )}
               {k.status === 'Verified' && (
                 <div className="rounded-xl bg-emerald-50 py-2 text-center text-xs font-medium text-emerald-700">
-                  ✓ Identity Verified
+                  <CheckIcon className="mr-1 inline h-4 w-4" aria-hidden="true" /> Identity Verified
                 </div>
               )}
             </div>

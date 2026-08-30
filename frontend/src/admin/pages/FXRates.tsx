@@ -1,4 +1,5 @@
 import React, { useState } from 'react';
+import { CurrencyDollarIcon, GlobeAltIcon } from '@heroicons/react/24/outline';
 import AdminLayout from '../components/AdminLayout';
 import { fxRates } from '../mock/adminData';
 import type { FXRate } from '../mock/adminData';
@@ -25,18 +26,15 @@ const AdminFXRates: React.FC = () => {
     setEditRate(null);
   };
 
-  const flagEmoji: Record<string, string> = {
-    EUR: '🇪🇺', GBP: '🇬🇧', JPY: '🇯🇵', CAD: '🇨🇦',
-    AUD: '🇦🇺', CHF: '🇨🇭', CNY: '🇨🇳', SGD: '🇸🇬', USD: '🇺🇸',
-  };
-
   return (
     <AdminLayout title="FX Rates" subtitle="Manage foreign exchange rates used across the platform">
       <div className="space-y-6">
         <div className="rounded-2xl bg-gradient-to-br from-brand-600 to-brand-800 p-6 text-white">
           <p className="text-sm font-medium text-white/70 mb-1">Base Currency</p>
           <div className="flex items-center gap-3">
-            <span className="text-3xl">🇺🇸</span>
+            <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-white/15">
+              <CurrencyDollarIcon className="h-7 w-7" aria-hidden="true" />
+            </div>
             <div>
               <p className="text-2xl font-bold">USD — US Dollar</p>
               <p className="text-sm text-white/60">All rates are quoted against USD</p>
@@ -49,7 +47,9 @@ const AdminFXRates: React.FC = () => {
             <div key={r.id} className="rounded-2xl bg-white border border-slate-100 shadow-sm p-5">
               <div className="flex items-center justify-between mb-4">
                 <div className="flex items-center gap-2">
-                  <span className="text-2xl">{flagEmoji[r.targetCurrency] || '💱'}</span>
+                  <span className="flex h-9 w-9 items-center justify-center rounded-xl bg-brand-50 text-brand-700">
+                    <GlobeAltIcon className="h-5 w-5" aria-hidden="true" />
+                  </span>
                   <span className="font-bold text-slate-900">{r.targetCurrency}</span>
                 </div>
                 <button onClick={() => openEdit(r)} className="rounded-lg px-2.5 py-1 text-xs font-medium text-brand-700 bg-brand-50 hover:bg-brand-100 transition">Edit</button>

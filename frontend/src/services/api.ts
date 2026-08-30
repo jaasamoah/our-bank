@@ -79,6 +79,17 @@ export interface InvestmentPortfolio {
   holdings: InvestmentHolding[];
 }
 
+export interface ApiCard {
+  id: number;
+  account_id: number;
+  holder_name: string;
+  last_four: string;
+  expiry: string;
+  network: string;
+  frozen: boolean;
+  created_at: string;
+}
+
 export interface LoginResponse {
   access_token: string;
   token_type: string;
@@ -113,4 +124,33 @@ export async function getTransactions() {
 export async function getInvestmentPortfolio() {
   const response = await api.get<InvestmentPortfolio>('/api/investments/portfolio');
   return response.data;
+}
+
+export async function getCards() {
+  const response = await api.get<ApiCard[]>('/api/cards/');
+  return response.data;
+}
+
+export async function updateCardFreeze(cardId: number, frozen: boolean) {
+  const response = await api.patch<ApiCard>(`/api/cards/${cardId}/freeze`, null, {
+    params: { frozen },
+  });
+  return response.data;
+}
+
+export async function sendTransfer(payload: {
+  from_account_id: number;
+  to_account_id?: number;
+  payee_name?: string;
+  amount: number;
+  note?: string;
+}) {
+  const response = await api.post('/api/transactions/transfer', payload);
+  return response.data as {
+    message: string;
+    amount: number;
+    from_account_id: number;
+    to_account_id?: number;
+    transaction_ids: number[];
+  };
 }
