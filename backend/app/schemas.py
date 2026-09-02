@@ -80,6 +80,7 @@ class CardOut(BaseModel):
 class TransferRequest(BaseModel):
     from_account_id: int
     to_account_id: Optional[int] = None
+    payee_id: Optional[int] = None
     payee_name: Optional[str] = None
     amount: float
     note: Optional[str] = None
@@ -91,3 +92,84 @@ class TransferOut(BaseModel):
     from_account_id: int
     to_account_id: Optional[int] = None
     transaction_ids: list[int]
+
+
+class PayeeCreate(BaseModel):
+    name: str
+    bank: str
+    account_number: str
+
+
+class PayeeOut(BaseModel):
+    id: int
+    name: str
+    bank: str
+    account_number: str
+    created_at: datetime
+
+    class Config:
+        from_attributes = True
+
+
+class PasswordResetRequest(BaseModel):
+    identifier: str
+
+
+class PasswordResetConfirm(BaseModel):
+    token: str
+    new_password: str
+
+
+class PasswordResetResponse(BaseModel):
+    message: str
+    reset_token: Optional[str] = None
+
+
+class ComplaintCreate(BaseModel):
+    subject: str
+    message: str
+
+
+class ComplaintOut(BaseModel):
+    id: int
+    subject: str
+    message: str
+    status: str
+    created_at: datetime
+    updated_at: Optional[datetime] = None
+
+    class Config:
+        from_attributes = True
+
+
+class AdminUserCreate(BaseModel):
+    email: EmailStr
+    username: str
+    full_name: str
+    password: str
+
+
+class AdminUserUpdate(BaseModel):
+    email: Optional[EmailStr] = None
+    username: Optional[str] = None
+    full_name: Optional[str] = None
+    is_active: Optional[bool] = None
+
+
+class AdminUserOut(BaseModel):
+    id: int
+    email: EmailStr
+    username: str
+    full_name: str
+    role: UserRole
+    is_active: bool
+    created_at: datetime
+    total_balance: float
+
+    class Config:
+        from_attributes = True
+
+
+class AdminAccountUpdate(BaseModel):
+    balance: Optional[float] = None
+    status: Optional[str] = None

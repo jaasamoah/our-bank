@@ -7,6 +7,7 @@ import { useAuth } from '../context/AuthContext';
 import { formatCurrency } from '../mock/data';
 import { getAccounts, getInvestmentPortfolio, getTransactions } from '../services/api';
 import { mapAccount, mapTransaction } from '../services/adapters';
+import LoadingSpinner from '../components/LoadingSpinner';
 
 const Dashboard = () => {
   const { user } = useAuth();
@@ -51,7 +52,7 @@ const Dashboard = () => {
   return (
     <Layout title={`Welcome back, ${user?.fullName?.split(' ')[0] ?? 'there'}`} subtitle="Here's what's happening with your money today.">
       {error && <div className="mb-6 rounded-2xl bg-red-50 p-4 text-sm text-red-700">{error}</div>}
-      {loading && <div className="rounded-2xl bg-white p-8 text-center text-sm text-slate-500 shadow-card">Loading your dashboard…</div>}
+      {loading && <div className="rounded-2xl bg-white p-8 shadow-card"><LoadingSpinner label="Loading your dashboard" /></div>}
       {!loading && !error && (
         <>
       <div className="grid grid-cols-1 gap-6 lg:grid-cols-3">

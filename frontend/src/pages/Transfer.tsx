@@ -1,14 +1,15 @@
 import React, { useEffect, useState } from 'react';
 import Layout from '../components/Layout';
-import { mockPayees, formatCurrency } from '../mock/data';
-import { getAccounts, sendTransfer } from '../services/api';
+import { formatCurrency } from '../mock/data';
+import { createPayee, deletePayee, getAccounts, getPayees, sendTransfer } from '../services/api';
 import { mapAccount } from '../services/adapters';
+import type { ApiPayee } from '../services/api';
 
 const Transfer = () => {
   const [fromId, setFromId] = useState('');
   const [toType, setToType] = useState<'own' | 'payee'>('own');
   const [toId, setToId] = useState('');
-  const [payeeId, setPayeeId] = useState(mockPayees[0].id);
+  const [payeeId, setPayeeId] = useState<number | ''>('');
   const [amount, setAmount] = useState('');
   const [note, setNote] = useState('');
   const [success, setSuccess] = useState<string | null>(null);
@@ -16,14 +17,19 @@ const Transfer = () => {
   const [accounts, setAccounts] = useState<ReturnType<typeof mapAccount>[]>([]);
   const [loading, setLoading] = useState(true);
   const [submitting, setSubmitting] = useState(false);
+  const [payees, setPayees] = useState<ApiPayee[]>([]);
+  const [showPayeeForm, setShowPayeeForm] = useState(false);
+  const [newPayee, setNewPayee] = useState({ name: '', bank: '', account_number: '' });
 
   useEffect(() => {
-    getAccounts()
-      .then((accountData) => {
+    Promise.all([getAccounts(), getPayees()])
+      .then(([accountData, payeeData]) => {
         const mappedAccounts = accountData.map(mapAccount);
         setAccounts(mappedAccounts);
         setFromId(mappedAccounts[0]?.id ?? '');
         setToId(mappedAccounts[1]?.id ?? mappedAccounts[0]?.id ?? '');
+        setPayees(payeeData);
+        setPayeeId(payeeData[0]?.id ?? '');
       })
       .catch(() => setError('We could not load your accounts. Please refresh and try again.'))
       .finally(() => setLoading(false));
@@ -48,6 +54,10 @@ const Transfer = () => {
       setError('Choose a source account.');
       return;
     }
+    if (toType === 'payee' && !payeeId) {
+      setError('Choose a saved payee.');
+      return;
+    }
     if (numericAmount > fromAccount.balance && fromAccount.type !== 'Credit') {
       setError('Amount exceeds available balance.');
       return;
@@ -56,13 +66,14 @@ const Transfer = () => {
     const destination =
       toType === 'own'
         ? accounts.find((a) => a.id === toId)?.name
-        : mockPayees.find((p) => p.id === payeeId)?.name;
+        : payees.find((p) => p.id === payeeId)?.name;
 
     setSubmitting(true);
     try {
       const result = await sendTransfer({
         from_account_id: Number(fromId),
         to_account_id: toType === 'own' ? Number(toId) : undefined,
+        payee_id: toType === 'payee' ? Number(payeeId) : undefined,
         payee_name: toType === 'payee' ? destination : undefined,
         amount: numericAmount,
         note: note.trim() || undefined,
@@ -76,6 +87,30 @@ const Transfer = () => {
       setError('We could not complete that transfer. Please check the amount and try again.');
     } finally {
       setSubmitting(false);
+    }
+  };
+
+  const handleAddPayee = async () => {
+    setError(null);
+    try {
+      const created = await createPayee(newPayee);
+      setPayees((current) => [...current, created].sort((a, b) => a.name.localeCompare(b.name)));
+      setPayeeId(created.id);
+      setNewPayee({ name: '', bank: '', account_number: '' });
+      setShowPayeeForm(false);
+    } catch {
+      setError('We could not save that payee. Check the details and try again.');
+    }
+  };
+
+  const handleDeletePayee = async (payeeIdToDelete: number) => {
+    try {
+      await deletePayee(payeeIdToDelete);
+      const remaining = payees.filter((payee) => payee.id !== payeeIdToDelete);
+      setPayees(remaining);
+      if (payeeId === payeeIdToDelete) setPayeeId(remaining[0]?.id ?? '');
+    } catch {
+      setError('We could not remove that payee. Please try again.');
     }
   };
 
@@ -143,12 +178,25 @@ const Transfer = () => {
                 onChange={(e) => setPayeeId(e.target.value)}
                 className="block w-full rounded-xl border border-slate-200 px-4 py-2.5 outline-none focus:border-brand-500 focus:ring-2 focus:ring-brand-100"
               >
-                {mockPayees.map((p) => (
+                {payees.map((p) => (
                   <option key={p.id} value={p.id}>
-                    {p.name} · {p.bank} {p.accountNumber}
+                    {p.name} · {p.bank} ···· {p.account_number.slice(-4)}
                   </option>
                 ))}
               </select>
+            )}
+            <button type="button" onClick={() => setShowPayeeForm((open) => !open)} className="mt-3 text-sm font-semibold text-brand-700 hover:text-brand-800">
+              {showPayeeForm ? 'Cancel adding payee' : '+ Add a new saved payee'}
+            </button>
+            {showPayeeForm && (
+              <div className="mt-3 space-y-3 rounded-xl bg-slate-50 p-4">
+                <input value={newPayee.name} onChange={(e) => setNewPayee({ ...newPayee, name: e.target.value })} placeholder="Payee name" required className="w-full rounded-xl border border-slate-200 px-3 py-2.5 text-sm outline-none focus:border-brand-500" />
+                <input value={newPayee.bank} onChange={(e) => setNewPayee({ ...newPayee, bank: e.target.value })} placeholder="Bank name" required className="w-full rounded-xl border border-slate-200 px-3 py-2.5 text-sm outline-none focus:border-brand-500" />
+                <div className="flex gap-2">
+                  <input value={newPayee.account_number} onChange={(e) => setNewPayee({ ...newPayee, account_number: e.target.value })} placeholder="Account number" required className="min-w-0 flex-1 rounded-xl border border-slate-200 px-3 py-2.5 text-sm outline-none focus:border-brand-500" />
+                  <button type="button" onClick={handleAddPayee} className="rounded-xl bg-brand-700 px-3 py-2 text-sm font-semibold text-white hover:bg-brand-800">Save</button>
+                </div>
+              </div>
             )}
           </div>
 
@@ -194,26 +242,28 @@ const Transfer = () => {
           <div className="rounded-2xl bg-white p-6 shadow-card">
             <h3 className="mb-3 text-sm font-semibold text-slate-900">Saved payees</h3>
             <div className="space-y-3">
-              {mockPayees.map((p) => (
+              {payees.map((p) => (
                 <div key={p.id} className="flex items-center gap-3">
                   <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-brand-50 text-xs font-semibold text-brand-700">
-                    {p.initials}
+                    {p.name.split(' ').map((part) => part[0]).join('').slice(0, 2).toUpperCase()}
                   </div>
-                  <div className="min-w-0">
+                  <div className="min-w-0 flex-1">
                     <p className="truncate text-sm font-medium text-slate-900">{p.name}</p>
                     <p className="truncate text-xs text-slate-500">
-                      {p.bank} · {p.accountNumber}
+                      {p.bank} ···· {p.account_number.slice(-4)}
                     </p>
                   </div>
+                  <button onClick={() => handleDeletePayee(p.id)} className="text-xs font-medium text-slate-400 hover:text-red-600">Remove</button>
                 </div>
               ))}
+              {payees.length === 0 && <p className="text-sm text-slate-500">No saved payees yet.</p>}
             </div>
           </div>
 
           <div className="rounded-2xl bg-brand-50 p-6">
             <h3 className="mb-1 text-sm font-semibold text-brand-800">Good to know</h3>
             <p className="text-sm text-brand-700">
-              Transfers between your Horizon accounts update immediately. Payee transfers are recorded as completed demo transactions.
+              Transfers between your Horizon accounts update immediately. Payee transfers are recorded as completed transactions.
             </p>
           </div>
         </div>

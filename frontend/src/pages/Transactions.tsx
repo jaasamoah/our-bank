@@ -3,6 +3,7 @@ import Layout from '../components/Layout';
 import TransactionRow from '../components/TransactionRow';
 import { getAccounts, getTransactions } from '../services/api';
 import { mapAccount, mapTransaction } from '../services/adapters';
+import LoadingSpinner from '../components/LoadingSpinner';
 
 const Transactions = () => {
   const [accountFilter, setAccountFilter] = useState<string>('all');
@@ -56,7 +57,7 @@ const Transactions = () => {
       </div>
 
       <div className="rounded-2xl bg-white p-6 shadow-card">
-        {loading && <p className="py-8 text-center text-sm text-slate-500">Loading transactions…</p>}
+        {loading && <div className="py-8"><LoadingSpinner label="Loading transactions" /></div>}
         {!loading && filtered.length > 0 ? (
           filtered.map((txn) => (
             <TransactionRow key={txn.id} txn={txn} accountName={accountName(txn.accountId)} />

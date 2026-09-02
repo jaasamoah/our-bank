@@ -6,8 +6,8 @@ from scalar_fastapi import get_scalar_api_reference
 
 from .auth import get_password_hash
 from .database import Base, SessionLocal, engine
-from .models import Account, Card, Investment, Transaction, User, UserRole
-from .routers import accounts, auth, cards, investments, transactions, users
+from .models import Account, Card, Investment, Payee, Transaction, User, UserRole
+from .routers import accounts, admin, auth, cards, investments, payees, support, transactions, users
 
 # Create tables
 Base.metadata.create_all(bind=engine)
@@ -27,6 +27,18 @@ def seed_demo_data():
                 role=UserRole.CUSTOMER,
             )
             db.add(demo_user)
+            db.flush()
+
+        admin_user = db.query(User).filter(User.username == "admin").first()
+        if not admin_user:
+            admin_user = User(
+                email="admin@horizonbank.com",
+                username="admin",
+                hashed_password=get_password_hash("admin"),
+                full_name="Alex Rivera",
+                role=UserRole.SUPER_ADMIN,
+            )
+            db.add(admin_user)
             db.flush()
 
         account_specs = [
@@ -150,6 +162,16 @@ def seed_demo_data():
                 ]
             )
 
+        has_payees = db.query(Payee).filter(Payee.user_id == demo_user.id).first() is not None
+        if not has_payees:
+            db.add_all(
+                [
+                    Payee(user_id=demo_user.id, name="Maria Chen", bank="Chase Bank", account_number="2291"),
+                    Payee(user_id=demo_user.id, name="Sam Patel", bank="Bank of America", account_number="8823"),
+                    Payee(user_id=demo_user.id, name="Riverside Landlord LLC", bank="Wells Fargo", account_number="0071"),
+                ]
+            )
+
         db.commit()
     except Exception:
         db.rollback()
@@ -161,8 +183,8 @@ def seed_demo_data():
 seed_demo_data()
 
 app = FastAPI(
-    title="Banking Web Application Simulator API",
-    description="A banking simulator with customer and admin portals",
+    title="Horizon Bank API",
+    description="Secure banking services for customer and administrator portals",
     version="1.0.0"
 )
 
@@ -182,10 +204,13 @@ app.include_router(accounts.router, prefix="/api/accounts", tags=["Accounts"])
 app.include_router(transactions.router, prefix="/api/transactions", tags=["Transactions"])
 app.include_router(investments.router, prefix="/api/investments", tags=["Investments"])
 app.include_router(cards.router, prefix="/api/cards", tags=["Cards"])
+app.include_router(payees.router, prefix="/api/payees", tags=["Payees"])
+app.include_router(support.router, prefix="/api/support", tags=["Support"])
+app.include_router(admin.router, prefix="/api/admin", tags=["Administration"])
 
 @app.get("/")
 async def root():
-    return {"message": "Banking Web Application Simulator API"}
+    return {"message": "Horizon Bank API"}
 
 @app.get("/health")
 async def health_check():

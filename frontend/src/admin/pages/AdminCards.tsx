@@ -1,7 +1,8 @@
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import AdminLayout from '../components/AdminLayout';
-import { managedCards } from '../mock/adminData';
 import type { ManagedCard } from '../mock/adminData';
+import { getAdminCards, updateAdminCardFreeze } from '../../services/api';
+import LoadingSpinner from '../../components/LoadingSpinner';
 
 const statusColors: Record<string, string> = {
   Active: 'bg-emerald-50 text-emerald-700',
@@ -10,21 +11,50 @@ const statusColors: Record<string, string> = {
 };
 
 const AdminCards: React.FC = () => {
-  const [cards, setCards] = useState<ManagedCard[]>(managedCards);
+  const [cards, setCards] = useState<ManagedCard[]>([]);
   const [search, setSearch] = useState('');
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState('');
+
+  useEffect(() => {
+    getAdminCards()
+      .then((data) => setCards(data.map((card) => ({
+        id: String(card.id),
+        userId: String(card.user_id ?? card.account_id),
+        userName: card.holder_name,
+        accountId: String(card.account_id),
+        number: `•••• ${card.last_four}`,
+        expiry: card.expiry,
+        network: card.network as ManagedCard['network'],
+        status: card.frozen ? 'Frozen' : 'Active',
+        type: card.account_id === 3 ? 'Credit' : 'Debit',
+      }))))
+      .catch(() => setError('We could not load cards. Please refresh and try again.'))
+      .finally(() => setLoading(false));
+  }, []);
 
   const filtered = cards.filter((c) =>
     c.userName.toLowerCase().includes(search.toLowerCase()) ||
     c.number.includes(search)
   );
 
-  const setStatus = (id: string, status: ManagedCard['status']) => {
-    setCards((prev) => prev.map((c) => c.id === id ? { ...c, status } : c));
+  const setStatus = async (id: string, status: ManagedCard['status']) => {
+    if (status === 'Cancelled') {
+      setCards((prev) => prev.map((c) => c.id === id ? { ...c, status } : c));
+      return;
+    }
+    try {
+      const updated = await updateAdminCardFreeze(Number(id), status === 'Frozen');
+      setCards((prev) => prev.map((c) => c.id === id ? { ...c, status: updated.frozen ? 'Frozen' : 'Active' } : c));
+    } catch {
+      setError('We could not update this card. Please try again.');
+    }
   };
 
   return (
     <AdminLayout title="Card Management" subtitle="Manage customer debit and credit cards">
       <div className="space-y-6">
+        {error && <div className="rounded-xl bg-red-50 px-4 py-3 text-sm text-red-700">{error}</div>}
         <input
           type="text"
           placeholder="Search cards…"
@@ -33,7 +63,7 @@ const AdminCards: React.FC = () => {
           className="rounded-xl border border-slate-200 px-4 py-2.5 text-sm outline-none focus:border-brand-500 focus:ring-2 focus:ring-brand-100 w-full sm:w-72"
         />
 
-        <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-3">
+        {loading ? <div className="rounded-2xl bg-white p-10"><LoadingSpinner label="Loading cards" /></div> : <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-3">
           {filtered.map((c) => (
             <div key={c.id} className="rounded-2xl bg-white border border-slate-100 shadow-sm p-5">
               <div className={`rounded-xl p-4 mb-4 bg-gradient-to-br ${
@@ -78,7 +108,7 @@ const AdminCards: React.FC = () => {
               </div>
             </div>
           ))}
-        </div>
+        </div>}
       </div>
     </AdminLayout>
   );

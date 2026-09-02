@@ -11,7 +11,9 @@ const api = axios.create({
 
 // Add token to requests
 api.interceptors.request.use((config) => {
-  const token = localStorage.getItem('token');
+  const token = config.url?.startsWith('/api/admin')
+    ? localStorage.getItem('admin_token')
+    : localStorage.getItem('token');
   if (token) {
     config.headers.Authorization = `Bearer ${token}`;
   }
@@ -90,6 +92,34 @@ export interface ApiCard {
   created_at: string;
 }
 
+export interface ApiPayee {
+  id: number;
+  name: string;
+  bank: string;
+  account_number: string;
+  created_at: string;
+}
+
+export interface ApiComplaint {
+  id: number;
+  subject: string;
+  message: string;
+  status: string;
+  created_at: string;
+  updated_at?: string;
+}
+
+export interface ApiAdminAccount {
+  id: number;
+  user_id: number;
+  user_name: string;
+  account_number: string;
+  account_type: string;
+  balance: number;
+  currency: string;
+  status: string;
+}
+
 export interface LoginResponse {
   access_token: string;
   token_type: string;
@@ -104,6 +134,10 @@ export async function loginRequest(username: string, password: string) {
     headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
   });
   return response.data;
+}
+
+export async function adminLoginRequest(username: string, password: string) {
+  return loginRequest(username, password);
 }
 
 export async function getCurrentUser() {
@@ -141,6 +175,7 @@ export async function updateCardFreeze(cardId: number, frozen: boolean) {
 export async function sendTransfer(payload: {
   from_account_id: number;
   to_account_id?: number;
+  payee_id?: number;
   payee_name?: string;
   amount: number;
   note?: string;
@@ -153,4 +188,96 @@ export async function sendTransfer(payload: {
     to_account_id?: number;
     transaction_ids: number[];
   };
+}
+
+export async function getPayees() {
+  const response = await api.get<ApiPayee[]>('/api/payees/');
+  return response.data;
+}
+
+export async function createPayee(payload: { name: string; bank: string; account_number: string }) {
+  const response = await api.post<ApiPayee>('/api/payees/', payload);
+  return response.data;
+}
+
+export async function deletePayee(payeeId: number) {
+  await api.delete(`/api/payees/${payeeId}`);
+}
+
+export async function requestPasswordReset(identifier: string) {
+  const response = await api.post<{ message: string; reset_token?: string }>(
+    '/api/auth/password-reset/request',
+    { identifier },
+  );
+  return response.data;
+}
+
+export async function confirmPasswordReset(token: string, newPassword: string) {
+  const response = await api.post<{ message: string }>('/api/auth/password-reset/confirm', {
+    token,
+    new_password: newPassword,
+  });
+  return response.data;
+}
+
+export async function createComplaint(payload: { subject: string; message: string }) {
+  const response = await api.post<ApiComplaint>('/api/support/', payload);
+  return response.data;
+}
+
+export async function getAdminUser() {
+  const response = await api.get<ApiUser>('/api/admin/me');
+  return response.data;
+}
+
+export async function getAdminUsers() {
+  const response = await api.get<Array<ApiUser & { total_balance: number }>>('/api/admin/users');
+  return response.data;
+}
+
+export async function createAdminUser(payload: {
+  email: string;
+  username: string;
+  full_name: string;
+  password: string;
+}) {
+  const response = await api.post<ApiUser & { total_balance: number }>('/api/admin/users', payload);
+  return response.data;
+}
+
+export async function updateAdminUser(userId: number, payload: {
+  email?: string;
+  username?: string;
+  full_name?: string;
+  is_active?: boolean;
+}) {
+  const response = await api.patch<ApiUser & { total_balance: number }>(`/api/admin/users/${userId}`, payload);
+  return response.data;
+}
+
+export async function getAdminAccounts() {
+  const response = await api.get<ApiAdminAccount[]>('/api/admin/accounts');
+  return response.data;
+}
+
+export async function updateAdminAccount(accountId: number, payload: { balance?: number; status?: string }) {
+  const response = await api.patch<ApiAdminAccount>(`/api/admin/accounts/${accountId}`, payload);
+  return response.data;
+}
+
+export async function getAdminCards() {
+  const response = await api.get<ApiCard[]>('/api/admin/cards');
+  return response.data;
+}
+
+export async function updateAdminCardFreeze(cardId: number, frozen: boolean) {
+  const response = await api.patch<ApiCard>(`/api/admin/cards/${cardId}/freeze`, null, {
+    params: { frozen },
+  });
+  return response.data;
+}
+
+export async function getAdminComplaints() {
+  const response = await api.get<Array<ApiComplaint & { user_id: number }>>('/api/admin/complaints');
+  return response.data;
 }

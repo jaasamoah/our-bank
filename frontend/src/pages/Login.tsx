@@ -1,6 +1,8 @@
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
+import { Link } from 'react-router-dom';
+import LoadingSpinner from '../components/LoadingSpinner';
 
 const Login = () => {
   const [username, setUsername] = useState('');
@@ -43,7 +45,7 @@ const Login = () => {
         </div>
 
         <p className="text-sm text-brand-200">
-          © {new Date().getFullYear()} Horizon Bank. This is a demo simulator — no real funds are moved.
+          © {new Date().getFullYear()} Horizon Bank. Banking made clear, secure, and personal.
         </p>
       </div>
 
@@ -101,13 +103,14 @@ const Login = () => {
               disabled={loading}
               className="flex w-full items-center justify-center rounded-xl bg-brand-700 px-4 py-2.5 text-sm font-semibold text-white transition-colors hover:bg-brand-800 disabled:cursor-not-allowed disabled:opacity-70"
             >
-              {loading ? 'Signing in…' : 'Sign in'}
+              {loading ? <LoadingSpinner label="Signing in" size="sm" tone="light" /> : 'Sign in'}
             </button>
 
-            <p className="text-center text-sm text-slate-500">
-              Demo credentials:{' '}
-              <span className="rounded bg-slate-100 px-2 py-0.5 font-mono text-slate-700">demo / demo</span>
-            </p>
+            <div className="text-center">
+              <Link to="/reset-password" className="text-sm font-medium text-brand-700 hover:text-brand-800">
+                Forgot your password?
+              </Link>
+            </div>
           </form>
         </div>
       </div>

@@ -10,6 +10,7 @@ import {
   FolderIcon,
   MagnifyingGlassIcon,
   UsersIcon,
+  ChatBubbleLeftRightIcon,
 } from '@heroicons/react/24/outline';
 import { useAdminAuth } from '../context/AdminAuthContext';
 
@@ -24,6 +25,7 @@ const navItems = [
   { to: '/admin/notifications', label: 'Notifications', icon: BellIcon },
   { to: '/admin/fx-rates', label: 'FX Rates', icon: CurrencyDollarIcon },
   { to: '/admin/audit-logs', label: 'Audit Logs', icon: FolderIcon },
+  { to: '/admin/support', label: 'Support', icon: ChatBubbleLeftRightIcon },
 ];
 
 const AdminSidebar: React.FC<{ onNavigate?: () => void }> = ({ onNavigate }) => {

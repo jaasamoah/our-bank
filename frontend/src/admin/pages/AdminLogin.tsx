@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAdminAuth } from '../context/AdminAuthContext';
+import LoadingSpinner from '../../components/LoadingSpinner';
 
 const AdminLogin: React.FC = () => {
   const { login } = useAdminAuth();
@@ -10,19 +11,18 @@ const AdminLogin: React.FC = () => {
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setError('');
     setLoading(true);
-    setTimeout(() => {
-      const result = login(username, password);
+    const result = await login(username, password);
       if (result.success) {
         navigate('/admin/dashboard');
       } else {
         setError(result.error || 'Login failed.');
         setLoading(false);
       }
-    }, 500);
+    setLoading(false);
   };
 
   return (
@@ -86,6 +86,7 @@ const AdminLogin: React.FC = () => {
               <label className="block text-sm font-medium text-slate-700 mb-1.5">Password</label>
               <input
                 type="password"
+                autoComplete="current-password"
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
                 placeholder="Enter password"
@@ -97,16 +98,10 @@ const AdminLogin: React.FC = () => {
               disabled={loading}
               className="w-full rounded-xl bg-brand-700 py-3 text-sm font-semibold text-white transition hover:bg-brand-800 disabled:opacity-60"
             >
-              {loading ? 'Signing in…' : 'Sign in to Admin'}
+              {loading ? <LoadingSpinner label="Signing in" size="sm" tone="light" /> : 'Sign in to Admin'}
             </button>
           </form>
 
-          <p className="mt-6 text-center text-xs text-slate-400">
-            Demo credentials:{' '}
-            <span className="font-mono font-semibold text-slate-600">admin</span>
-            {' / '}
-            <span className="font-mono font-semibold text-slate-600">admin</span>
-          </p>
         </div>
       </div>
     </div>

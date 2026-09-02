@@ -1,7 +1,9 @@
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import AdminLayout from '../components/AdminLayout';
-import { managedUsers, formatCurrency } from '../mock/adminData';
+import { formatCurrency } from '../mock/adminData';
 import type { ManagedUser } from '../mock/adminData';
+import { createAdminUser, getAdminUsers, updateAdminUser } from '../../services/api';
+import LoadingSpinner from '../../components/LoadingSpinner';
 
 const statusColors: Record<string, string> = {
   Active: 'bg-emerald-50 text-emerald-700',
@@ -22,11 +24,32 @@ const emptyUser: Omit<ManagedUser, 'id'> = {
 };
 
 const AdminUsers: React.FC = () => {
-  const [users, setUsers] = useState<ManagedUser[]>(managedUsers);
+  const [users, setUsers] = useState<ManagedUser[]>([]);
   const [search, setSearch] = useState('');
   const [showModal, setShowModal] = useState(false);
   const [editUser, setEditUser] = useState<ManagedUser | null>(null);
   const [form, setForm] = useState<Omit<ManagedUser, 'id'>>(emptyUser);
+  const [password, setPassword] = useState('');
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState('');
+
+  const mapUser = (user: Awaited<ReturnType<typeof getAdminUsers>>[number]): ManagedUser => ({
+    id: String(user.id),
+    fullName: user.full_name,
+    email: user.email,
+    username: user.username,
+    status: user.is_active ? 'Active' : 'Suspended',
+    kycStatus: 'Not Started',
+    joinedDate: user.created_at,
+    totalBalance: user.total_balance,
+  });
+
+  useEffect(() => {
+    getAdminUsers()
+      .then((data) => setUsers(data.map(mapUser)))
+      .catch(() => setError('We could not load customers. Please refresh and try again.'))
+      .finally(() => setLoading(false));
+  }, []);
 
   const filtered = users.filter((u) =>
     u.fullName.toLowerCase().includes(search.toLowerCase()) ||
@@ -37,29 +60,56 @@ const AdminUsers: React.FC = () => {
   const openCreate = () => {
     setEditUser(null);
     setForm(emptyUser);
+    setPassword('');
+    setError('');
     setShowModal(true);
   };
 
   const openEdit = (u: ManagedUser) => {
     setEditUser(u);
     setForm({ fullName: u.fullName, email: u.email, username: u.username, status: u.status, kycStatus: u.kycStatus, joinedDate: u.joinedDate, totalBalance: u.totalBalance });
+    setPassword('');
+    setError('');
     setShowModal(true);
   };
 
-  const handleSave = () => {
-    if (!form.fullName || !form.email) return;
-    if (editUser) {
-      setUsers((prev) => prev.map((u) => u.id === editUser.id ? { ...editUser, ...form } : u));
-    } else {
-      setUsers((prev) => [...prev, { ...form, id: `usr_new_${Date.now()}` }]);
+  const handleSave = async () => {
+    if (!form.fullName || !form.email || !form.username || (!editUser && password.length < 8)) {
+      setError(editUser ? 'Complete the required fields.' : 'Complete all fields and use a password of at least 8 characters.');
+      return;
     }
-    setShowModal(false);
+    try {
+      const updated = editUser
+        ? await updateAdminUser(Number(editUser.id), {
+            full_name: form.fullName,
+            email: form.email,
+            username: form.username,
+            is_active: form.status === 'Active',
+          })
+        : await createAdminUser({
+            full_name: form.fullName,
+            email: form.email,
+            username: form.username,
+            password,
+          });
+      setUsers((prev) => editUser
+        ? prev.map((u) => u.id === editUser.id ? mapUser(updated) : u)
+        : [mapUser(updated), ...prev]);
+      setShowModal(false);
+    } catch {
+      setError('We could not save this customer. Check for duplicate details and try again.');
+    }
   };
 
-  const toggleStatus = (id: string) => {
-    setUsers((prev) => prev.map((u) =>
-      u.id === id ? { ...u, status: u.status === 'Active' ? 'Suspended' : 'Active' } : u
-    ));
+  const toggleStatus = async (id: string) => {
+    const user = users.find((item) => item.id === id);
+    if (!user) return;
+    try {
+      const updated = await updateAdminUser(Number(id), { is_active: user.status !== 'Active' });
+      setUsers((prev) => prev.map((u) => u.id === id ? mapUser(updated) : u));
+    } catch {
+      setError('We could not update this customer. Please try again.');
+    }
   };
 
   return (
@@ -73,15 +123,17 @@ const AdminUsers: React.FC = () => {
             onChange={(e) => setSearch(e.target.value)}
             className="rounded-xl border border-slate-200 px-4 py-2.5 text-sm outline-none focus:border-brand-500 focus:ring-2 focus:ring-brand-100 w-full sm:w-72"
           />
-          <button
+           <button
             onClick={openCreate}
             className="rounded-xl bg-brand-700 px-4 py-2.5 text-sm font-semibold text-white hover:bg-brand-800 transition"
           >
-            + New User
+             New customer
           </button>
         </div>
 
+        {error && !showModal && <div className="rounded-xl bg-red-50 px-4 py-3 text-sm text-red-700">{error}</div>}
         <div className="rounded-2xl bg-white border border-slate-100 shadow-sm overflow-hidden">
+          {loading ? <div className="p-10"><LoadingSpinner label="Loading customers" /></div> : (
           <div className="overflow-x-auto">
             <table className="w-full text-sm">
               <thead>
@@ -134,6 +186,7 @@ const AdminUsers: React.FC = () => {
               </tbody>
             </table>
           </div>
+          )}
         </div>
       </div>
 
@@ -146,6 +199,12 @@ const AdminUsers: React.FC = () => {
                 <label className="block text-xs font-medium text-slate-600 mb-1">Full Name</label>
                 <input value={form.fullName} onChange={e => setForm(f => ({ ...f, fullName: e.target.value }))} className="w-full rounded-xl border border-slate-200 px-3 py-2.5 text-sm outline-none focus:border-brand-500 focus:ring-2 focus:ring-brand-100" />
               </div>
+               {!editUser && (
+                 <div>
+                   <label className="block text-xs font-medium text-slate-600 mb-1">Temporary password</label>
+                   <input type="password" value={password} onChange={e => setPassword(e.target.value)} minLength={8} placeholder="At least 8 characters" className="w-full rounded-xl border border-slate-200 px-3 py-2.5 text-sm outline-none focus:border-brand-500 focus:ring-2 focus:ring-brand-100" />
+                 </div>
+               )}
               <div>
                 <label className="block text-xs font-medium text-slate-600 mb-1">Email</label>
                 <input value={form.email} onChange={e => setForm(f => ({ ...f, email: e.target.value }))} className="w-full rounded-xl border border-slate-200 px-3 py-2.5 text-sm outline-none focus:border-brand-500 focus:ring-2 focus:ring-brand-100" />

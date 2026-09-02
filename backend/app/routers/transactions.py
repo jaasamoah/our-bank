@@ -2,7 +2,7 @@ from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy.orm import Session
 from ..database import get_db
 from ..auth import get_current_user
-from ..models import Account, User, Transaction
+from ..models import Account, Payee, User, Transaction
 from ..schemas import TransferOut, TransferRequest
 
 router = APIRouter()
@@ -23,7 +23,7 @@ def create_transfer(
 ):
     if transfer.amount <= 0:
         raise HTTPException(status_code=400, detail="Transfer amount must be greater than zero")
-    if not transfer.to_account_id and not transfer.payee_name:
+    if not transfer.to_account_id and not transfer.payee_id and not transfer.payee_name:
         raise HTTPException(status_code=400, detail="Choose a destination account or payee")
     if transfer.to_account_id and transfer.to_account_id == transfer.from_account_id:
         raise HTTPException(status_code=400, detail="Choose a different destination account")
@@ -48,7 +48,12 @@ def create_transfer(
         if not to_account:
             raise HTTPException(status_code=404, detail="Destination account not found")
 
-    destination = to_account.account_type.title() if to_account else transfer.payee_name
+    payee = None
+    if transfer.payee_id:
+        payee = db.query(Payee).filter(Payee.id == transfer.payee_id, Payee.user_id == current_user.id).first()
+        if not payee:
+            raise HTTPException(status_code=404, detail="Payee not found")
+    destination = to_account.account_type.title() if to_account else (payee.name if payee else transfer.payee_name)
     from_account.balance -= transfer.amount
     outgoing = Transaction(
         user_id=current_user.id,

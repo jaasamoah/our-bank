@@ -3,6 +3,7 @@ import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-d
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
 
 import Login from './pages/Login'
+import ResetPassword from './pages/ResetPassword'
 import Dashboard from './pages/Dashboard'
 import Accounts from './pages/Accounts'
 import Investments from './pages/Investments'
@@ -24,6 +25,7 @@ import AdminKYC from './admin/pages/KYC'
 import AdminNotifications from './admin/pages/Notifications'
 import AdminFXRates from './admin/pages/FXRates'
 import AdminAuditLogs from './admin/pages/AuditLogs'
+import AdminSupport from './admin/pages/Support'
 import AdminProtectedRoute from './admin/components/AdminProtectedRoute'
 import { AdminAuthProvider } from './admin/context/AdminAuthContext'
 
@@ -40,6 +42,7 @@ function App() {
             <Routes>
               {/* Customer routes */}
               <Route path="/login" element={<Login />} />
+              <Route path="/reset-password" element={<ResetPassword />} />
               <Route path="/dashboard" element={<ProtectedRoute><Dashboard /></ProtectedRoute>} />
               <Route path="/accounts" element={<ProtectedRoute><Accounts /></ProtectedRoute>} />
               <Route path="/investments" element={<ProtectedRoute><Investments /></ProtectedRoute>} />
@@ -61,6 +64,7 @@ function App() {
               <Route path="/admin/notifications" element={<AdminProtectedRoute><AdminNotifications /></AdminProtectedRoute>} />
               <Route path="/admin/fx-rates" element={<AdminProtectedRoute><AdminFXRates /></AdminProtectedRoute>} />
               <Route path="/admin/audit-logs" element={<AdminProtectedRoute><AdminAuditLogs /></AdminProtectedRoute>} />
+              <Route path="/admin/support" element={<AdminProtectedRoute><AdminSupport /></AdminProtectedRoute>} />
               <Route path="/admin" element={<Navigate to="/admin/login" replace />} />
 
               <Route path="*" element={<Navigate to="/dashboard" replace />} />

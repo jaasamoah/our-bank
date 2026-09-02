@@ -3,6 +3,7 @@ import { LockClosedIcon } from '@heroicons/react/24/outline';
 import Layout from '../components/Layout';
 import { getAccounts, getCards, updateCardFreeze } from '../services/api';
 import { mapAccount, mapCard } from '../services/adapters';
+import LoadingSpinner from '../components/LoadingSpinner';
 
 const Cards = () => {
   const [cards, setCards] = useState<ReturnType<typeof mapCard>[]>([]);
@@ -35,7 +36,7 @@ const Cards = () => {
 
   return (
     <Layout title="Cards" subtitle="View, freeze, and manage your debit and credit cards.">
-      {loading && <div className="rounded-2xl bg-white p-8 text-center text-sm text-slate-500 shadow-card">Loading your cards…</div>}
+      {loading && <div className="rounded-2xl bg-white p-8 shadow-card"><LoadingSpinner label="Loading your cards" /></div>}
       {error && <div className="mb-6 rounded-2xl bg-red-50 p-4 text-sm text-red-700">{error}</div>}
       {!loading && (
       <div className="grid grid-cols-1 gap-6 lg:grid-cols-2">

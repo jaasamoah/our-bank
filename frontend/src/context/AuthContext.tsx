@@ -65,7 +65,7 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
       setUser(mapUser(apiUser));
       return { success: true };
     } catch {
-      return { success: false, error: 'Invalid username or password. Try demo / demo.' };
+      return { success: false, error: 'Invalid username or password.' };
     }
   };
 

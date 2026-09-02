@@ -7,6 +7,7 @@ import TransactionRow from '../components/TransactionRow';
 import { formatCurrency } from '../mock/data';
 import { getAccounts, getInvestmentPortfolio, getTransactions } from '../services/api';
 import { mapAccount, mapTransaction } from '../services/adapters';
+import LoadingSpinner from '../components/LoadingSpinner';
 
 const Accounts = () => {
   const navigate = useNavigate();
@@ -47,7 +48,7 @@ const Accounts = () => {
         </button>
       </div>
 
-      {loading && <div className="rounded-2xl bg-white p-8 text-center text-sm text-slate-500 shadow-card">Loading your accounts…</div>}
+      {loading && <div className="rounded-2xl bg-white p-8 shadow-card"><LoadingSpinner label="Loading your accounts" /></div>}
       {error && <div className="rounded-2xl bg-red-50 p-4 text-sm text-red-700">{error}</div>}
       {!loading && !error && (
         <>

@@ -25,6 +25,8 @@ class User(Base):
     transactions = relationship("Transaction", back_populates="user")
     investments = relationship("Investment", back_populates="user")
     cards = relationship("Card", back_populates="user")
+    payees = relationship("Payee", back_populates="user")
+    complaints = relationship("Complaint", back_populates="user")
 
 class Account(Base):
     __tablename__ = "accounts"
@@ -95,3 +97,43 @@ class Card(Base):
 
     user = relationship("User", back_populates="cards")
     account = relationship("Account", back_populates="cards")
+
+
+class Payee(Base):
+    __tablename__ = "payees"
+
+    id = Column(Integer, primary_key=True, index=True)
+    user_id = Column(Integer, ForeignKey("users.id"), nullable=False, index=True)
+    name = Column(String, nullable=False)
+    bank = Column(String, nullable=False)
+    account_number = Column(String, nullable=False)
+    created_at = Column(DateTime(timezone=True), server_default=func.now())
+
+    user = relationship("User", back_populates="payees")
+
+
+class PasswordResetToken(Base):
+    __tablename__ = "password_reset_tokens"
+
+    id = Column(Integer, primary_key=True, index=True)
+    user_id = Column(Integer, ForeignKey("users.id"), nullable=False, index=True)
+    token = Column(String, unique=True, nullable=False, index=True)
+    expires_at = Column(DateTime(timezone=True), nullable=False)
+    used = Column(Boolean, default=False)
+    created_at = Column(DateTime(timezone=True), server_default=func.now())
+
+    user = relationship("User")
+
+
+class Complaint(Base):
+    __tablename__ = "complaints"
+
+    id = Column(Integer, primary_key=True, index=True)
+    user_id = Column(Integer, ForeignKey("users.id"), nullable=False, index=True)
+    subject = Column(String, nullable=False)
+    message = Column(String, nullable=False)
+    status = Column(String, default="open", nullable=False)
+    created_at = Column(DateTime(timezone=True), server_default=func.now())
+    updated_at = Column(DateTime(timezone=True), onupdate=func.now())
+
+    user = relationship("User", back_populates="complaints")

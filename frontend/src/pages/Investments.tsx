@@ -8,6 +8,7 @@ import {
 import Layout from '../components/Layout';
 import { formatCurrency } from '../mock/data';
 import { getInvestmentPortfolio, type InvestmentPortfolio } from '../services/api';
+import LoadingSpinner from '../components/LoadingSpinner';
 
 const allocationColors = ['bg-brand-600', 'bg-blue-500', 'bg-violet-500', 'bg-amber-500'];
 
@@ -32,7 +33,7 @@ const Investments = () => {
     <Layout title="Investments" subtitle="Track your portfolio, performance, and asset allocation.">
       {loading && (
         <div className="rounded-2xl bg-white p-8 text-center text-sm text-slate-500 shadow-card">
-          Loading your portfolio…
+          <LoadingSpinner label="Loading your portfolio" />
         </div>
       )}
       {error && <div className="rounded-2xl bg-red-50 p-4 text-sm text-red-700">{error}</div>}

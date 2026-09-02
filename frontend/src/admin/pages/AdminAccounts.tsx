@@ -1,7 +1,9 @@
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import AdminLayout from '../components/AdminLayout';
-import { managedAccounts, formatCurrency } from '../mock/adminData';
+import { formatCurrency } from '../mock/adminData';
 import type { ManagedAccount } from '../mock/adminData';
+import { getAdminAccounts, updateAdminAccount } from '../../services/api';
+import LoadingSpinner from '../../components/LoadingSpinner';
 
 const statusColors: Record<string, string> = {
   Active: 'bg-emerald-50 text-emerald-700',
@@ -18,11 +20,29 @@ const typeColors: Record<string, string> = {
 };
 
 const AdminAccounts: React.FC = () => {
-  const [accounts, setAccounts] = useState<ManagedAccount[]>(managedAccounts);
+  const [accounts, setAccounts] = useState<ManagedAccount[]>([]);
   const [search, setSearch] = useState('');
   const [editAccount, setEditAccount] = useState<ManagedAccount | null>(null);
   const [balanceInput, setBalanceInput] = useState('');
   const [statusInput, setStatusInput] = useState<ManagedAccount['status']>('Active');
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState('');
+
+  useEffect(() => {
+    getAdminAccounts()
+      .then((data) => setAccounts(data.map((account) => ({
+        id: String(account.id),
+        userId: String(account.user_id),
+        userName: account.user_name,
+        type: account.account_type.replace(/^./, (letter) => letter.toUpperCase()) as ManagedAccount['type'],
+        number: account.account_number,
+        balance: account.balance,
+        currency: account.currency,
+        status: account.status as ManagedAccount['status'],
+      }))))
+      .catch(() => setError('We could not load accounts. Please refresh and try again.'))
+      .finally(() => setLoading(false));
+  }, []);
 
   const filtered = accounts.filter((a) =>
     a.userName.toLowerCase().includes(search.toLowerCase()) ||
@@ -36,29 +56,32 @@ const AdminAccounts: React.FC = () => {
     setStatusInput(a.status);
   };
 
-  const handleSave = () => {
+  const handleSave = async () => {
     if (!editAccount) return;
-    setAccounts((prev) =>
-      prev.map((a) =>
-        a.id === editAccount.id
-          ? { ...a, balance: parseFloat(balanceInput) || a.balance, status: statusInput }
-          : a
-      )
-    );
-    setEditAccount(null);
+    try {
+      const updated = await updateAdminAccount(Number(editAccount.id), { balance: parseFloat(balanceInput), status: statusInput });
+      setAccounts((prev) => prev.map((a) => a.id === editAccount.id ? { ...a, balance: updated.balance, status: updated.status as ManagedAccount['status'] } : a));
+      setEditAccount(null);
+    } catch {
+      setError('We could not save this account. Please try again.');
+    }
   };
 
-  const toggleFreeze = (id: string) => {
-    setAccounts((prev) =>
-      prev.map((a) =>
-        a.id === id ? { ...a, status: a.status === 'Active' ? 'Frozen' : 'Active' } : a
-      )
-    );
+  const toggleFreeze = async (id: string) => {
+    const account = accounts.find((item) => item.id === id);
+    if (!account) return;
+    try {
+      const updated = await updateAdminAccount(Number(id), { status: account.status === 'Active' ? 'Frozen' : 'Active' });
+      setAccounts((prev) => prev.map((a) => a.id === id ? { ...a, status: updated.status as ManagedAccount['status'] } : a));
+    } catch {
+      setError('We could not update this account. Please try again.');
+    }
   };
 
   return (
     <AdminLayout title="Account Management" subtitle="View and edit customer account balances and status">
       <div className="space-y-6">
+        {error && <div className="rounded-xl bg-red-50 px-4 py-3 text-sm text-red-700">{error}</div>}
         <div className="flex items-center gap-3">
           <input
             type="text"
@@ -71,6 +94,8 @@ const AdminAccounts: React.FC = () => {
         </div>
 
         <div className="rounded-2xl bg-white border border-slate-100 shadow-sm overflow-hidden">
+          {loading && <div className="p-10"><LoadingSpinner label="Loading accounts" /></div>}
+          {!loading && (
           <div className="overflow-x-auto">
             <table className="w-full text-sm">
               <thead>
@@ -114,6 +139,7 @@ const AdminAccounts: React.FC = () => {
               </tbody>
             </table>
           </div>
+          )}
         </div>
       </div>
 
