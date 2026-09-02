@@ -24,7 +24,7 @@ export interface MockTransaction {
   category: string;
   date: string;
   amount: number;
-  status: 'Completed' | 'Pending' | 'Failed';
+  status: 'Completed' | 'Processing' | 'Pending' | 'Failed' | 'Reversed';
 }
 
 export interface MockCard {

@@ -173,3 +173,21 @@ class AdminUserOut(BaseModel):
 class AdminAccountUpdate(BaseModel):
     balance: Optional[float] = None
     status: Optional[str] = None
+
+
+class AdminTransactionOut(BaseModel):
+    id: int
+    user_id: int
+    user_name: str
+    account_id: int
+    account_number: str
+    amount: float
+    transaction_type: str
+    status: str
+    description: str
+    reference: str
+    created_at: datetime
+
+
+class AdminTransactionStatusUpdate(BaseModel):
+    status: str

@@ -51,7 +51,7 @@ class Transaction(Base):
     user_id = Column(Integer, ForeignKey("users.id"))
     amount = Column(Float)
     transaction_type = Column(String)  # deposit, withdrawal, transfer
-    status = Column(String, default="pending")  # pending, completed, failed
+    status = Column(String, default="processing")  # processing, completed, failed, reversed
     description = Column(String)
     reference = Column(String)
     created_at = Column(DateTime(timezone=True), server_default=func.now())

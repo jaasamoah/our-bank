@@ -1,3 +1,5 @@
+from uuid import uuid4
+
 from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy.orm import Session
 from ..database import get_db
@@ -55,14 +57,15 @@ def create_transfer(
             raise HTTPException(status_code=404, detail="Payee not found")
     destination = to_account.account_type.title() if to_account else (payee.name if payee else transfer.payee_name)
     from_account.balance -= transfer.amount
+    transfer_reference = f"TRF-{current_user.id}-{from_account.id}-{uuid4().hex[:10].upper()}"
     outgoing = Transaction(
         user_id=current_user.id,
         account_id=from_account.id,
         amount=-transfer.amount,
         transaction_type="transfer",
-        status="completed",
+        status="processing",
         description=transfer.note or f"Transfer to {destination}",
-        reference=f"TRF-{current_user.id}-{from_account.id}",
+        reference=transfer_reference,
     )
     db.add(outgoing)
     db.flush()
@@ -75,7 +78,7 @@ def create_transfer(
             account_id=to_account.id,
             amount=transfer.amount,
             transaction_type="transfer",
-            status="completed",
+            status="processing",
             description=transfer.note or f"Transfer from {from_account.account_type.title()}",
             reference=outgoing.reference,
         )
@@ -85,7 +88,7 @@ def create_transfer(
 
     db.commit()
     return {
-        "message": f"Transfer to {destination} completed",
+        "message": f"Transfer to {destination} submitted for processing",
         "amount": transfer.amount,
         "from_account_id": from_account.id,
         "to_account_id": to_account.id if to_account else None,

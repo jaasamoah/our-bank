@@ -52,6 +52,12 @@ export interface ApiTransaction {
   created_at: string;
 }
 
+export interface ApiAdminTransaction extends ApiTransaction {
+  user_id: number;
+  user_name: string;
+  account_number: string;
+}
+
 export interface InvestmentHolding {
   id: number;
   symbol: string;
@@ -257,6 +263,19 @@ export async function updateAdminUser(userId: number, payload: {
 
 export async function getAdminAccounts() {
   const response = await api.get<ApiAdminAccount[]>('/api/admin/accounts');
+  return response.data;
+}
+
+export async function getAdminTransactions() {
+  const response = await api.get<ApiAdminTransaction[]>('/api/admin/transactions');
+  return response.data;
+}
+
+export async function updateAdminTransactionStatus(transactionId: number, status: string) {
+  const response = await api.patch<ApiAdminTransaction>(
+    `/api/admin/transactions/${transactionId}/status`,
+    { status },
+  );
   return response.data;
 }
 

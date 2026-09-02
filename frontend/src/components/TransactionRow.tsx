@@ -4,8 +4,10 @@ import type { MockTransaction } from '../mock/data';
 
 const statusStyles: Record<MockTransaction['status'], string> = {
   Completed: 'bg-emerald-50 text-emerald-600',
+  Processing: 'bg-amber-50 text-amber-600',
   Pending: 'bg-amber-50 text-amber-600',
   Failed: 'bg-red-50 text-red-600',
+  Reversed: 'bg-slate-100 text-slate-600',
 };
 
 const TransactionRow: React.FC<{ txn: MockTransaction; accountName?: string }> = ({ txn, accountName }) => {

@@ -34,7 +34,16 @@ export function mapTransaction(transaction: ApiTransaction): MockTransaction {
     category,
     date: transaction.created_at,
     amount: transaction.amount,
-    status: status === 'pending' ? 'Pending' : status === 'failed' ? 'Failed' : 'Completed',
+    status:
+      status === 'processing'
+        ? 'Processing'
+        : status === 'pending'
+          ? 'Pending'
+          : status === 'failed'
+            ? 'Failed'
+            : status === 'reversed'
+              ? 'Reversed'
+              : 'Completed',
   };
 }
 

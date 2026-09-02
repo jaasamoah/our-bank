@@ -14,13 +14,23 @@ const Transactions = () => {
   const [error, setError] = useState('');
 
   useEffect(() => {
-    Promise.all([getAccounts(), getTransactions()])
-      .then(([accountData, transactionData]) => {
+    const loadTransactions = async (showLoading = false) => {
+      if (showLoading) setLoading(true);
+      try {
+        const [accountData, transactionData] = await Promise.all([getAccounts(), getTransactions()]);
         setAccounts(accountData.map(mapAccount));
         setTransactions(transactionData.map(mapTransaction));
-      })
-      .catch(() => setError('We could not load your transactions. Please refresh and try again.'))
-      .finally(() => setLoading(false));
+        setError('');
+      } catch {
+        setError('We could not load your transactions. Please refresh and try again.');
+      } finally {
+        if (showLoading) setLoading(false);
+      }
+    };
+
+    void loadTransactions(true);
+    const refresh = window.setInterval(() => void loadTransactions(), 10000);
+    return () => window.clearInterval(refresh);
   }, []);
 
   const filtered = useMemo(() => {

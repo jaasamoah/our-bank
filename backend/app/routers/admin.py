@@ -3,8 +3,17 @@ from sqlalchemy.orm import Session
 
 from ..auth import get_current_admin
 from ..database import get_db
-from ..models import Account, Card, Complaint, User, UserRole
-from ..schemas import AdminAccountUpdate, AdminUserCreate, AdminUserOut, AdminUserUpdate, CardOut, ComplaintOut
+from ..models import Account, Card, Complaint, Transaction, User, UserRole
+from ..schemas import (
+    AdminAccountUpdate,
+    AdminTransactionOut,
+    AdminTransactionStatusUpdate,
+    AdminUserCreate,
+    AdminUserOut,
+    AdminUserUpdate,
+    CardOut,
+    ComplaintOut,
+)
 
 router = APIRouter()
 
@@ -126,6 +135,81 @@ def update_account(
         "balance": account.balance,
         "currency": account.currency,
         "status": values.get("status", "Active"),
+    }
+
+
+@router.get("/transactions", response_model=list[AdminTransactionOut])
+def list_transactions(
+    _: User = Depends(get_current_admin),
+    db: Session = Depends(get_db),
+):
+    transactions = (
+        db.query(Transaction)
+        .join(User, Transaction.user_id == User.id)
+        .join(Account, Transaction.account_id == Account.id)
+        .order_by(Transaction.created_at.desc(), Transaction.id.desc())
+        .all()
+    )
+    return [
+        {
+            "id": transaction.id,
+            "user_id": transaction.user_id,
+            "user_name": transaction.user.full_name,
+            "account_id": transaction.account_id,
+            "account_number": transaction.account.account_number,
+            "amount": transaction.amount,
+            "transaction_type": transaction.transaction_type,
+            "status": transaction.status,
+            "description": transaction.description,
+            "reference": transaction.reference,
+            "created_at": transaction.created_at,
+        }
+        for transaction in transactions
+    ]
+
+
+@router.patch("/transactions/{transaction_id}/status", response_model=AdminTransactionOut)
+def update_transaction_status(
+    transaction_id: int,
+    payload: AdminTransactionStatusUpdate,
+    _: User = Depends(get_current_admin),
+    db: Session = Depends(get_db),
+):
+    allowed_statuses = {"processing", "completed", "failed", "reversed"}
+    next_status = payload.status.strip().lower()
+    if next_status not in allowed_statuses:
+        raise HTTPException(
+            status_code=400,
+            detail="Status must be processing, completed, failed, or reversed",
+        )
+
+    transaction = (
+        db.query(Transaction)
+        .join(User, Transaction.user_id == User.id)
+        .join(Account, Transaction.account_id == Account.id)
+        .filter(Transaction.id == transaction_id)
+        .first()
+    )
+    if not transaction:
+        raise HTTPException(status_code=404, detail="Transaction not found")
+
+    linked_transactions = db.query(Transaction).filter(Transaction.reference == transaction.reference).all()
+    for linked_transaction in linked_transactions:
+        linked_transaction.status = next_status
+    db.commit()
+    db.refresh(transaction)
+    return {
+        "id": transaction.id,
+        "user_id": transaction.user_id,
+        "user_name": transaction.user.full_name,
+        "account_id": transaction.account_id,
+        "account_number": transaction.account.account_number,
+        "amount": transaction.amount,
+        "transaction_type": transaction.transaction_type,
+        "status": transaction.status,
+        "description": transaction.description,
+        "reference": transaction.reference,
+        "created_at": transaction.created_at,
     }
 
 

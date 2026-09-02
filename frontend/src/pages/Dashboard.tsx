@@ -19,14 +19,28 @@ const Dashboard = () => {
   const [error, setError] = useState('');
 
   useEffect(() => {
-    Promise.all([getAccounts(), getTransactions(), getInvestmentPortfolio()])
-      .then(([accountData, transactionData, portfolio]) => {
+    const loadDashboard = async (showLoading = false) => {
+      if (showLoading) setLoading(true);
+      try {
+        const [accountData, transactionData, portfolio] = await Promise.all([
+          getAccounts(),
+          getTransactions(),
+          getInvestmentPortfolio(),
+        ]);
         setAccounts(accountData.map(mapAccount));
         setTransactions(transactionData.map(mapTransaction));
         setInvestmentValue(portfolio.summary.total_value);
-      })
-      .catch(() => setError('We could not load your dashboard. Please refresh and try again.'))
-      .finally(() => setLoading(false));
+        setError('');
+      } catch {
+        setError('We could not load your dashboard. Please refresh and try again.');
+      } finally {
+        if (showLoading) setLoading(false);
+      }
+    };
+
+    void loadDashboard(true);
+    const refresh = window.setInterval(() => void loadDashboard(), 10000);
+    return () => window.clearInterval(refresh);
   }, []);
 
   const totalBalance = accounts
