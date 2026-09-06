@@ -143,6 +143,8 @@ class Payee(Base):
     name = Column(String, nullable=False)
     bank = Column(String, nullable=False)
     account_number = Column(String, nullable=False)
+    iban = Column(String, nullable=True)
+    swift_code = Column(String, nullable=True)
     created_at = Column(DateTime(timezone=True), server_default=func.now())
 
     user = orm_relationship("User", back_populates="payees")

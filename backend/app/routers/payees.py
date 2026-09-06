@@ -35,6 +35,8 @@ def create_payee(
         name=name,
         bank=bank,
         account_number=account_number,
+        iban=(payload.iban or "").strip() or None,
+        swift_code=(payload.swift_code or "").strip().upper() or None,
     )
     db.add(payee)
     db.commit()

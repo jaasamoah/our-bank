@@ -19,7 +19,7 @@ const Transfer = () => {
   const [submitting, setSubmitting] = useState(false);
   const [payees, setPayees] = useState<ApiPayee[]>([]);
   const [showPayeeForm, setShowPayeeForm] = useState(false);
-  const [newPayee, setNewPayee] = useState({ name: '', bank: '', account_number: '', password: '' });
+  const [newPayee, setNewPayee] = useState({ name: '', bank: '', account_number: '', iban: '', swift_code: '', password: '' });
   const [payeeToRemove, setPayeeToRemove] = useState<ApiPayee | null>(null);
   const [payeePassword, setPayeePassword] = useState('');
   const [removingPayee, setRemovingPayee] = useState(false);
@@ -103,7 +103,7 @@ const Transfer = () => {
       const created = await createPayee(newPayee);
       setPayees((current) => [...current, created].sort((a, b) => a.name.localeCompare(b.name)));
       setPayeeId(created.id);
-      setNewPayee({ name: '', bank: '', account_number: '', password: '' });
+      setNewPayee({ name: '', bank: '', account_number: '', iban: '', swift_code: '', password: '' });
       setShowPayeeForm(false);
     } catch {
       setError('We could not save that payee. Check the details and try again.');
@@ -214,9 +214,13 @@ const Transfer = () => {
               <div className="mt-3 space-y-3 rounded-xl bg-slate-50 p-4">
                 <input value={newPayee.name} onChange={(e) => setNewPayee({ ...newPayee, name: e.target.value })} placeholder="Payee name" required className="w-full rounded-xl border border-slate-200 px-3 py-2.5 text-sm outline-none focus:border-brand-500" />
                 <input value={newPayee.bank} onChange={(e) => setNewPayee({ ...newPayee, bank: e.target.value })} placeholder="Bank name" required className="w-full rounded-xl border border-slate-200 px-3 py-2.5 text-sm outline-none focus:border-brand-500" />
-                <div className="flex gap-2">
-                  <input value={newPayee.account_number} onChange={(e) => setNewPayee({ ...newPayee, account_number: e.target.value })} placeholder="Account number" required className="min-w-0 flex-1 rounded-xl border border-slate-200 px-3 py-2.5 text-sm outline-none focus:border-brand-500" />
-                   <button type="button" onClick={handleAddPayee} className="rounded-xl bg-brand-700 px-3 py-2 text-sm font-semibold text-white hover:bg-brand-800">Save</button>
+                <input value={newPayee.account_number} onChange={(e) => setNewPayee({ ...newPayee, account_number: e.target.value })} placeholder="Account number" required className="w-full rounded-xl border border-slate-200 px-3 py-2.5 text-sm outline-none focus:border-brand-500" />
+                <div className="grid grid-cols-1 gap-2 sm:grid-cols-2">
+                  <input value={newPayee.iban} onChange={(e) => setNewPayee({ ...newPayee, iban: e.target.value })} placeholder="IBAN number (optional)" className="min-w-0 rounded-xl border border-slate-200 px-3 py-2.5 text-sm outline-none focus:border-brand-500" />
+                  <input value={newPayee.swift_code} onChange={(e) => setNewPayee({ ...newPayee, swift_code: e.target.value })} placeholder="SWIFT code (optional)" className="min-w-0 rounded-xl border border-slate-200 px-3 py-2.5 text-sm uppercase outline-none focus:border-brand-500" />
+                </div>
+                <div className="flex justify-end">
+                    <button type="button" onClick={handleAddPayee} className="rounded-xl bg-brand-700 px-4 py-2 text-sm font-semibold text-white hover:bg-brand-800">Save</button>
                 </div>
                  <input
                    type="password"
@@ -281,7 +285,9 @@ const Transfer = () => {
                   <div className="min-w-0 flex-1">
                     <p className="truncate text-sm font-medium text-slate-900">{p.name}</p>
                     <p className="truncate text-xs text-slate-500">
-                      {p.bank} ···· {p.account_number.slice(-4)}
+                       {p.bank} ···· {p.account_number.slice(-4)}
+                       {p.iban && ` · IBAN ${p.iban}`}
+                       {p.swift_code && ` · SWIFT ${p.swift_code}`}
                     </p>
                   </div>
                    <button type="button" onClick={() => handleDeletePayee(p)} className="text-xs font-medium text-slate-400 hover:text-red-600">Remove</button>

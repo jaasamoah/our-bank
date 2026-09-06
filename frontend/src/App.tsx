@@ -12,6 +12,7 @@ import Transfer from './pages/Transfer'
 import Cards from './pages/Cards'
 import Loans from './pages/Loans'
 import Profile from './pages/Profile'
+import Landing from './pages/Landing'
 import ProtectedRoute from './components/ProtectedRoute'
 import { AuthProvider } from './context/AuthContext'
 
@@ -52,7 +53,7 @@ function App() {
               <Route path="/cards" element={<ProtectedRoute><Cards /></ProtectedRoute>} />
               <Route path="/loans" element={<ProtectedRoute><Loans /></ProtectedRoute>} />
               <Route path="/profile" element={<ProtectedRoute><Profile /></ProtectedRoute>} />
-              <Route path="/" element={<Navigate to="/dashboard" replace />} />
+              <Route path="/" element={<Landing />} />
 
               {/* Admin routes */}
               <Route path="/admin/login" element={<AdminLogin />} />

@@ -1,8 +1,9 @@
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import { CheckIcon, ExclamationTriangleIcon, XMarkIcon } from '@heroicons/react/24/outline';
 import AdminLayout from '../components/AdminLayout';
 import { kycRecords } from '../mock/adminData';
 import type { KYCRecord } from '../mock/adminData';
+import { getAdminUsers } from '../../services/api';
 
 const statusColors: Record<string, string> = {
   Verified: 'bg-emerald-50 text-emerald-700',
@@ -13,14 +14,24 @@ const statusColors: Record<string, string> = {
 const AdminKYC: React.FC = () => {
   const [records, setRecords] = useState<KYCRecord[]>(kycRecords);
   const [filter, setFilter] = useState('All');
+  const [activeEmails, setActiveEmails] = useState<Set<string> | null>(null);
 
-  const filtered = records.filter((k) => filter === 'All' || k.status === filter);
+  useEffect(() => {
+    getAdminUsers()
+      .then((users) => setActiveEmails(new Set(users.map((user) => user.email))))
+      .catch(() => setActiveEmails(null));
+  }, []);
+
+  const visibleRecords = activeEmails
+    ? records.filter((record) => activeEmails.has(record.email))
+    : records;
+  const filtered = visibleRecords.filter((k) => filter === 'All' || k.status === filter);
 
   const setStatus = (id: string, status: KYCRecord['status']) => {
     setRecords((prev) => prev.map((k) => k.id === id ? { ...k, status } : k));
   };
 
-  const pending = records.filter((k) => k.status === 'Pending').length;
+  const pending = visibleRecords.filter((k) => k.status === 'Pending').length;
 
   return (
     <AdminLayout title="KYC Approvals" subtitle="Review and approve customer identity verification">

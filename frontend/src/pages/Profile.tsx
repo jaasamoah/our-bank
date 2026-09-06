@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import Layout from '../components/Layout';
 import { useAuth } from '../context/AuthContext';
 import { getBeneficiaries, type ApiBeneficiary } from '../services/api';
@@ -6,16 +6,9 @@ import { getBeneficiaries, type ApiBeneficiary } from '../services/api';
 const Profile = () => {
   const { user } = useAuth();
   const [notifications, setNotifications] = useState({ email: true, sms: false, push: true });
-  const [saved, setSaved] = useState(false);
   const [beneficiaries, setBeneficiaries] = useState<ApiBeneficiary[]>([]);
 
-  const handleSave = (e: React.FormEvent) => {
-    e.preventDefault();
-    setSaved(true);
-    setTimeout(() => setSaved(false), 2500);
-  };
-
-  React.useEffect(() => {
+  useEffect(() => {
     getBeneficiaries().then(setBeneficiaries).catch(() => setBeneficiaries([]));
   }, []);
 
@@ -33,28 +26,34 @@ const Profile = () => {
           </p>
         </div>
 
-        <form onSubmit={handleSave} className="space-y-5 rounded-2xl bg-white p-6 shadow-card lg:col-span-2">
-          <h3 className="text-sm font-semibold text-slate-900">Personal information</h3>
+        <section className="space-y-5 rounded-2xl bg-white p-6 shadow-card lg:col-span-2">
+          <div>
+            <h3 className="text-sm font-semibold text-slate-900">Personal information</h3>
+            <p className="mt-1 text-sm text-slate-500">These details are managed by Horizon Bank administrators.</p>
+          </div>
           <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
             <div>
               <label className="mb-1.5 block text-sm font-medium text-slate-700">Full name</label>
               <input
                 defaultValue={user?.fullName}
-                className="block w-full rounded-xl border border-slate-200 px-4 py-2.5 outline-none focus:border-brand-500 focus:ring-2 focus:ring-brand-100"
+                readOnly
+                className="block w-full cursor-not-allowed rounded-xl border border-slate-200 bg-slate-50 px-4 py-2.5 text-slate-600 outline-none"
               />
             </div>
             <div>
               <label className="mb-1.5 block text-sm font-medium text-slate-700">Email</label>
               <input
                 defaultValue={user?.email}
-                className="block w-full rounded-xl border border-slate-200 px-4 py-2.5 outline-none focus:border-brand-500 focus:ring-2 focus:ring-brand-100"
+                readOnly
+                className="block w-full cursor-not-allowed rounded-xl border border-slate-200 bg-slate-50 px-4 py-2.5 text-slate-600 outline-none"
               />
             </div>
             <div>
               <label className="mb-1.5 block text-sm font-medium text-slate-700">Phone number</label>
               <input
                 defaultValue="+1 (555) 019-2837"
-                className="block w-full rounded-xl border border-slate-200 px-4 py-2.5 outline-none focus:border-brand-500 focus:ring-2 focus:ring-brand-100"
+                readOnly
+                className="block w-full cursor-not-allowed rounded-xl border border-slate-200 bg-slate-50 px-4 py-2.5 text-slate-600 outline-none"
               />
             </div>
             <div>
@@ -88,19 +87,10 @@ const Profile = () => {
             ))}
           </div>
 
-          {saved && (
-            <div className="rounded-xl bg-emerald-50 px-4 py-2.5 text-sm text-emerald-700">
-              Changes saved successfully.
-            </div>
-          )}
-
-          <button
-            type="submit"
-            className="rounded-xl bg-brand-700 px-5 py-2.5 text-sm font-semibold text-white transition-colors hover:bg-brand-800"
-          >
-            Save changes
-          </button>
-        </form>
+          <div className="rounded-xl bg-slate-50 px-4 py-3 text-sm text-slate-600">
+            Need to update your information? Please contact the bank or your nearest branch.
+          </div>
+        </section>
       </div>
 
       <section className="mt-6 rounded-2xl bg-white p-6 shadow-card">
@@ -126,6 +116,9 @@ const Profile = () => {
                 </div>
                 {beneficiary.account_number && <p className="mt-3 font-mono text-xs text-slate-600">Account ending {beneficiary.account_number.slice(-4)}</p>}
                 {beneficiary.notes && <p className="mt-2 text-sm text-slate-600">{beneficiary.notes}</p>}
+                <p className="mt-2 text-xs text-slate-400">
+                  Added {new Date(beneficiary.created_at).toLocaleDateString()}
+                </p>
               </div>
             ))}
           </div>

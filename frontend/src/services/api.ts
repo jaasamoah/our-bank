@@ -105,6 +105,8 @@ export interface ApiPayee {
   name: string;
   bank: string;
   account_number: string;
+  iban?: string | null;
+  swift_code?: string | null;
   created_at: string;
 }
 
@@ -235,6 +237,8 @@ export async function createPayee(payload: {
   name: string;
   bank: string;
   account_number: string;
+  iban?: string;
+  swift_code?: string;
   password: string;
 }) {
   const response = await api.post<ApiPayee>('/api/payees/', payload);
@@ -291,9 +295,14 @@ export async function updateAdminUser(userId: number, payload: {
   username?: string;
   full_name?: string;
   is_active?: boolean;
+  created_at?: string;
 }) {
   const response = await api.patch<ApiUser & { total_balance: number }>(`/api/admin/users/${userId}`, payload);
   return response.data;
+}
+
+export async function deleteAdminUser(userId: number) {
+  await api.delete(`/api/admin/users/${userId}`);
 }
 
 export async function getAdminAccounts() {
@@ -330,7 +339,13 @@ export async function updateAdminTransactionStatus(transactionId: number, status
 }
 
 export async function updateAdminTransaction(transactionId: number, payload: {
+  user_id?: number;
+  account_id?: number;
+  amount?: number;
+  transaction_type?: string;
   status?: string;
+  description?: string;
+  reference?: string;
   created_at?: string;
 }) {
   const response = await api.patch<ApiAdminTransaction>(
@@ -338,6 +353,10 @@ export async function updateAdminTransaction(transactionId: number, payload: {
     payload,
   );
   return response.data;
+}
+
+export async function deleteAdminTransaction(transactionId: number) {
+  await api.delete(`/api/admin/transactions/${transactionId}`);
 }
 
 export async function updateAdminAccount(accountId: number, payload: { balance?: number; status?: string }) {
@@ -390,6 +409,24 @@ export async function updateAdminLoan(loanId: number, payload: {
   return response.data;
 }
 
+export async function createAdminLoan(payload: {
+  user_id: number;
+  amount: number;
+  outstanding: number;
+  interest_rate: number;
+  term: string;
+  status: string;
+  disbursed_date?: string;
+  description?: string;
+}) {
+  const response = await api.post<ApiAdminLoan>('/api/admin/loans', payload);
+  return response.data;
+}
+
+export async function deleteAdminLoan(loanId: number) {
+  await api.delete(`/api/admin/loans/${loanId}`);
+}
+
 export async function getBeneficiaries() {
   const response = await api.get<ApiBeneficiary[]>('/api/beneficiaries/');
   return response.data;
@@ -406,6 +443,7 @@ export async function createAdminBeneficiary(userId: number, payload: {
   bank?: string;
   account_number?: string;
   notes?: string;
+  created_at?: string;
 }) {
   const response = await api.post<ApiBeneficiary>(`/api/admin/users/${userId}/beneficiaries`, payload);
   return response.data;
@@ -417,6 +455,7 @@ export async function updateAdminBeneficiary(beneficiaryId: number, payload: {
   bank?: string;
   account_number?: string;
   notes?: string;
+  created_at?: string;
 }) {
   const response = await api.patch<ApiBeneficiary>(`/api/admin/beneficiaries/${beneficiaryId}`, payload);
   return response.data;

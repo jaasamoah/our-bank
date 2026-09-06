@@ -100,6 +100,8 @@ class PayeeCreate(BaseModel):
     name: str
     bank: str
     account_number: str
+    iban: Optional[str] = None
+    swift_code: Optional[str] = None
     password: str
 
 
@@ -112,6 +114,8 @@ class PayeeOut(BaseModel):
     name: str
     bank: str
     account_number: str
+    iban: Optional[str] = None
+    swift_code: Optional[str] = None
     created_at: datetime
 
     class Config:
@@ -161,6 +165,7 @@ class AdminUserUpdate(BaseModel):
     username: Optional[str] = None
     full_name: Optional[str] = None
     is_active: Optional[bool] = None
+    created_at: Optional[datetime] = None
 
 
 class AdminUserOut(BaseModel):
@@ -201,7 +206,13 @@ class AdminTransactionStatusUpdate(BaseModel):
 
 
 class AdminTransactionUpdate(BaseModel):
+    user_id: Optional[int] = None
+    account_id: Optional[int] = None
+    amount: Optional[float] = None
+    transaction_type: Optional[str] = None
     status: Optional[str] = None
+    description: Optional[str] = None
+    reference: Optional[str] = None
     created_at: Optional[datetime] = None
 
 
@@ -254,6 +265,17 @@ class AdminLoanUpdate(BaseModel):
     description: Optional[str] = None
 
 
+class AdminLoanCreate(BaseModel):
+    user_id: int
+    amount: float
+    outstanding: float
+    interest_rate: float
+    term: str
+    status: str = "pending"
+    disbursed_date: Optional[datetime] = None
+    description: Optional[str] = None
+
+
 class BeneficiaryCreate(BaseModel):
     name: str
     relationship: Optional[str] = None
@@ -272,4 +294,4 @@ class BeneficiaryOut(BeneficiaryCreate):
 
 
 class AdminBeneficiaryUpdate(BeneficiaryCreate):
-    pass
+    created_at: Optional[datetime] = None

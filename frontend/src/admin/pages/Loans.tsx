@@ -2,7 +2,14 @@ import React, { useEffect, useState } from 'react';
 import AdminLayout from '../components/AdminLayout';
 import { formatCurrency } from '../mock/adminData';
 import type { ManagedLoan } from '../mock/adminData';
-import { getAdminLoans, updateAdminLoan } from '../../services/api';
+import {
+  createAdminLoan,
+  deleteAdminLoan,
+  getAdminLoans,
+  getAdminUsers,
+  updateAdminLoan,
+  type ApiUser,
+} from '../../services/api';
 import LoadingSpinner from '../../components/LoadingSpinner';
 
 const statusColors: Record<string, string> = {
@@ -25,6 +32,18 @@ const AdminLoans: React.FC = () => {
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState('');
+  const [customers, setCustomers] = useState<Array<ApiUser & { total_balance: number }>>([]);
+  const [showCreate, setShowCreate] = useState(false);
+  const [newLoan, setNewLoan] = useState({
+    userId: '',
+    amount: '',
+    outstanding: '',
+    interestRate: '',
+    term: '',
+    status: 'Active' as ManagedLoan['status'],
+    date: new Date().toISOString().slice(0, 10),
+    description: '',
+  });
 
   const mapLoan = (loan: Awaited<ReturnType<typeof getAdminLoans>>[number]): ManagedLoan => ({
     id: String(loan.id),
@@ -40,8 +59,12 @@ const AdminLoans: React.FC = () => {
   });
 
   useEffect(() => {
-    getAdminLoans()
-      .then((data) => setLoans(data.map(mapLoan)))
+    Promise.all([getAdminLoans(), getAdminUsers()])
+      .then(([loanData, customerData]) => {
+        setLoans(loanData.map(mapLoan));
+        setCustomers(customerData);
+        setNewLoan((current) => ({ ...current, userId: current.userId || String(customerData[0]?.id ?? '') }));
+      })
       .catch(() => setError('We could not load loans. Please refresh and try again.'))
       .finally(() => setLoading(false));
   }, []);
@@ -56,6 +79,56 @@ const AdminLoans: React.FC = () => {
     setDateInput(l.disbursedDate.slice(0, 10));
     setDescriptionInput(l.description ?? '');
     setError('');
+  };
+
+  const handleCreate = async () => {
+    const amount = Number(newLoan.amount);
+    const outstanding = Number(newLoan.outstanding);
+    const interestRate = Number(newLoan.interestRate);
+    if (!newLoan.userId || !newLoan.amount || !newLoan.outstanding || !newLoan.interestRate || !newLoan.term.trim() || !newLoan.date || amount < 0 || outstanding < 0 || interestRate < 0) {
+      setError('Choose a customer and complete the loan details with valid numbers.');
+      return;
+    }
+    setSaving(true);
+    setError('');
+    try {
+      const created = await createAdminLoan({
+        user_id: Number(newLoan.userId),
+        amount,
+        outstanding,
+        interest_rate: interestRate,
+        term: newLoan.term.trim(),
+        status: newLoan.status.toLowerCase(),
+        disbursed_date: new Date(`${newLoan.date}T00:00:00`).toISOString(),
+        description: newLoan.description.trim() || undefined,
+      });
+      setLoans((current) => [mapLoan(created), ...current]);
+      setShowCreate(false);
+      setNewLoan({
+        userId: String(customers[0]?.id ?? ''),
+        amount: '',
+        outstanding: '',
+        interestRate: '',
+        term: '',
+        status: 'Active',
+        date: new Date().toISOString().slice(0, 10),
+        description: '',
+      });
+    } catch {
+      setError('We could not create this loan. Please check the customer and details.');
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  const handleDelete = async (loan: ManagedLoan) => {
+    if (!window.confirm(`Delete the loan for ${loan.userName}?`)) return;
+    try {
+      await deleteAdminLoan(Number(loan.id));
+      setLoans((current) => current.filter((item) => item.id !== loan.id));
+    } catch {
+      setError('We could not delete this loan. Please try again.');
+    }
   };
 
   const handleSave = async () => {
@@ -94,6 +167,7 @@ const AdminLoans: React.FC = () => {
   return (
     <AdminLayout title="Loan Management" subtitle="Monitor and manage customer loans">
       <div className="space-y-6">
+        {error && <div className="rounded-xl bg-red-50 px-4 py-3 text-sm text-red-700">{error}</div>}
         <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
           <div className="rounded-2xl bg-white border border-slate-100 shadow-sm p-5">
             <p className="text-xs text-slate-500 mb-1">Total Disbursed</p>
@@ -109,6 +183,9 @@ const AdminLoans: React.FC = () => {
           </div>
         </div>
 
+        <div className="flex justify-end">
+          <button type="button" onClick={() => setShowCreate(true)} className="rounded-xl bg-brand-700 px-4 py-2.5 text-sm font-semibold text-white hover:bg-brand-800">New loan</button>
+        </div>
         <div className="rounded-2xl bg-white border border-slate-100 shadow-sm overflow-hidden">
           <div className="overflow-x-auto">
             <table className="w-full text-sm">
@@ -137,7 +214,10 @@ const AdminLoans: React.FC = () => {
                       <span className={`px-2.5 py-1 rounded-full text-xs font-medium ${statusColors[l.status]}`}>{l.status}</span>
                     </td>
                     <td className="px-6 py-4">
-                      <button onClick={() => openEdit(l)} className="rounded-lg px-3 py-1.5 text-xs font-medium text-brand-700 bg-brand-50 hover:bg-brand-100 transition">Edit</button>
+                      <div className="flex gap-2">
+                        <button onClick={() => openEdit(l)} className="rounded-lg px-3 py-1.5 text-xs font-medium text-brand-700 bg-brand-50 hover:bg-brand-100 transition">Edit</button>
+                        <button onClick={() => void handleDelete(l)} className="rounded-lg px-3 py-1.5 text-xs font-medium text-red-700 bg-red-50 hover:bg-red-100 transition">Delete</button>
+                      </div>
                     </td>
                   </tr>
                 ))}
@@ -147,7 +227,53 @@ const AdminLoans: React.FC = () => {
        </div>
       </div>
 
-      {editLoan && (
+       {showCreate && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/40 px-4">
+          <div className="max-h-[90vh] w-full max-w-lg overflow-y-auto rounded-2xl bg-white p-6 shadow-xl">
+            <h2 className="text-lg font-bold text-slate-900">Create loan</h2>
+            <p className="mt-1 text-sm text-slate-500">Assign the loan to a customer profile.</p>
+            <div className="mt-5 space-y-4">
+              <label className="block text-xs font-medium text-slate-600">Customer
+                <select value={newLoan.userId} onChange={(event) => setNewLoan((current) => ({ ...current, userId: event.target.value }))} className="mt-1 block w-full rounded-xl border border-slate-200 px-3 py-2.5 text-sm">
+                  <option value="">Select customer</option>
+                  {customers.map((customer) => <option key={customer.id} value={customer.id}>{customer.full_name}</option>)}
+                </select>
+              </label>
+              <div className="grid grid-cols-2 gap-3">
+                <label className="text-xs font-medium text-slate-600">Loan amount
+                  <input type="number" min="0" step="0.01" value={newLoan.amount} onChange={(event) => setNewLoan((current) => ({ ...current, amount: event.target.value }))} className="mt-1 block w-full rounded-xl border border-slate-200 px-3 py-2.5 text-sm" />
+                </label>
+                <label className="text-xs font-medium text-slate-600">Outstanding
+                  <input type="number" min="0" step="0.01" value={newLoan.outstanding} onChange={(event) => setNewLoan((current) => ({ ...current, outstanding: event.target.value }))} className="mt-1 block w-full rounded-xl border border-slate-200 px-3 py-2.5 text-sm" />
+                </label>
+                <label className="text-xs font-medium text-slate-600">Interest rate (%)
+                  <input type="number" min="0" step="0.01" value={newLoan.interestRate} onChange={(event) => setNewLoan((current) => ({ ...current, interestRate: event.target.value }))} className="mt-1 block w-full rounded-xl border border-slate-200 px-3 py-2.5 text-sm" />
+                </label>
+                <label className="text-xs font-medium text-slate-600">Term
+                  <input value={newLoan.term} onChange={(event) => setNewLoan((current) => ({ ...current, term: event.target.value }))} placeholder="e.g. 5 years" className="mt-1 block w-full rounded-xl border border-slate-200 px-3 py-2.5 text-sm" />
+                </label>
+                <label className="text-xs font-medium text-slate-600">Disbursed date
+                  <input type="date" value={newLoan.date} onChange={(event) => setNewLoan((current) => ({ ...current, date: event.target.value }))} className="mt-1 block w-full rounded-xl border border-slate-200 px-3 py-2.5 text-sm" />
+                </label>
+                <label className="text-xs font-medium text-slate-600">Status
+                  <select value={newLoan.status} onChange={(event) => setNewLoan((current) => ({ ...current, status: event.target.value as ManagedLoan['status'] }))} className="mt-1 block w-full rounded-xl border border-slate-200 px-3 py-2.5 text-sm">
+                    <option>Active</option><option>Pending</option><option>Paid</option><option>Defaulted</option>
+                  </select>
+                </label>
+              </div>
+              <label className="block text-xs font-medium text-slate-600">Description
+                <textarea rows={2} value={newLoan.description} onChange={(event) => setNewLoan((current) => ({ ...current, description: event.target.value }))} className="mt-1 block w-full rounded-xl border border-slate-200 px-3 py-2.5 text-sm" />
+              </label>
+            </div>
+            <div className="mt-6 flex gap-3">
+              <button onClick={() => setShowCreate(false)} className="flex-1 rounded-xl border border-slate-200 py-2.5 text-sm font-medium text-slate-600">Cancel</button>
+              <button onClick={() => void handleCreate()} disabled={saving} className="flex-1 rounded-xl bg-brand-700 py-2.5 text-sm font-semibold text-white disabled:opacity-60">{saving ? 'Creating…' : 'Create loan'}</button>
+            </div>
+          </div>
+        </div>
+      )}
+
+       {editLoan && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/40 px-4">
           <div className="w-full max-w-sm rounded-2xl bg-white p-6 shadow-xl">
             <h2 className="text-lg font-bold text-slate-900 mb-1">Edit Loan</h2>

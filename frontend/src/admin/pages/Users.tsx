@@ -6,6 +6,7 @@ import {
   createAdminBeneficiary,
   createAdminUser,
   deleteAdminBeneficiary,
+  deleteAdminUser,
   getAdminBeneficiaries,
   getAdminUsers,
   updateAdminBeneficiary,
@@ -43,7 +44,7 @@ const AdminUsers: React.FC = () => {
   const [error, setError] = useState('');
   const [beneficiaryUser, setBeneficiaryUser] = useState<ManagedUser | null>(null);
   const [beneficiaries, setBeneficiaries] = useState<ApiBeneficiary[]>([]);
-  const [beneficiaryForm, setBeneficiaryForm] = useState({ name: '', relationship: '', bank: '', account_number: '', notes: '' });
+  const [beneficiaryForm, setBeneficiaryForm] = useState({ name: '', relationship: '', bank: '', account_number: '', notes: '', created_at: new Date().toISOString().slice(0, 10) });
   const [editingBeneficiary, setEditingBeneficiary] = useState<ApiBeneficiary | null>(null);
   const [beneficiarySaving, setBeneficiarySaving] = useState(false);
 
@@ -99,6 +100,7 @@ const AdminUsers: React.FC = () => {
             email: form.email,
             username: form.username,
             is_active: form.status === 'Active',
+            created_at: new Date(`${form.joinedDate}T00:00:00`).toISOString(),
           })
         : await createAdminUser({
             full_name: form.fullName,
@@ -112,6 +114,16 @@ const AdminUsers: React.FC = () => {
       setShowModal(false);
     } catch {
       setError('We could not save this customer. Check for duplicate details and try again.');
+    }
+  };
+
+  const removeUser = async (user: ManagedUser) => {
+    if (!window.confirm(`Delete ${user.fullName}? This removes their accounts, transactions, loans, beneficiaries, and KYC listing.`)) return;
+    try {
+      await deleteAdminUser(Number(user.id));
+      setUsers((prev) => prev.filter((item) => item.id !== user.id));
+    } catch {
+      setError('We could not delete this customer. Please try again.');
     }
   };
 
@@ -129,7 +141,7 @@ const AdminUsers: React.FC = () => {
   const openBeneficiaries = async (user: ManagedUser) => {
     setBeneficiaryUser(user);
     setEditingBeneficiary(null);
-    setBeneficiaryForm({ name: '', relationship: '', bank: '', account_number: '', notes: '' });
+    setBeneficiaryForm({ name: '', relationship: '', bank: '', account_number: '', notes: '', created_at: new Date().toISOString().slice(0, 10) });
     setError('');
     try {
       setBeneficiaries(await getAdminBeneficiaries(Number(user.id)));
@@ -146,6 +158,7 @@ const AdminUsers: React.FC = () => {
       bank: beneficiary.bank ?? '',
       account_number: beneficiary.account_number ?? '',
       notes: beneficiary.notes ?? '',
+      created_at: beneficiary.created_at.slice(0, 10),
     });
   };
 
@@ -163,6 +176,7 @@ const AdminUsers: React.FC = () => {
         bank: beneficiaryForm.bank.trim() || undefined,
         account_number: beneficiaryForm.account_number.trim() || undefined,
         notes: beneficiaryForm.notes.trim() || undefined,
+        created_at: beneficiaryForm.created_at ? new Date(`${beneficiaryForm.created_at}T00:00:00`).toISOString() : undefined,
       };
       const savedBeneficiary = editingBeneficiary
         ? await updateAdminBeneficiary(editingBeneficiary.id, payload)
@@ -171,7 +185,7 @@ const AdminUsers: React.FC = () => {
         ? current.map((item) => item.id === savedBeneficiary.id ? savedBeneficiary : item)
         : [savedBeneficiary, ...current]);
       setEditingBeneficiary(null);
-      setBeneficiaryForm({ name: '', relationship: '', bank: '', account_number: '', notes: '' });
+       setBeneficiaryForm({ name: '', relationship: '', bank: '', account_number: '', notes: '', created_at: new Date().toISOString().slice(0, 10) });
     } catch {
       setError('We could not save this beneficiary.');
     } finally {
@@ -256,6 +270,7 @@ const AdminUsers: React.FC = () => {
                           {u.status === 'Active' ? 'Suspend' : 'Activate'}
                         </button>
                         <button onClick={() => void openBeneficiaries(u)} className="rounded-lg bg-slate-100 px-3 py-1.5 text-xs font-medium text-slate-700 hover:bg-slate-200 transition">Beneficiaries</button>
+                        <button onClick={() => void removeUser(u)} className="rounded-lg bg-red-50 px-3 py-1.5 text-xs font-medium text-red-700 hover:bg-red-100 transition">Delete</button>
                       </div>
                     </td>
                   </tr>
@@ -289,6 +304,10 @@ const AdminUsers: React.FC = () => {
               <div>
                 <label className="block text-xs font-medium text-slate-600 mb-1">Username</label>
                 <input value={form.username} onChange={e => setForm(f => ({ ...f, username: e.target.value }))} className="w-full rounded-xl border border-slate-200 px-3 py-2.5 text-sm outline-none focus:border-brand-500 focus:ring-2 focus:ring-brand-100" />
+              </div>
+              <div>
+                <label className="block text-xs font-medium text-slate-600 mb-1">Date joined</label>
+                <input type="date" value={form.joinedDate.slice(0, 10)} onChange={e => setForm(f => ({ ...f, joinedDate: e.target.value }))} className="w-full rounded-xl border border-slate-200 px-3 py-2.5 text-sm outline-none focus:border-brand-500 focus:ring-2 focus:ring-brand-100" />
               </div>
               <div className="grid grid-cols-2 gap-3">
                 <div>
@@ -353,7 +372,10 @@ const AdminUsers: React.FC = () => {
               <textarea placeholder="Notes" rows={2} value={beneficiaryForm.notes} onChange={(event) => setBeneficiaryForm((current) => ({ ...current, notes: event.target.value }))} className="mt-3 block w-full rounded-xl border border-slate-200 px-3 py-2.5 text-sm outline-none focus:border-brand-500" />
               {error && <p className="mt-3 rounded-xl bg-red-50 px-3 py-2 text-sm text-red-700">{error}</p>}
               <div className="mt-4 flex gap-3">
-                {editingBeneficiary && <button type="button" onClick={() => { setEditingBeneficiary(null); setBeneficiaryForm({ name: '', relationship: '', bank: '', account_number: '', notes: '' }); }} className="rounded-xl border border-slate-200 px-4 py-2.5 text-sm font-medium text-slate-600">Cancel edit</button>}
+                <label className="text-xs font-medium text-slate-600">Date added
+                  <input type="date" value={beneficiaryForm.created_at} onChange={(event) => setBeneficiaryForm((current) => ({ ...current, created_at: event.target.value }))} className="mt-1 block w-full rounded-xl border border-slate-200 px-3 py-2.5 text-sm outline-none focus:border-brand-500" />
+                </label>
+                 {editingBeneficiary && <button type="button" onClick={() => { setEditingBeneficiary(null); setBeneficiaryForm({ name: '', relationship: '', bank: '', account_number: '', notes: '', created_at: new Date().toISOString().slice(0, 10) }); }} className="rounded-xl border border-slate-200 px-4 py-2.5 text-sm font-medium text-slate-600">Cancel edit</button>}
                 <button type="button" onClick={() => void saveBeneficiary()} disabled={beneficiarySaving} className="rounded-xl bg-brand-700 px-4 py-2.5 text-sm font-semibold text-white disabled:opacity-60">{beneficiarySaving ? 'Saving…' : editingBeneficiary ? 'Save beneficiary' : 'Add beneficiary'}</button>
               </div>
             </div>

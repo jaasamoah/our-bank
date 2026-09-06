@@ -4,12 +4,25 @@ from uuid import uuid4
 
 from ..auth import get_current_admin
 from ..database import get_db
-from ..models import Account, Beneficiary, Card, Complaint, Loan, Transaction, User, UserRole
+from ..models import (
+    Account,
+    Beneficiary,
+    Card,
+    Complaint,
+    Investment,
+    Loan,
+    PasswordResetToken,
+    Payee,
+    Transaction,
+    User,
+    UserRole,
+)
 from ..schemas import (
     AdminAccountUpdate,
     AdminBeneficiaryUpdate,
     AdminCardUpdate,
     AdminLoanOut,
+    AdminLoanCreate,
     AdminLoanUpdate,
     AdminTransactionCreate,
     AdminTransactionOut,
@@ -114,6 +127,32 @@ def update_user(
     db.commit()
     db.refresh(user)
     return serialize_user(user)
+
+
+@router.delete("/users/{user_id}", status_code=204)
+def delete_user(
+    user_id: int,
+    _: User = Depends(get_current_admin),
+    db: Session = Depends(get_db),
+):
+    user = db.query(User).filter(User.id == user_id, User.role == UserRole.CUSTOMER).first()
+    if not user:
+        raise HTTPException(status_code=404, detail="Customer not found")
+
+    account_ids = [account.id for account in db.query(Account.id).filter(Account.user_id == user_id).all()]
+    if account_ids:
+        db.query(Transaction).filter(Transaction.account_id.in_(account_ids)).delete(synchronize_session=False)
+    db.query(Transaction).filter(Transaction.user_id == user_id).delete(synchronize_session=False)
+    db.query(Card).filter(Card.user_id == user_id).delete(synchronize_session=False)
+    db.query(Loan).filter(Loan.user_id == user_id).delete(synchronize_session=False)
+    db.query(Beneficiary).filter(Beneficiary.user_id == user_id).delete(synchronize_session=False)
+    db.query(Payee).filter(Payee.user_id == user_id).delete(synchronize_session=False)
+    db.query(Investment).filter(Investment.user_id == user_id).delete(synchronize_session=False)
+    db.query(Complaint).filter(Complaint.user_id == user_id).delete(synchronize_session=False)
+    db.query(PasswordResetToken).filter(PasswordResetToken.user_id == user_id).delete(synchronize_session=False)
+    db.query(Account).filter(Account.user_id == user_id).delete(synchronize_session=False)
+    db.delete(user)
+    db.commit()
 
 
 @router.get("/accounts")
@@ -236,6 +275,32 @@ def update_transaction(
         raise HTTPException(status_code=404, detail="Transaction not found")
 
     values = payload.model_dump(exclude_unset=True)
+    original_reference = transaction.reference
+    next_user_id = values.get("user_id", transaction.user_id)
+    next_account_id = values.get("account_id", transaction.account_id)
+    next_user = db.query(User).filter(User.id == next_user_id, User.role == UserRole.CUSTOMER).first()
+    if not next_user:
+        raise HTTPException(status_code=404, detail="Customer not found")
+    next_account = db.query(Account).filter(
+        Account.id == next_account_id,
+        Account.user_id == next_user_id,
+    ).first()
+    if not next_account:
+        raise HTTPException(status_code=404, detail="Account does not belong to this customer")
+    if "amount" in values and values["amount"] is None:
+        raise HTTPException(status_code=400, detail="Transaction amount is required")
+    if "transaction_type" in values:
+        values["transaction_type"] = (values["transaction_type"] or "").strip().lower()
+        if not values["transaction_type"]:
+            raise HTTPException(status_code=400, detail="Transaction type is required")
+    if "description" in values:
+        values["description"] = (values["description"] or "").strip()
+        if not values["description"]:
+            raise HTTPException(status_code=400, detail="Transaction description is required")
+    if "reference" in values:
+        values["reference"] = (values["reference"] or "").strip()
+        if not values["reference"]:
+            raise HTTPException(status_code=400, detail="Transaction reference is required")
     if "status" in values:
         next_status = values["status"].strip().lower()
         if next_status not in TRANSACTION_STATUSES:
@@ -250,11 +315,45 @@ def update_transaction(
     if "created_at" in values:
         if values["created_at"] is None:
             raise HTTPException(status_code=400, detail="Transaction date and time are required")
-        transaction.created_at = values["created_at"]
+
+    old_amount = transaction.amount
+    old_account = transaction.account
+    next_amount = values.get("amount", old_amount)
+    if next_amount is None:
+        raise HTTPException(status_code=400, detail="Transaction amount is required")
+    if next_account.id != old_account.id:
+        old_account.balance -= old_amount
+        next_account.balance += next_amount
+    else:
+        next_account.balance += next_amount - old_amount
+    transaction.user_id = next_user.id
+    transaction.account_id = next_account.id
+    for key in ("amount", "transaction_type", "description", "reference", "created_at"):
+        if key in values:
+            setattr(transaction, key, values[key])
 
     db.commit()
     db.refresh(transaction)
     return serialize_transaction(transaction)
+
+
+@router.delete("/transactions/{transaction_id}", status_code=204)
+def delete_transaction(
+    transaction_id: int,
+    _: User = Depends(get_current_admin),
+    db: Session = Depends(get_db),
+):
+    transaction = db.query(Transaction).filter(Transaction.id == transaction_id).first()
+    if not transaction:
+        raise HTTPException(status_code=404, detail="Transaction not found")
+
+    linked_transactions = db.query(Transaction).filter(
+        Transaction.reference == transaction.reference
+    ).all()
+    for linked_transaction in linked_transactions:
+        linked_transaction.account.balance -= linked_transaction.amount
+        db.delete(linked_transaction)
+    db.commit()
 
 
 @router.get("/transactions", response_model=list[AdminTransactionOut])
@@ -403,6 +502,51 @@ def list_loans(
     ]
 
 
+@router.post("/loans", response_model=AdminLoanOut, status_code=201)
+def create_loan(
+    payload: AdminLoanCreate,
+    _: User = Depends(get_current_admin),
+    db: Session = Depends(get_db),
+):
+    user = db.query(User).filter(User.id == payload.user_id, User.role == UserRole.CUSTOMER).first()
+    if not user:
+        raise HTTPException(status_code=404, detail="Customer not found")
+    if payload.amount < 0 or payload.outstanding < 0 or payload.interest_rate < 0:
+        raise HTTPException(status_code=400, detail="Loan values cannot be negative")
+    status = payload.status.strip().lower()
+    if status not in LOAN_STATUSES:
+        raise HTTPException(status_code=400, detail="Invalid loan status")
+    term = payload.term.strip()
+    if not term:
+        raise HTTPException(status_code=400, detail="Loan term is required")
+    loan = Loan(
+        user_id=user.id,
+        amount=payload.amount,
+        outstanding=payload.outstanding,
+        interest_rate=payload.interest_rate,
+        term=term,
+        status=status,
+        disbursed_date=payload.disbursed_date,
+        description=(payload.description or "").strip() or None,
+    )
+    db.add(loan)
+    db.commit()
+    db.refresh(loan)
+    return {
+        "id": loan.id,
+        "user_id": loan.user_id,
+        "user_name": loan.user.full_name,
+        "amount": loan.amount,
+        "outstanding": loan.outstanding,
+        "interest_rate": loan.interest_rate,
+        "term": loan.term,
+        "status": loan.status,
+        "disbursed_date": loan.disbursed_date,
+        "description": loan.description,
+        "created_at": loan.created_at,
+    }
+
+
 @router.patch("/loans/{loan_id}", response_model=AdminLoanOut)
 def update_loan(
     loan_id: int,
@@ -448,6 +592,19 @@ def update_loan(
     }
 
 
+@router.delete("/loans/{loan_id}", status_code=204)
+def delete_loan(
+    loan_id: int,
+    _: User = Depends(get_current_admin),
+    db: Session = Depends(get_db),
+):
+    loan = db.query(Loan).filter(Loan.id == loan_id).first()
+    if not loan:
+        raise HTTPException(status_code=404, detail="Loan not found")
+    db.delete(loan)
+    db.commit()
+
+
 @router.get("/users/{user_id}/beneficiaries", response_model=list[BeneficiaryOut])
 def list_user_beneficiaries(
     user_id: int,
@@ -484,6 +641,8 @@ def create_user_beneficiary(
         account_number=(payload.account_number or "").strip() or None,
         notes=(payload.notes or "").strip() or None,
     )
+    if payload.created_at is not None:
+        beneficiary.created_at = payload.created_at
     db.add(beneficiary)
     db.commit()
     db.refresh(beneficiary)
