@@ -4,6 +4,7 @@ import { useNavigate } from 'react-router-dom';
 import Layout from '../components/Layout';
 import AccountCard from '../components/AccountCard';
 import TransactionRow from '../components/TransactionRow';
+import TransactionDetailsModal from '../components/TransactionDetailsModal';
 import { formatCurrency } from '../mock/data';
 import { getAccounts, getInvestmentPortfolio, getTransactions } from '../services/api';
 import { mapAccount, mapTransaction } from '../services/adapters';
@@ -15,6 +16,7 @@ const Accounts = () => {
   const [transactions, setTransactions] = useState<ReturnType<typeof mapTransaction>[]>([]);
   const [portfolio, setPortfolio] = useState<Awaited<ReturnType<typeof getInvestmentPortfolio>> | null>(null);
   const [selectedId, setSelectedId] = useState('');
+  const [selectedTransaction, setSelectedTransaction] = useState<ReturnType<typeof mapTransaction> | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
 
@@ -108,7 +110,12 @@ const Accounts = () => {
         {accountTransactions.length > 0 ? (
           <div>
             {accountTransactions.map((txn) => (
-              <TransactionRow key={txn.id} txn={txn} />
+              <TransactionRow
+                key={txn.id}
+                txn={txn}
+                accountName={selectedAccount.name}
+                onClick={() => setSelectedTransaction(txn)}
+              />
             ))}
           </div>
         ) : (
@@ -117,6 +124,13 @@ const Accounts = () => {
       </div>
       }
         </>
+      )}
+      {selectedTransaction && (
+        <TransactionDetailsModal
+          txn={selectedTransaction}
+          accountName={selectedAccount?.name}
+          onClose={() => setSelectedTransaction(null)}
+        />
       )}
     </Layout>
   );

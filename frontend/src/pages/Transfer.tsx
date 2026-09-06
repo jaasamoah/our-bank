@@ -19,7 +19,10 @@ const Transfer = () => {
   const [submitting, setSubmitting] = useState(false);
   const [payees, setPayees] = useState<ApiPayee[]>([]);
   const [showPayeeForm, setShowPayeeForm] = useState(false);
-  const [newPayee, setNewPayee] = useState({ name: '', bank: '', account_number: '' });
+  const [newPayee, setNewPayee] = useState({ name: '', bank: '', account_number: '', password: '' });
+  const [payeeToRemove, setPayeeToRemove] = useState<ApiPayee | null>(null);
+  const [payeePassword, setPayeePassword] = useState('');
+  const [removingPayee, setRemovingPayee] = useState(false);
 
   useEffect(() => {
     Promise.all([getAccounts(), getPayees()])
@@ -92,25 +95,44 @@ const Transfer = () => {
 
   const handleAddPayee = async () => {
     setError(null);
+    if (!newPayee.password) {
+      setError('Enter your password to save this payee.');
+      return;
+    }
     try {
       const created = await createPayee(newPayee);
       setPayees((current) => [...current, created].sort((a, b) => a.name.localeCompare(b.name)));
       setPayeeId(created.id);
-      setNewPayee({ name: '', bank: '', account_number: '' });
+      setNewPayee({ name: '', bank: '', account_number: '', password: '' });
       setShowPayeeForm(false);
     } catch {
       setError('We could not save that payee. Check the details and try again.');
     }
   };
 
-  const handleDeletePayee = async (payeeIdToDelete: number) => {
+  const handleDeletePayee = (payee: ApiPayee) => {
+    setError(null);
+    setPayeePassword('');
+    setPayeeToRemove(payee);
+  };
+
+  const confirmDeletePayee = async () => {
+    if (!payeeToRemove || !payeePassword) {
+      setError('Enter your password to remove this payee.');
+      return;
+    }
+    setRemovingPayee(true);
     try {
-      await deletePayee(payeeIdToDelete);
-      const remaining = payees.filter((payee) => payee.id !== payeeIdToDelete);
+      await deletePayee(payeeToRemove.id, payeePassword);
+      const remaining = payees.filter((payee) => payee.id !== payeeToRemove.id);
       setPayees(remaining);
-      if (payeeId === payeeIdToDelete) setPayeeId(remaining[0]?.id ?? '');
+      if (payeeId === payeeToRemove.id) setPayeeId(remaining[0]?.id ?? '');
+      setPayeeToRemove(null);
+      setPayeePassword('');
     } catch {
-      setError('We could not remove that payee. Please try again.');
+      setError('We could not remove that payee. Check your password and try again.');
+    } finally {
+      setRemovingPayee(false);
     }
   };
 
@@ -194,8 +216,17 @@ const Transfer = () => {
                 <input value={newPayee.bank} onChange={(e) => setNewPayee({ ...newPayee, bank: e.target.value })} placeholder="Bank name" required className="w-full rounded-xl border border-slate-200 px-3 py-2.5 text-sm outline-none focus:border-brand-500" />
                 <div className="flex gap-2">
                   <input value={newPayee.account_number} onChange={(e) => setNewPayee({ ...newPayee, account_number: e.target.value })} placeholder="Account number" required className="min-w-0 flex-1 rounded-xl border border-slate-200 px-3 py-2.5 text-sm outline-none focus:border-brand-500" />
-                  <button type="button" onClick={handleAddPayee} className="rounded-xl bg-brand-700 px-3 py-2 text-sm font-semibold text-white hover:bg-brand-800">Save</button>
+                   <button type="button" onClick={handleAddPayee} className="rounded-xl bg-brand-700 px-3 py-2 text-sm font-semibold text-white hover:bg-brand-800">Save</button>
                 </div>
+                 <input
+                   type="password"
+                   autoComplete="current-password"
+                   value={newPayee.password}
+                   onChange={(e) => setNewPayee({ ...newPayee, password: e.target.value })}
+                   placeholder="Confirm with your password"
+                   required
+                   className="w-full rounded-xl border border-slate-200 px-3 py-2.5 text-sm outline-none focus:border-brand-500"
+                 />
               </div>
             )}
           </div>
@@ -253,7 +284,7 @@ const Transfer = () => {
                       {p.bank} ···· {p.account_number.slice(-4)}
                     </p>
                   </div>
-                  <button onClick={() => handleDeletePayee(p.id)} className="text-xs font-medium text-slate-400 hover:text-red-600">Remove</button>
+                   <button type="button" onClick={() => handleDeletePayee(p)} className="text-xs font-medium text-slate-400 hover:text-red-600">Remove</button>
                 </div>
               ))}
               {payees.length === 0 && <p className="text-sm text-slate-500">No saved payees yet.</p>}
@@ -268,6 +299,46 @@ const Transfer = () => {
           </div>
         </div>
       </div>
+
+      {payeeToRemove && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/40 px-4">
+          <div className="w-full max-w-sm rounded-2xl bg-white p-6 shadow-xl">
+            <h2 className="text-lg font-bold text-slate-900">Remove saved payee?</h2>
+            <p className="mt-2 text-sm text-slate-500">
+              Enter your password to remove {payeeToRemove.name} from your saved payees.
+            </p>
+            <label className="mt-5 block text-sm font-medium text-slate-700">
+              Password
+              <input
+                type="password"
+                autoComplete="current-password"
+                autoFocus
+                value={payeePassword}
+                onChange={(e) => setPayeePassword(e.target.value)}
+                className="mt-1.5 block w-full rounded-xl border border-slate-200 px-3 py-2.5 outline-none focus:border-brand-500 focus:ring-2 focus:ring-brand-100"
+              />
+            </label>
+            {error && <p className="mt-3 rounded-xl bg-red-50 px-3 py-2 text-sm text-red-700">{error}</p>}
+            <div className="mt-5 flex gap-3">
+              <button
+                type="button"
+                onClick={() => setPayeeToRemove(null)}
+                className="flex-1 rounded-xl border border-slate-200 py-2.5 text-sm font-medium text-slate-600 hover:bg-slate-50"
+              >
+                Cancel
+              </button>
+              <button
+                type="button"
+                onClick={() => void confirmDeletePayee()}
+                disabled={removingPayee}
+                className="flex-1 rounded-xl bg-red-600 py-2.5 text-sm font-semibold text-white hover:bg-red-700 disabled:cursor-not-allowed disabled:opacity-60"
+              >
+                {removingPayee ? 'Removing…' : 'Remove payee'}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </Layout>
   );
 };

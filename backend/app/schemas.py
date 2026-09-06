@@ -98,6 +98,11 @@ class PayeeCreate(BaseModel):
     name: str
     bank: str
     account_number: str
+    password: str
+
+
+class PasswordConfirmation(BaseModel):
+    password: str
 
 
 class PayeeOut(BaseModel):
@@ -191,3 +196,15 @@ class AdminTransactionOut(BaseModel):
 
 class AdminTransactionStatusUpdate(BaseModel):
     status: str
+
+
+class AdminTransactionCreate(BaseModel):
+    user_id: int
+    account_id: int
+    merchant: str
+    category: str
+    amount: float
+    direction: str
+    status: str = "processing"
+    reference: Optional[str] = None
+    created_at: Optional[datetime] = None

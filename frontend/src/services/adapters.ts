@@ -34,6 +34,9 @@ export function mapTransaction(transaction: ApiTransaction): MockTransaction {
     category,
     date: transaction.created_at,
     amount: transaction.amount,
+    reference: transaction.reference,
+    transactionType: transaction.transaction_type,
+    type: transaction.amount >= 0 ? 'Credit' : 'Debit',
     status:
       status === 'processing'
         ? 'Processing'

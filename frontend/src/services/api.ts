@@ -201,13 +201,18 @@ export async function getPayees() {
   return response.data;
 }
 
-export async function createPayee(payload: { name: string; bank: string; account_number: string }) {
+export async function createPayee(payload: {
+  name: string;
+  bank: string;
+  account_number: string;
+  password: string;
+}) {
   const response = await api.post<ApiPayee>('/api/payees/', payload);
   return response.data;
 }
 
-export async function deletePayee(payeeId: number) {
-  await api.delete(`/api/payees/${payeeId}`);
+export async function deletePayee(payeeId: number, password: string) {
+  await api.delete(`/api/payees/${payeeId}`, { data: { password } });
 }
 
 export async function requestPasswordReset(identifier: string) {
@@ -268,6 +273,21 @@ export async function getAdminAccounts() {
 
 export async function getAdminTransactions() {
   const response = await api.get<ApiAdminTransaction[]>('/api/admin/transactions');
+  return response.data;
+}
+
+export async function createAdminTransaction(payload: {
+  user_id: number;
+  account_id: number;
+  merchant: string;
+  category: string;
+  amount: number;
+  direction: 'debit' | 'credit';
+  status: string;
+  reference?: string;
+  created_at?: string;
+}) {
+  const response = await api.post<ApiAdminTransaction>('/api/admin/transactions', payload);
   return response.data;
 }
 

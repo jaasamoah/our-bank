@@ -1,6 +1,7 @@
 import React, { useEffect, useMemo, useState } from 'react';
 import Layout from '../components/Layout';
 import TransactionRow from '../components/TransactionRow';
+import TransactionDetailsModal from '../components/TransactionDetailsModal';
 import { getAccounts, getTransactions } from '../services/api';
 import { mapAccount, mapTransaction } from '../services/adapters';
 import LoadingSpinner from '../components/LoadingSpinner';
@@ -12,6 +13,7 @@ const Transactions = () => {
   const [transactions, setTransactions] = useState<ReturnType<typeof mapTransaction>[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
+  const [selectedTransaction, setSelectedTransaction] = useState<ReturnType<typeof mapTransaction> | null>(null);
 
   useEffect(() => {
     const loadTransactions = async (showLoading = false) => {
@@ -70,12 +72,24 @@ const Transactions = () => {
         {loading && <div className="py-8"><LoadingSpinner label="Loading transactions" /></div>}
         {!loading && filtered.length > 0 ? (
           filtered.map((txn) => (
-            <TransactionRow key={txn.id} txn={txn} accountName={accountName(txn.accountId)} />
+            <TransactionRow
+              key={txn.id}
+              txn={txn}
+              accountName={accountName(txn.accountId)}
+              onClick={() => setSelectedTransaction(txn)}
+            />
           ))
         ) : (
           <p className="py-8 text-center text-sm text-slate-400">No transactions match your search.</p>
         )}
       </div>
+      {selectedTransaction && (
+        <TransactionDetailsModal
+          txn={selectedTransaction}
+          accountName={accountName(selectedTransaction.accountId)}
+          onClose={() => setSelectedTransaction(null)}
+        />
+      )}
     </Layout>
   );
 };

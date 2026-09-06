@@ -1,10 +1,10 @@
 from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy.orm import Session
 
-from ..auth import get_current_user
+from ..auth import get_current_user, verify_password
 from ..database import get_db
 from ..models import Payee, User
-from ..schemas import PayeeCreate, PayeeOut
+from ..schemas import PayeeCreate, PayeeOut, PasswordConfirmation
 
 router = APIRouter()
 
@@ -28,6 +28,8 @@ def create_payee(
     account_number = payload.account_number.strip()
     if not name or not bank or len(account_number) < 4:
         raise HTTPException(status_code=400, detail="Enter a name, bank, and valid account number")
+    if not verify_password(payload.password, current_user.hashed_password):
+        raise HTTPException(status_code=401, detail="Password is incorrect")
     payee = Payee(
         user_id=current_user.id,
         name=name,
@@ -43,11 +45,14 @@ def create_payee(
 @router.delete("/{payee_id}", status_code=204)
 def delete_payee(
     payee_id: int,
+    payload: PasswordConfirmation,
     current_user: User = Depends(get_current_user),
     db: Session = Depends(get_db),
 ):
     payee = db.query(Payee).filter(Payee.id == payee_id, Payee.user_id == current_user.id).first()
     if not payee:
         raise HTTPException(status_code=404, detail="Payee not found")
+    if not verify_password(payload.password, current_user.hashed_password):
+        raise HTTPException(status_code=401, detail="Password is incorrect")
     db.delete(payee)
     db.commit()

@@ -3,6 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import Layout from '../components/Layout';
 import AccountCard from '../components/AccountCard';
 import TransactionRow from '../components/TransactionRow';
+import TransactionDetailsModal from '../components/TransactionDetailsModal';
 import { useAuth } from '../context/AuthContext';
 import { formatCurrency } from '../mock/data';
 import { getAccounts, getInvestmentPortfolio, getTransactions } from '../services/api';
@@ -17,6 +18,7 @@ const Dashboard = () => {
   const [investmentValue, setInvestmentValue] = useState(0);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
+  const [selectedTransaction, setSelectedTransaction] = useState<ReturnType<typeof mapTransaction> | null>(null);
 
   useEffect(() => {
     const loadDashboard = async (showLoading = false) => {
@@ -48,6 +50,7 @@ const Dashboard = () => {
     .reduce((sum, a) => sum + a.balance, 0);
 
   const recentTransactions = transactions.slice(0, 6);
+  const accountName = (id: string) => accounts.find((account) => account.id === id)?.name;
   const spendingByCategory = useMemo(() => {
     const totals = transactions
       .filter((transaction) => transaction.amount < 0)
@@ -142,11 +145,18 @@ const Dashboard = () => {
         </div>
         <div>
           {recentTransactions.map((txn) => (
-            <TransactionRow key={txn.id} txn={txn} />
+            <TransactionRow key={txn.id} txn={txn} accountName={accountName(txn.accountId)} onClick={() => setSelectedTransaction(txn)} />
           ))}
         </div>
       </div>
         </>
+      )}
+      {selectedTransaction && (
+        <TransactionDetailsModal
+          txn={selectedTransaction}
+          accountName={accountName(selectedTransaction.accountId)}
+          onClose={() => setSelectedTransaction(null)}
+        />
       )}
     </Layout>
   );

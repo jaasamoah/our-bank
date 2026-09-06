@@ -25,6 +25,9 @@ export interface MockTransaction {
   date: string;
   amount: number;
   status: 'Completed' | 'Processing' | 'Pending' | 'Failed' | 'Reversed';
+  reference?: string;
+  transactionType?: string;
+  type?: 'Debit' | 'Credit';
 }
 
 export interface MockCard {

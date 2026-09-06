@@ -1,11 +1,13 @@
 from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy.orm import Session
+from uuid import uuid4
 
 from ..auth import get_current_admin
 from ..database import get_db
 from ..models import Account, Card, Complaint, Transaction, User, UserRole
 from ..schemas import (
     AdminAccountUpdate,
+    AdminTransactionCreate,
     AdminTransactionOut,
     AdminTransactionStatusUpdate,
     AdminUserCreate,
@@ -16,6 +18,7 @@ from ..schemas import (
 )
 
 router = APIRouter()
+TRANSACTION_STATUSES = {"processing", "completed", "failed", "reversed"}
 
 
 def serialize_user(user: User) -> dict:
@@ -28,6 +31,22 @@ def serialize_user(user: User) -> dict:
         "is_active": user.is_active,
         "created_at": user.created_at,
         "total_balance": sum(account.balance or 0 for account in user.accounts),
+    }
+
+
+def serialize_transaction(transaction: Transaction) -> dict:
+    return {
+        "id": transaction.id,
+        "user_id": transaction.user_id,
+        "user_name": transaction.user.full_name,
+        "account_id": transaction.account_id,
+        "account_number": transaction.account.account_number,
+        "amount": transaction.amount,
+        "transaction_type": transaction.transaction_type,
+        "status": transaction.status,
+        "description": transaction.description,
+        "reference": transaction.reference,
+        "created_at": transaction.created_at,
     }
 
 
@@ -138,6 +157,60 @@ def update_account(
     }
 
 
+@router.post("/transactions", response_model=AdminTransactionOut, status_code=201)
+def create_transaction(
+    payload: AdminTransactionCreate,
+    _: User = Depends(get_current_admin),
+    db: Session = Depends(get_db),
+):
+    merchant = payload.merchant.strip()
+    category = payload.category.strip()
+    direction = payload.direction.strip().lower()
+    next_status = payload.status.strip().lower()
+    if not merchant or not category:
+        raise HTTPException(status_code=400, detail="Merchant and category are required")
+    if payload.amount <= 0:
+        raise HTTPException(status_code=400, detail="Amount must be greater than zero")
+    if direction not in {"debit", "credit"}:
+        raise HTTPException(status_code=400, detail="Direction must be debit or credit")
+    if next_status not in TRANSACTION_STATUSES:
+        raise HTTPException(
+            status_code=400,
+            detail="Status must be processing, completed, failed, or reversed",
+        )
+
+    user = db.query(User).filter(User.id == payload.user_id, User.role == UserRole.CUSTOMER).first()
+    if not user:
+        raise HTTPException(status_code=404, detail="Customer not found")
+    account = (
+        db.query(Account)
+        .filter(Account.id == payload.account_id, Account.user_id == payload.user_id)
+        .first()
+    )
+    if not account:
+        raise HTTPException(status_code=404, detail="Account does not belong to this customer")
+
+    signed_amount = abs(payload.amount) if direction == "credit" else -abs(payload.amount)
+    transaction_values = {
+        "user_id": user.id,
+        "account_id": account.id,
+        "amount": signed_amount,
+        "transaction_type": "deposit" if direction == "credit" else "withdrawal",
+        "status": next_status,
+        "description": f"{merchant} · {category}",
+        "reference": payload.reference.strip() if payload.reference and payload.reference.strip() else f"ADM-{uuid4().hex[:12].upper()}",
+    }
+    if payload.created_at:
+        transaction_values["created_at"] = payload.created_at
+
+    account.balance += signed_amount
+    transaction = Transaction(**transaction_values)
+    db.add(transaction)
+    db.commit()
+    db.refresh(transaction)
+    return serialize_transaction(transaction)
+
+
 @router.get("/transactions", response_model=list[AdminTransactionOut])
 def list_transactions(
     _: User = Depends(get_current_admin),
@@ -150,22 +223,7 @@ def list_transactions(
         .order_by(Transaction.created_at.desc(), Transaction.id.desc())
         .all()
     )
-    return [
-        {
-            "id": transaction.id,
-            "user_id": transaction.user_id,
-            "user_name": transaction.user.full_name,
-            "account_id": transaction.account_id,
-            "account_number": transaction.account.account_number,
-            "amount": transaction.amount,
-            "transaction_type": transaction.transaction_type,
-            "status": transaction.status,
-            "description": transaction.description,
-            "reference": transaction.reference,
-            "created_at": transaction.created_at,
-        }
-        for transaction in transactions
-    ]
+    return [serialize_transaction(transaction) for transaction in transactions]
 
 
 @router.patch("/transactions/{transaction_id}/status", response_model=AdminTransactionOut)
@@ -175,9 +233,8 @@ def update_transaction_status(
     _: User = Depends(get_current_admin),
     db: Session = Depends(get_db),
 ):
-    allowed_statuses = {"processing", "completed", "failed", "reversed"}
     next_status = payload.status.strip().lower()
-    if next_status not in allowed_statuses:
+    if next_status not in TRANSACTION_STATUSES:
         raise HTTPException(
             status_code=400,
             detail="Status must be processing, completed, failed, or reversed",
