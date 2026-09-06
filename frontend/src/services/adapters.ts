@@ -46,6 +46,8 @@ export function mapTransaction(transaction: ApiTransaction): MockTransaction {
             ? 'Failed'
             : status === 'reversed'
               ? 'Reversed'
+              : status === 'on_hold'
+                ? 'On hold'
               : 'Completed',
   };
 }
@@ -55,7 +57,9 @@ export function mapCard(card: ApiCard, accountName?: string) {
     id: String(card.id),
     accountId: String(card.account_id),
     holder: card.holder_name,
-    number: `${card.last_four} •••• •••• ${card.last_four}`,
+    number: card.card_number
+      ? card.card_number.replace(/(\d{4})(?=\d)/g, '$1 ')
+      : `${card.last_four} •••• •••• ${card.last_four}`,
     expiry: card.expiry,
     network: card.network as 'Visa' | 'Mastercard',
     frozen: card.frozen,

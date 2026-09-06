@@ -3,14 +3,31 @@ from datetime import datetime
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from scalar_fastapi import get_scalar_api_reference
+from sqlalchemy import inspect, text
 
 from .auth import get_password_hash
 from .database import Base, SessionLocal, engine
-from .models import Account, Card, Investment, Payee, Transaction, User, UserRole
-from .routers import accounts, admin, auth, cards, investments, payees, support, transactions, users
+from .models import Account, Beneficiary, Card, Investment, Loan, Payee, Transaction, User, UserRole
+from .routers import accounts, admin, auth, beneficiaries, cards, investments, loans, payees, support, transactions, users
 
 # Create tables
 Base.metadata.create_all(bind=engine)
+
+
+def ensure_legacy_columns():
+    """Add fields introduced after the initial imported schema was created."""
+    card_columns = {column["name"] for column in inspect(engine).get_columns("cards")}
+    missing = {
+        "card_number": "VARCHAR",
+        "cvc": "VARCHAR",
+    }
+    with engine.begin() as connection:
+        for name, column_type in missing.items():
+            if name not in card_columns:
+                connection.execute(text(f"ALTER TABLE cards ADD COLUMN {name} {column_type}"))
+
+
+ensure_legacy_columns()
 
 
 def seed_demo_data():
@@ -146,7 +163,9 @@ def seed_demo_data():
                         account_id=account_by_type["checking"].id,
                         holder_name="Jordan Ellis",
                         last_four="4821",
+                        card_number="4242424242424821",
                         expiry="09/28",
+                        cvc="123",
                         network="Visa",
                         frozen=False,
                     ),
@@ -155,11 +174,45 @@ def seed_demo_data():
                         account_id=account_by_type["credit"].id,
                         holder_name="Jordan Ellis",
                         last_four="1092",
+                        card_number="5555555555551092",
                         expiry="02/27",
+                        cvc="456",
                         network="Mastercard",
                         frozen=True,
                     ),
                 ]
+            )
+        else:
+            for card in db.query(Card).filter(Card.user_id == demo_user.id).all():
+                if not card.card_number:
+                    card.card_number = f"000000000000{card.last_four}"
+                if not card.cvc:
+                    card.cvc = "123"
+
+        if not db.query(Loan).filter(Loan.user_id == demo_user.id).first():
+            db.add(
+                Loan(
+                    user_id=demo_user.id,
+                    amount=15000,
+                    outstanding=11200,
+                    interest_rate=6.5,
+                    term="5 years",
+                    status="active",
+                    disbursed_date=datetime.fromisoformat("2023-02-01T00:00:00"),
+                    description="Personal loan",
+                )
+            )
+
+        if not db.query(Beneficiary).filter(Beneficiary.user_id == demo_user.id).first():
+            db.add(
+                Beneficiary(
+                    user_id=demo_user.id,
+                    name="Maria Chen",
+                    relationship="Family",
+                    bank="Chase Bank",
+                    account_number="2291",
+                    notes="Previous transfer beneficiary",
+                )
             )
 
         has_payees = db.query(Payee).filter(Payee.user_id == demo_user.id).first() is not None
@@ -204,6 +257,8 @@ app.include_router(accounts.router, prefix="/api/accounts", tags=["Accounts"])
 app.include_router(transactions.router, prefix="/api/transactions", tags=["Transactions"])
 app.include_router(investments.router, prefix="/api/investments", tags=["Investments"])
 app.include_router(cards.router, prefix="/api/cards", tags=["Cards"])
+app.include_router(loans.router, prefix="/api/loans", tags=["Loans"])
+app.include_router(beneficiaries.router, prefix="/api/beneficiaries", tags=["Beneficiaries"])
 app.include_router(payees.router, prefix="/api/payees", tags=["Payees"])
 app.include_router(support.router, prefix="/api/support", tags=["Support"])
 app.include_router(admin.router, prefix="/api/admin", tags=["Administration"])

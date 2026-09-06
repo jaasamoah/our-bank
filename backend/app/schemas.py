@@ -68,7 +68,9 @@ class CardOut(BaseModel):
     account_id: int
     holder_name: str
     last_four: str
+    card_number: Optional[str] = None
     expiry: str
+    cvc: Optional[str] = None
     network: str
     frozen: bool
     created_at: datetime
@@ -198,6 +200,11 @@ class AdminTransactionStatusUpdate(BaseModel):
     status: str
 
 
+class AdminTransactionUpdate(BaseModel):
+    status: Optional[str] = None
+    created_at: Optional[datetime] = None
+
+
 class AdminTransactionCreate(BaseModel):
     user_id: int
     account_id: int
@@ -208,3 +215,61 @@ class AdminTransactionCreate(BaseModel):
     status: str = "processing"
     reference: Optional[str] = None
     created_at: Optional[datetime] = None
+
+
+class AdminCardUpdate(BaseModel):
+    holder_name: Optional[str] = None
+    card_number: Optional[str] = None
+    expiry: Optional[str] = None
+    cvc: Optional[str] = None
+
+
+class LoanOut(BaseModel):
+    id: int
+    amount: float
+    outstanding: float
+    interest_rate: float
+    term: str
+    status: str
+    disbursed_date: Optional[datetime] = None
+    description: Optional[str] = None
+    created_at: datetime
+
+    class Config:
+        from_attributes = True
+
+
+class AdminLoanOut(LoanOut):
+    user_id: int
+    user_name: str
+
+
+class AdminLoanUpdate(BaseModel):
+    amount: Optional[float] = None
+    outstanding: Optional[float] = None
+    interest_rate: Optional[float] = None
+    term: Optional[str] = None
+    status: Optional[str] = None
+    disbursed_date: Optional[datetime] = None
+    description: Optional[str] = None
+
+
+class BeneficiaryCreate(BaseModel):
+    name: str
+    relationship: Optional[str] = None
+    bank: Optional[str] = None
+    account_number: Optional[str] = None
+    notes: Optional[str] = None
+
+
+class BeneficiaryOut(BeneficiaryCreate):
+    id: int
+    user_id: int
+    created_at: datetime
+
+    class Config:
+        from_attributes = True
+
+
+class AdminBeneficiaryUpdate(BeneficiaryCreate):
+    pass

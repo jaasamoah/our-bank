@@ -4,21 +4,28 @@ from uuid import uuid4
 
 from ..auth import get_current_admin
 from ..database import get_db
-from ..models import Account, Card, Complaint, Transaction, User, UserRole
+from ..models import Account, Beneficiary, Card, Complaint, Loan, Transaction, User, UserRole
 from ..schemas import (
     AdminAccountUpdate,
+    AdminBeneficiaryUpdate,
+    AdminCardUpdate,
+    AdminLoanOut,
+    AdminLoanUpdate,
     AdminTransactionCreate,
     AdminTransactionOut,
     AdminTransactionStatusUpdate,
+    AdminTransactionUpdate,
     AdminUserCreate,
     AdminUserOut,
     AdminUserUpdate,
+    BeneficiaryOut,
     CardOut,
     ComplaintOut,
 )
 
 router = APIRouter()
-TRANSACTION_STATUSES = {"processing", "completed", "failed", "reversed"}
+TRANSACTION_STATUSES = {"processing", "completed", "failed", "reversed", "on_hold"}
+LOAN_STATUSES = {"active", "pending", "paid", "defaulted"}
 
 
 def serialize_user(user: User) -> dict:
@@ -176,7 +183,7 @@ def create_transaction(
     if next_status not in TRANSACTION_STATUSES:
         raise HTTPException(
             status_code=400,
-            detail="Status must be processing, completed, failed, or reversed",
+            detail="Status must be processing, completed, failed, reversed, or on_hold",
         )
 
     user = db.query(User).filter(User.id == payload.user_id, User.role == UserRole.CUSTOMER).first()
@@ -211,6 +218,45 @@ def create_transaction(
     return serialize_transaction(transaction)
 
 
+@router.patch("/transactions/{transaction_id}", response_model=AdminTransactionOut)
+def update_transaction(
+    transaction_id: int,
+    payload: AdminTransactionUpdate,
+    _: User = Depends(get_current_admin),
+    db: Session = Depends(get_db),
+):
+    transaction = (
+        db.query(Transaction)
+        .join(User, Transaction.user_id == User.id)
+        .join(Account, Transaction.account_id == Account.id)
+        .filter(Transaction.id == transaction_id)
+        .first()
+    )
+    if not transaction:
+        raise HTTPException(status_code=404, detail="Transaction not found")
+
+    values = payload.model_dump(exclude_unset=True)
+    if "status" in values:
+        next_status = values["status"].strip().lower()
+        if next_status not in TRANSACTION_STATUSES:
+            raise HTTPException(
+                status_code=400,
+                detail="Status must be processing, completed, failed, reversed, or on_hold",
+            )
+        for linked_transaction in db.query(Transaction).filter(
+            Transaction.reference == transaction.reference
+        ).all():
+            linked_transaction.status = next_status
+    if "created_at" in values:
+        if values["created_at"] is None:
+            raise HTTPException(status_code=400, detail="Transaction date and time are required")
+        transaction.created_at = values["created_at"]
+
+    db.commit()
+    db.refresh(transaction)
+    return serialize_transaction(transaction)
+
+
 @router.get("/transactions", response_model=list[AdminTransactionOut])
 def list_transactions(
     _: User = Depends(get_current_admin),
@@ -237,7 +283,7 @@ def update_transaction_status(
     if next_status not in TRANSACTION_STATUSES:
         raise HTTPException(
             status_code=400,
-            detail="Status must be processing, completed, failed, or reversed",
+            detail="Status must be processing, completed, failed, reversed, or on_hold",
         )
 
     transaction = (
@@ -292,6 +338,194 @@ def set_card_frozen(
     db.commit()
     db.refresh(card)
     return card
+
+
+@router.patch("/cards/{card_id}", response_model=CardOut)
+def update_card(
+    card_id: int,
+    payload: AdminCardUpdate,
+    _: User = Depends(get_current_admin),
+    db: Session = Depends(get_db),
+):
+    card = db.query(Card).filter(Card.id == card_id).first()
+    if not card:
+        raise HTTPException(status_code=404, detail="Card not found")
+
+    values = payload.model_dump(exclude_unset=True)
+    if "holder_name" in values:
+        holder_name = (values["holder_name"] or "").strip()
+        if not holder_name:
+            raise HTTPException(status_code=400, detail="Card holder name is required")
+        card.holder_name = holder_name
+    if "card_number" in values:
+        card_number = "".join((values["card_number"] or "").split())
+        if not card_number.isdigit() or not 12 <= len(card_number) <= 19:
+            raise HTTPException(status_code=400, detail="Card number must contain 12 to 19 digits")
+        card.card_number = card_number
+        card.last_four = card_number[-4:]
+    if "expiry" in values:
+        expiry = (values["expiry"] or "").strip()
+        if not expiry:
+            raise HTTPException(status_code=400, detail="Card expiry is required")
+        card.expiry = expiry
+    if "cvc" in values:
+        cvc = "".join((values["cvc"] or "").split())
+        if not cvc.isdigit() or len(cvc) not in {3, 4}:
+            raise HTTPException(status_code=400, detail="CVC must contain 3 or 4 digits")
+        card.cvc = cvc
+
+    db.commit()
+    db.refresh(card)
+    return card
+
+
+@router.get("/loans", response_model=list[AdminLoanOut])
+def list_loans(
+    _: User = Depends(get_current_admin),
+    db: Session = Depends(get_db),
+):
+    loans = db.query(Loan).join(User).order_by(Loan.disbursed_date.desc(), Loan.id.desc()).all()
+    return [
+        {
+            "id": loan.id,
+            "user_id": loan.user_id,
+            "user_name": loan.user.full_name,
+            "amount": loan.amount,
+            "outstanding": loan.outstanding,
+            "interest_rate": loan.interest_rate,
+            "term": loan.term,
+            "status": loan.status,
+            "disbursed_date": loan.disbursed_date,
+            "description": loan.description,
+            "created_at": loan.created_at,
+        }
+        for loan in loans
+    ]
+
+
+@router.patch("/loans/{loan_id}", response_model=AdminLoanOut)
+def update_loan(
+    loan_id: int,
+    payload: AdminLoanUpdate,
+    _: User = Depends(get_current_admin),
+    db: Session = Depends(get_db),
+):
+    loan = db.query(Loan).join(User).filter(Loan.id == loan_id).first()
+    if not loan:
+        raise HTTPException(status_code=404, detail="Loan not found")
+    values = payload.model_dump(exclude_unset=True)
+    if "amount" in values and (values["amount"] is None or values["amount"] < 0):
+        raise HTTPException(status_code=400, detail="Loan amount cannot be negative")
+    if "outstanding" in values and (values["outstanding"] is None or values["outstanding"] < 0):
+        raise HTTPException(status_code=400, detail="Outstanding balance cannot be negative")
+    if "interest_rate" in values and (values["interest_rate"] is None or values["interest_rate"] < 0):
+        raise HTTPException(status_code=400, detail="Interest rate cannot be negative")
+    if "status" in values:
+        next_status = (values["status"] or "").strip().lower()
+        if next_status not in LOAN_STATUSES:
+            raise HTTPException(status_code=400, detail="Invalid loan status")
+        values["status"] = next_status
+    if "term" in values:
+        values["term"] = (values["term"] or "").strip()
+    if "description" in values:
+        values["description"] = (values["description"] or "").strip() or None
+    for key, value in values.items():
+        setattr(loan, key, value)
+    db.commit()
+    db.refresh(loan)
+    return {
+        "id": loan.id,
+        "user_id": loan.user_id,
+        "user_name": loan.user.full_name,
+        "amount": loan.amount,
+        "outstanding": loan.outstanding,
+        "interest_rate": loan.interest_rate,
+        "term": loan.term,
+        "status": loan.status,
+        "disbursed_date": loan.disbursed_date,
+        "description": loan.description,
+        "created_at": loan.created_at,
+    }
+
+
+@router.get("/users/{user_id}/beneficiaries", response_model=list[BeneficiaryOut])
+def list_user_beneficiaries(
+    user_id: int,
+    _: User = Depends(get_current_admin),
+    db: Session = Depends(get_db),
+):
+    if not db.query(User).filter(User.id == user_id, User.role == UserRole.CUSTOMER).first():
+        raise HTTPException(status_code=404, detail="Customer not found")
+    return (
+        db.query(Beneficiary)
+        .filter(Beneficiary.user_id == user_id)
+        .order_by(Beneficiary.created_at.desc(), Beneficiary.id.desc())
+        .all()
+    )
+
+
+@router.post("/users/{user_id}/beneficiaries", response_model=BeneficiaryOut, status_code=201)
+def create_user_beneficiary(
+    user_id: int,
+    payload: AdminBeneficiaryUpdate,
+    _: User = Depends(get_current_admin),
+    db: Session = Depends(get_db),
+):
+    if not db.query(User).filter(User.id == user_id, User.role == UserRole.CUSTOMER).first():
+        raise HTTPException(status_code=404, detail="Customer not found")
+    name = payload.name.strip()
+    if not name:
+        raise HTTPException(status_code=400, detail="Beneficiary name is required")
+    beneficiary = Beneficiary(
+        user_id=user_id,
+        name=name,
+        relationship=(payload.relationship or "").strip() or None,
+        bank=(payload.bank or "").strip() or None,
+        account_number=(payload.account_number or "").strip() or None,
+        notes=(payload.notes or "").strip() or None,
+    )
+    db.add(beneficiary)
+    db.commit()
+    db.refresh(beneficiary)
+    return beneficiary
+
+
+@router.patch("/beneficiaries/{beneficiary_id}", response_model=BeneficiaryOut)
+def update_beneficiary(
+    beneficiary_id: int,
+    payload: AdminBeneficiaryUpdate,
+    _: User = Depends(get_current_admin),
+    db: Session = Depends(get_db),
+):
+    beneficiary = db.query(Beneficiary).filter(Beneficiary.id == beneficiary_id).first()
+    if not beneficiary:
+        raise HTTPException(status_code=404, detail="Beneficiary not found")
+    values = payload.model_dump(exclude_unset=True)
+    if "name" in values:
+        values["name"] = (values["name"] or "").strip()
+        if not values["name"]:
+            raise HTTPException(status_code=400, detail="Beneficiary name is required")
+    for key in ("relationship", "bank", "account_number", "notes"):
+        if key in values:
+            values[key] = (values[key] or "").strip() or None
+    for key, value in values.items():
+        setattr(beneficiary, key, value)
+    db.commit()
+    db.refresh(beneficiary)
+    return beneficiary
+
+
+@router.delete("/beneficiaries/{beneficiary_id}", status_code=204)
+def delete_beneficiary(
+    beneficiary_id: int,
+    _: User = Depends(get_current_admin),
+    db: Session = Depends(get_db),
+):
+    beneficiary = db.query(Beneficiary).filter(Beneficiary.id == beneficiary_id).first()
+    if not beneficiary:
+        raise HTTPException(status_code=404, detail="Beneficiary not found")
+    db.delete(beneficiary)
+    db.commit()
 
 
 @router.get("/complaints")

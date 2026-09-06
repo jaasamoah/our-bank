@@ -24,7 +24,7 @@ export interface MockTransaction {
   category: string;
   date: string;
   amount: number;
-  status: 'Completed' | 'Processing' | 'Pending' | 'Failed' | 'Reversed';
+  status: 'Completed' | 'Processing' | 'Pending' | 'Failed' | 'Reversed' | 'On hold';
   reference?: string;
   transactionType?: string;
   type?: 'Debit' | 'Credit';

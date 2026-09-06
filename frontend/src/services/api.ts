@@ -92,7 +92,9 @@ export interface ApiCard {
   account_id: number;
   holder_name: string;
   last_four: string;
+  card_number?: string | null;
   expiry: string;
+  cvc?: string | null;
   network: string;
   frozen: boolean;
   created_at: string;
@@ -124,6 +126,34 @@ export interface ApiAdminAccount {
   balance: number;
   currency: string;
   status: string;
+}
+
+export interface ApiLoan {
+  id: number;
+  amount: number;
+  outstanding: number;
+  interest_rate: number;
+  term: string;
+  status: string;
+  disbursed_date?: string | null;
+  description?: string | null;
+  created_at: string;
+}
+
+export interface ApiAdminLoan extends ApiLoan {
+  user_id: number;
+  user_name: string;
+}
+
+export interface ApiBeneficiary {
+  id: number;
+  user_id: number;
+  name: string;
+  relationship?: string | null;
+  bank?: string | null;
+  account_number?: string | null;
+  notes?: string | null;
+  created_at: string;
 }
 
 export interface LoginResponse {
@@ -299,6 +329,17 @@ export async function updateAdminTransactionStatus(transactionId: number, status
   return response.data;
 }
 
+export async function updateAdminTransaction(transactionId: number, payload: {
+  status?: string;
+  created_at?: string;
+}) {
+  const response = await api.patch<ApiAdminTransaction>(
+    `/api/admin/transactions/${transactionId}`,
+    payload,
+  );
+  return response.data;
+}
+
 export async function updateAdminAccount(accountId: number, payload: { balance?: number; status?: string }) {
   const response = await api.patch<ApiAdminAccount>(`/api/admin/accounts/${accountId}`, payload);
   return response.data;
@@ -314,6 +355,75 @@ export async function updateAdminCardFreeze(cardId: number, frozen: boolean) {
     params: { frozen },
   });
   return response.data;
+}
+
+export async function updateAdminCard(cardId: number, payload: {
+  holder_name?: string;
+  card_number?: string;
+  expiry?: string;
+  cvc?: string;
+}) {
+  const response = await api.patch<ApiCard>(`/api/admin/cards/${cardId}`, payload);
+  return response.data;
+}
+
+export async function getLoans() {
+  const response = await api.get<ApiLoan[]>('/api/loans/');
+  return response.data;
+}
+
+export async function getAdminLoans() {
+  const response = await api.get<ApiAdminLoan[]>('/api/admin/loans');
+  return response.data;
+}
+
+export async function updateAdminLoan(loanId: number, payload: {
+  amount?: number;
+  outstanding?: number;
+  interest_rate?: number;
+  term?: string;
+  status?: string;
+  disbursed_date?: string;
+  description?: string;
+}) {
+  const response = await api.patch<ApiAdminLoan>(`/api/admin/loans/${loanId}`, payload);
+  return response.data;
+}
+
+export async function getBeneficiaries() {
+  const response = await api.get<ApiBeneficiary[]>('/api/beneficiaries/');
+  return response.data;
+}
+
+export async function getAdminBeneficiaries(userId: number) {
+  const response = await api.get<ApiBeneficiary[]>(`/api/admin/users/${userId}/beneficiaries`);
+  return response.data;
+}
+
+export async function createAdminBeneficiary(userId: number, payload: {
+  name: string;
+  relationship?: string;
+  bank?: string;
+  account_number?: string;
+  notes?: string;
+}) {
+  const response = await api.post<ApiBeneficiary>(`/api/admin/users/${userId}/beneficiaries`, payload);
+  return response.data;
+}
+
+export async function updateAdminBeneficiary(beneficiaryId: number, payload: {
+  name: string;
+  relationship?: string;
+  bank?: string;
+  account_number?: string;
+  notes?: string;
+}) {
+  const response = await api.patch<ApiBeneficiary>(`/api/admin/beneficiaries/${beneficiaryId}`, payload);
+  return response.data;
+}
+
+export async function deleteAdminBeneficiary(beneficiaryId: number) {
+  await api.delete(`/api/admin/beneficiaries/${beneficiaryId}`);
 }
 
 export async function getAdminComplaints() {

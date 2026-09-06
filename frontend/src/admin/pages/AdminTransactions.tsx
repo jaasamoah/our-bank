@@ -6,18 +6,20 @@ import {
   getAdminAccounts,
   getAdminTransactions,
   getAdminUsers,
+  updateAdminTransaction,
   updateAdminTransactionStatus,
   type ApiAdminAccount,
   type ApiAdminTransaction,
   type ApiUser,
 } from '../../services/api';
-import { formatCurrency, formatDate } from '../../mock/data';
+import { formatCurrency } from '../../mock/data';
 
 const statusStyles: Record<string, string> = {
   processing: 'bg-amber-50 text-amber-700',
   completed: 'bg-emerald-50 text-emerald-700',
   failed: 'bg-red-50 text-red-700',
   reversed: 'bg-slate-100 text-slate-600',
+  on_hold: 'bg-purple-50 text-purple-700',
 };
 
 const statusLabels: Record<string, string> = {
@@ -25,9 +27,15 @@ const statusLabels: Record<string, string> = {
   completed: 'Completed',
   failed: 'Failed',
   reversed: 'Reversed',
+  on_hold: 'On hold',
 };
 
-const statusOptions = ['processing', 'completed', 'failed', 'reversed'];
+const statusOptions = ['processing', 'completed', 'failed', 'reversed', 'on_hold'];
+
+function getDateTimeLocal(date = new Date()) {
+  const offset = date.getTimezoneOffset();
+  return new Date(date.getTime() - offset * 60_000).toISOString().slice(0, 16);
+}
 
 type TransactionForm = {
   userId: string;
@@ -39,6 +47,7 @@ type TransactionForm = {
   status: string;
   reference: string;
   date: string;
+  useCurrentDateTime: boolean;
 };
 
 const emptyForm: TransactionForm = {
@@ -50,7 +59,8 @@ const emptyForm: TransactionForm = {
   direction: 'debit',
   status: 'processing',
   reference: '',
-  date: new Date().toISOString().slice(0, 10),
+  date: getDateTimeLocal(),
+  useCurrentDateTime: true,
 };
 
 const AdminTransactions: React.FC = () => {
@@ -65,6 +75,8 @@ const AdminTransactions: React.FC = () => {
   const [showCreate, setShowCreate] = useState(false);
   const [form, setForm] = useState<TransactionForm>(emptyForm);
   const [creating, setCreating] = useState(false);
+  const [editingDate, setEditingDate] = useState<ApiAdminTransaction | null>(null);
+  const [editDateTime, setEditDateTime] = useState('');
 
   const loadTransactions = async (showLoading = false) => {
     if (showLoading) setLoading(true);
@@ -107,7 +119,7 @@ const AdminTransactions: React.FC = () => {
 
   const handleCreate = async () => {
     const amount = Number(form.amount);
-    if (!form.userId || !form.accountId || !form.merchant.trim() || !form.category.trim() || !amount || amount <= 0) {
+    if (!form.userId || !form.accountId || !form.merchant.trim() || !form.category.trim() || !amount || amount <= 0 || (!form.useCurrentDateTime && !form.date)) {
       setError('Choose a customer account and complete the transaction details.');
       return;
     }
@@ -123,7 +135,7 @@ const AdminTransactions: React.FC = () => {
         direction: form.direction,
         status: form.status,
         reference: form.reference.trim() || undefined,
-        created_at: `${form.date}T12:00:00`,
+        created_at: form.useCurrentDateTime ? new Date().toISOString() : new Date(form.date).toISOString(),
       });
       setTransactions((current) => [created, ...current]);
       setShowCreate(false);
@@ -175,6 +187,31 @@ const AdminTransactions: React.FC = () => {
         ),
       );
       setError('We could not update that transaction status. Please try again.');
+    } finally {
+      setUpdatingId(null);
+    }
+  };
+
+  const openDateEditor = (transaction: ApiAdminTransaction) => {
+    setEditingDate(transaction);
+    setEditDateTime(getDateTimeLocal(new Date(transaction.created_at)));
+    setError('');
+  };
+
+  const saveDateTime = async () => {
+    if (!editingDate || !editDateTime) return;
+    setUpdatingId(editingDate.id);
+    setError('');
+    try {
+      const updated = await updateAdminTransaction(editingDate.id, {
+        created_at: new Date(editDateTime).toISOString(),
+      });
+      setTransactions((current) => current.map((transaction) => (
+        transaction.id === updated.id ? updated : transaction
+      )));
+      setEditingDate(null);
+    } catch {
+      setError('We could not update that transaction date and time. Please try again.');
     } finally {
       setUpdatingId(null);
     }
@@ -234,6 +271,7 @@ const AdminTransactions: React.FC = () => {
                     <th className="px-6 py-3 text-xs font-semibold uppercase tracking-wide text-slate-500">Amount</th>
                     <th className="px-6 py-3 text-xs font-semibold uppercase tracking-wide text-slate-500">Date</th>
                     <th className="px-6 py-3 text-xs font-semibold uppercase tracking-wide text-slate-500">Status</th>
+                    <th className="px-6 py-3 text-xs font-semibold uppercase tracking-wide text-slate-500">Actions</th>
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-slate-50">
@@ -253,7 +291,9 @@ const AdminTransactions: React.FC = () => {
                         {transaction.amount >= 0 ? '+' : ''}
                         {formatCurrency(transaction.amount)}
                       </td>
-                      <td className="px-6 py-4 text-xs text-slate-500">{formatDate(transaction.created_at)}</td>
+                       <td className="px-6 py-4 text-xs text-slate-500">
+                         {new Date(transaction.created_at).toLocaleString([], { dateStyle: 'medium', timeStyle: 'short' })}
+                       </td>
                       <td className="px-6 py-4">
                         <select
                           aria-label={`Status for transaction ${transaction.reference}`}
@@ -269,6 +309,15 @@ const AdminTransactions: React.FC = () => {
                           ))}
                         </select>
                       </td>
+                       <td className="px-6 py-4">
+                         <button
+                           type="button"
+                           onClick={() => openDateEditor(transaction)}
+                           className="rounded-lg bg-slate-100 px-3 py-1.5 text-xs font-medium text-slate-700 hover:bg-slate-200"
+                         >
+                           Edit date
+                         </button>
+                       </td>
                     </tr>
                   ))}
                 </tbody>
@@ -378,15 +427,30 @@ const AdminTransactions: React.FC = () => {
                   </select>
                 </label>
                 <label className="text-sm font-medium text-slate-700">
-                  Date
+                   Date and time
                   <input
-                    type="date"
+                     type="datetime-local"
                     value={form.date}
                     onChange={(event) => setForm((current) => ({ ...current, date: event.target.value }))}
+                     disabled={form.useCurrentDateTime}
                     className="mt-1.5 block w-full rounded-xl border border-slate-200 px-3 py-2.5 font-normal outline-none focus:border-brand-500"
                   />
                 </label>
               </div>
+
+               <label className="flex items-center gap-3 rounded-xl border border-slate-100 bg-slate-50 px-3 py-3 text-sm text-slate-700">
+                 <input
+                   type="checkbox"
+                   checked={form.useCurrentDateTime}
+                   onChange={(event) => setForm((current) => ({
+                     ...current,
+                     useCurrentDateTime: event.target.checked,
+                     date: event.target.checked ? getDateTimeLocal() : current.date,
+                   }))}
+                   className="h-4 w-4 rounded border-slate-300 text-brand-700 focus:ring-brand-500"
+                 />
+                 Use current date and time
+               </label>
 
               <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
                 <label className="text-sm font-medium text-slate-700">
@@ -420,6 +484,32 @@ const AdminTransactions: React.FC = () => {
               </button>
               <button type="button" onClick={() => void handleCreate()} disabled={creating} className="flex-1 rounded-xl bg-brand-700 py-2.5 text-sm font-semibold text-white hover:bg-brand-800 disabled:cursor-not-allowed disabled:opacity-60">
                 {creating ? 'Creating…' : 'Create transaction'}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {editingDate && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/40 px-4">
+          <div className="w-full max-w-md rounded-2xl bg-white p-6 shadow-xl">
+            <h2 className="text-lg font-bold text-slate-900">Edit transaction date</h2>
+            <p className="mt-1 text-sm text-slate-500">{editingDate.description}</p>
+            <label className="mt-5 block text-sm font-medium text-slate-700">
+              Date and time
+              <input
+                type="datetime-local"
+                value={editDateTime}
+                onChange={(event) => setEditDateTime(event.target.value)}
+                className="mt-1.5 block w-full rounded-xl border border-slate-200 px-3 py-2.5 outline-none focus:border-brand-500"
+              />
+            </label>
+            <div className="mt-6 flex gap-3">
+              <button type="button" onClick={() => setEditingDate(null)} className="flex-1 rounded-xl border border-slate-200 py-2.5 text-sm font-medium text-slate-600 hover:bg-slate-50">
+                Cancel
+              </button>
+              <button type="button" onClick={() => void saveDateTime()} disabled={updatingId === editingDate.id} className="flex-1 rounded-xl bg-brand-700 py-2.5 text-sm font-semibold text-white hover:bg-brand-800 disabled:opacity-60">
+                {updatingId === editingDate.id ? 'Saving…' : 'Save date'}
               </button>
             </div>
           </div>

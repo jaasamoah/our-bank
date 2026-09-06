@@ -5,6 +5,7 @@ import {
   BanknotesIcon,
   ChartBarIcon,
   CreditCardIcon,
+  ClipboardDocumentListIcon,
   PresentationChartLineIcon,
   UserCircleIcon,
 } from '@heroicons/react/24/outline';
@@ -17,6 +18,7 @@ const navItems = [
   { to: '/transactions', label: 'Transactions', icon: ChartBarIcon },
   { to: '/transfer', label: 'Transfer', icon: ArrowsRightLeftIcon },
   { to: '/cards', label: 'Cards', icon: CreditCardIcon },
+  { to: '/loans', label: 'Loans', icon: ClipboardDocumentListIcon },
   { to: '/profile', label: 'Profile', icon: UserCircleIcon },
 ];
 

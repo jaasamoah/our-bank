@@ -64,6 +64,7 @@ export interface ManagedLoan {
   term: string;
   status: 'Active' | 'Pending' | 'Paid' | 'Defaulted';
   disbursedDate: string;
+  description?: string;
 }
 
 export interface KYCRecord {

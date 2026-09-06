@@ -10,6 +10,7 @@ import Investments from './pages/Investments'
 import Transactions from './pages/Transactions'
 import Transfer from './pages/Transfer'
 import Cards from './pages/Cards'
+import Loans from './pages/Loans'
 import Profile from './pages/Profile'
 import ProtectedRoute from './components/ProtectedRoute'
 import { AuthProvider } from './context/AuthContext'
@@ -49,6 +50,7 @@ function App() {
               <Route path="/transactions" element={<ProtectedRoute><Transactions /></ProtectedRoute>} />
               <Route path="/transfer" element={<ProtectedRoute><Transfer /></ProtectedRoute>} />
               <Route path="/cards" element={<ProtectedRoute><Cards /></ProtectedRoute>} />
+              <Route path="/loans" element={<ProtectedRoute><Loans /></ProtectedRoute>} />
               <Route path="/profile" element={<ProtectedRoute><Profile /></ProtectedRoute>} />
               <Route path="/" element={<Navigate to="/dashboard" replace />} />
 

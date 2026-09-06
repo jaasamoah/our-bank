@@ -1,17 +1,23 @@
 import React, { useState } from 'react';
 import Layout from '../components/Layout';
 import { useAuth } from '../context/AuthContext';
+import { getBeneficiaries, type ApiBeneficiary } from '../services/api';
 
 const Profile = () => {
   const { user } = useAuth();
   const [notifications, setNotifications] = useState({ email: true, sms: false, push: true });
   const [saved, setSaved] = useState(false);
+  const [beneficiaries, setBeneficiaries] = useState<ApiBeneficiary[]>([]);
 
   const handleSave = (e: React.FormEvent) => {
     e.preventDefault();
     setSaved(true);
     setTimeout(() => setSaved(false), 2500);
   };
+
+  React.useEffect(() => {
+    getBeneficiaries().then(setBeneficiaries).catch(() => setBeneficiaries([]));
+  }, []);
 
   return (
     <Layout title="Profile & settings" subtitle="Manage your personal information and preferences.">
@@ -96,6 +102,35 @@ const Profile = () => {
           </button>
         </form>
       </div>
+
+      <section className="mt-6 rounded-2xl bg-white p-6 shadow-card">
+        <div className="flex flex-col gap-1 sm:flex-row sm:items-center sm:justify-between">
+          <div>
+            <h3 className="text-sm font-semibold text-slate-900">Previous beneficiaries</h3>
+            <p className="mt-1 text-sm text-slate-500">Beneficiaries previously associated with this account.</p>
+          </div>
+          <span className="text-xs text-slate-400">{beneficiaries.length} saved</span>
+        </div>
+        {beneficiaries.length === 0 ? (
+          <p className="mt-5 rounded-xl bg-slate-50 px-4 py-4 text-sm text-slate-500">No previous beneficiaries have been recorded.</p>
+        ) : (
+          <div className="mt-5 grid grid-cols-1 gap-3 md:grid-cols-2">
+            {beneficiaries.map((beneficiary) => (
+              <div key={beneficiary.id} className="rounded-xl border border-slate-100 p-4">
+                <div className="flex items-start justify-between gap-3">
+                  <div>
+                    <p className="font-semibold text-slate-900">{beneficiary.name}</p>
+                    {beneficiary.relationship && <p className="text-xs text-slate-500">{beneficiary.relationship}</p>}
+                  </div>
+                  {beneficiary.bank && <span className="text-xs text-slate-400">{beneficiary.bank}</span>}
+                </div>
+                {beneficiary.account_number && <p className="mt-3 font-mono text-xs text-slate-600">Account ending {beneficiary.account_number.slice(-4)}</p>}
+                {beneficiary.notes && <p className="mt-2 text-sm text-slate-600">{beneficiary.notes}</p>}
+              </div>
+            ))}
+          </div>
+        )}
+      </section>
     </Layout>
   );
 };
