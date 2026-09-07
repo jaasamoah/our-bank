@@ -10,6 +10,7 @@ import {
   UserCircleIcon,
 } from '@heroicons/react/24/outline';
 import { useAuth } from '../context/AuthContext';
+import Brand from './Brand';
 
 const navItems = [
   { to: '/dashboard', label: 'Dashboard', icon: ChartBarIcon },
@@ -27,11 +28,8 @@ const Sidebar: React.FC<{ onNavigate?: () => void }> = ({ onNavigate }) => {
 
   return (
     <div className="flex h-full flex-col bg-white">
-      <div className="flex items-center gap-2 px-6 py-6">
-        <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-brand-700 text-white text-lg font-bold">
-          H
-        </div>
-        <span className="text-lg font-bold text-slate-900">Horizon Bank</span>
+      <div className="flex items-center px-6 py-6">
+        <Brand className="text-xl" />
       </div>
 
       <nav className="flex-1 space-y-1 px-3">

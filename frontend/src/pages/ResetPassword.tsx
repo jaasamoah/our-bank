@@ -3,6 +3,7 @@ import { Link, useNavigate, useSearchParams } from 'react-router-dom';
 import { ArrowLeftIcon, CheckCircleIcon, LockClosedIcon } from '@heroicons/react/24/outline';
 import { confirmPasswordReset, requestPasswordReset } from '../services/api';
 import LoadingSpinner from '../components/LoadingSpinner';
+import Brand from '../components/Brand';
 
 const ResetPassword: React.FC = () => {
   const [searchParams] = useSearchParams();
@@ -60,9 +61,8 @@ const ResetPassword: React.FC = () => {
   return (
     <div className="flex min-h-screen items-center justify-center bg-slate-50 px-4 py-12">
       <div className="w-full max-w-md">
-        <div className="mb-8 flex items-center justify-center gap-2">
-          <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-brand-700 text-lg font-bold text-white">H</div>
-          <span className="text-xl font-bold text-slate-900">Horizon Bank</span>
+        <div className="mb-8 flex items-center justify-center">
+          <Brand className="text-2xl" />
         </div>
         <div className="rounded-2xl bg-white p-6 shadow-card sm:p-8">
           {step === 'complete' ? (

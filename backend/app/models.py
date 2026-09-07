@@ -175,3 +175,15 @@ class Complaint(Base):
     updated_at = Column(DateTime(timezone=True), onupdate=func.now())
 
     user = orm_relationship("User", back_populates="complaints")
+
+
+class PublicSupportRequest(Base):
+    __tablename__ = "public_support_requests"
+
+    id = Column(Integer, primary_key=True, index=True)
+    name = Column(String, nullable=False)
+    email = Column(String, nullable=False)
+    subject = Column(String, nullable=False)
+    message = Column(String, nullable=False)
+    status = Column(String, default="open", nullable=False)
+    created_at = Column(DateTime(timezone=True), server_default=func.now())

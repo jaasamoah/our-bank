@@ -153,6 +153,26 @@ class ComplaintOut(BaseModel):
         from_attributes = True
 
 
+class PublicSupportRequestCreate(BaseModel):
+    name: str
+    email: EmailStr
+    subject: str
+    message: str
+
+
+class PublicSupportRequestOut(BaseModel):
+    id: int
+    name: str
+    email: EmailStr
+    subject: str
+    message: str
+    status: str
+    created_at: datetime
+
+    class Config:
+        from_attributes = True
+
+
 class AdminUserCreate(BaseModel):
     email: EmailStr
     username: str

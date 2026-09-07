@@ -1,10 +1,10 @@
 import React, { useEffect, useState } from 'react';
 import AdminLayout from '../components/AdminLayout';
-import { getAdminComplaints, type ApiComplaint } from '../../services/api';
+import { getAdminComplaints, type ApiSupportRequest } from '../../services/api';
 import LoadingSpinner from '../../components/LoadingSpinner';
 
 const Support: React.FC = () => {
-  const [complaints, setComplaints] = useState<Array<ApiComplaint & { user_id: number }>>([]);
+  const [complaints, setComplaints] = useState<ApiSupportRequest[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
 
@@ -30,7 +30,12 @@ const Support: React.FC = () => {
                 <div className="flex flex-wrap items-start justify-between gap-3">
                   <div>
                     <h2 className="font-semibold text-slate-900">{complaint.subject}</h2>
-                    <p className="mt-1 text-xs text-slate-500">Customer #{complaint.user_id} · {new Date(complaint.created_at).toLocaleString()}</p>
+                    <p className="mt-1 text-xs text-slate-500">
+                      {complaint.user_id ? `Customer #${complaint.user_id}` : `Public request from ${complaint.contact_name ?? 'Visitor'}`}
+                      {complaint.contact_email ? ` · ${complaint.contact_email}` : ''}
+                      {' · '}
+                      {new Date(complaint.created_at).toLocaleString()}
+                    </p>
                   </div>
                   <span className="rounded-full bg-amber-50 px-2.5 py-1 text-xs font-medium capitalize text-amber-700">{complaint.status}</span>
                 </div>

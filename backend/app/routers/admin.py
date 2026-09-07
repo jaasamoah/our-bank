@@ -13,6 +13,7 @@ from ..models import (
     Loan,
     PasswordResetToken,
     Payee,
+    PublicSupportRequest,
     Transaction,
     User,
     UserRole,
@@ -692,9 +693,41 @@ def list_complaints(
     _: User = Depends(get_current_admin),
     db: Session = Depends(get_db),
 ):
-    return (
+    customer_requests = (
         db.query(Complaint)
         .join(User)
         .order_by(Complaint.created_at.desc())
         .all()
     )
+    public_requests = (
+        db.query(PublicSupportRequest)
+        .order_by(PublicSupportRequest.created_at.desc())
+        .all()
+    )
+    return [
+        {
+            "id": complaint.id,
+            "user_id": complaint.user_id,
+            "contact_name": complaint.user.full_name if complaint.user else None,
+            "contact_email": complaint.user.email if complaint.user else None,
+            "subject": complaint.subject,
+            "message": complaint.message,
+            "status": complaint.status,
+            "created_at": complaint.created_at,
+            "updated_at": complaint.updated_at,
+        }
+        for complaint in customer_requests
+    ] + [
+        {
+            "id": request.id,
+            "user_id": None,
+            "contact_name": request.name,
+            "contact_email": request.email,
+            "subject": request.subject,
+            "message": request.message,
+            "status": request.status,
+            "created_at": request.created_at,
+            "updated_at": None,
+        }
+        for request in public_requests
+    ]

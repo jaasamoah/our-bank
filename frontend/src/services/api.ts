@@ -119,6 +119,12 @@ export interface ApiComplaint {
   updated_at?: string;
 }
 
+export interface ApiSupportRequest extends ApiComplaint {
+  user_id?: number | null;
+  contact_name?: string | null;
+  contact_email?: string | null;
+}
+
 export interface ApiAdminAccount {
   id: number;
   user_id: number;
@@ -267,6 +273,16 @@ export async function confirmPasswordReset(token: string, newPassword: string) {
 
 export async function createComplaint(payload: { subject: string; message: string }) {
   const response = await api.post<ApiComplaint>('/api/support/', payload);
+  return response.data;
+}
+
+export async function createPublicSupportRequest(payload: {
+  name: string;
+  email: string;
+  subject: string;
+  message: string;
+}) {
+  const response = await api.post<ApiSupportRequest>('/api/support/public', payload);
   return response.data;
 }
 
@@ -466,6 +482,6 @@ export async function deleteAdminBeneficiary(beneficiaryId: number) {
 }
 
 export async function getAdminComplaints() {
-  const response = await api.get<Array<ApiComplaint & { user_id: number }>>('/api/admin/complaints');
+  const response = await api.get<ApiSupportRequest[]>('/api/admin/complaints');
   return response.data;
 }

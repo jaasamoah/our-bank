@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAdminAuth } from '../context/AdminAuthContext';
 import LoadingSpinner from '../../components/LoadingSpinner';
+import Brand from '../../components/Brand';
 
 const AdminLogin: React.FC = () => {
   const { login } = useAdminAuth();
@@ -29,11 +30,8 @@ const AdminLogin: React.FC = () => {
     <div className="min-h-screen flex">
       <div className="hidden lg:flex lg:w-1/2 flex-col justify-between bg-gradient-to-br from-slate-800 to-brand-900 p-12">
         <div className="flex items-center gap-3">
-          <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-white/20 text-white text-xl font-bold">
-            H
-          </div>
           <div>
-            <span className="text-xl font-bold text-white block">Horizon Bank</span>
+            <Brand light className="text-xl block" />
             <span className="text-xs text-white/60">Admin Portal</span>
           </div>
         </div>
@@ -50,16 +48,16 @@ const AdminLogin: React.FC = () => {
           </p>
         </div>
         <p className="text-white/40 text-sm">
-          © 2026 Horizon Bank. Authorized personnel only.
+          © 2026 Telos Bank. Authorized personnel only.
         </p>
       </div>
 
       <div className="flex flex-1 flex-col items-center justify-center px-6 py-12 bg-white">
         <div className="w-full max-w-sm">
           <div className="mb-8">
-            <div className="flex items-center gap-2 mb-6 lg:hidden">
-              <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-brand-700 text-white font-bold">H</div>
-              <span className="font-bold text-slate-900">Horizon Bank Admin</span>
+            <div className="mb-6 lg:hidden">
+              <Brand className="text-lg" />
+              <span className="ml-2 text-sm font-medium text-slate-500">Admin Portal</span>
             </div>
             <h1 className="text-3xl font-bold text-slate-900 mb-1">Admin Sign In</h1>
             <p className="text-slate-500 text-sm">Enter your administrator credentials</p>

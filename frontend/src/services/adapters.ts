@@ -15,7 +15,7 @@ export function mapAccount(account: ApiAccount): MockAccount {
       ? 'Everyday Checking'
       : account.account_type === 'savings'
         ? 'High-Yield Savings'
-        : 'Horizon Rewards Card',
+        : 'Telos Rewards Card',
     type: type === 'credit' ? 'Credit' : type === 'savings' ? 'Savings' : 'Checking',
     number: `•••• ${account.account_number.slice(-4)}`,
     balance: account.balance,

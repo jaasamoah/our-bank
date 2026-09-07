@@ -36,7 +36,7 @@ const AdminFXRates: React.FC = () => {
               <CurrencyDollarIcon className="h-7 w-7" aria-hidden="true" />
             </div>
             <div>
-              <p className="text-2xl font-bold">USD — US Dollar</p>
+              <p className="text-2xl font-bold">USD · US Dollar</p>
               <p className="text-sm text-white/60">All rates are quoted against USD</p>
             </div>
           </div>

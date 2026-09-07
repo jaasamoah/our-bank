@@ -109,7 +109,7 @@ export interface AdminNotification {
 export const adminUser: AdminUser = {
   id: 'adm_1',
   fullName: 'Alex Rivera',
-  email: 'admin@horizonbank.com',
+  email: 'admin@telosbank.com',
   username: 'admin',
   role: 'superadmin',
   avatarInitials: 'AR',
@@ -195,7 +195,7 @@ export const auditLogs: AuditLog[] = [
 export const adminNotifications: AdminNotification[] = [
   { id: 'notif_1', userId: 'usr_1', userName: 'Jordan Ellis', title: 'Security Alert', message: 'A new device signed into your account.', type: 'Security', sent: true, sentAt: '2026-07-14T09:00:00Z' },
   { id: 'notif_2', userId: 'usr_2', userName: 'Maria Chen', title: 'Transaction Reversed', message: 'Your transaction of $128 has been reversed.', type: 'Alert', sent: true, sentAt: '2026-07-14T09:15:00Z' },
-  { id: 'notif_3', userId: 'all', userName: 'All Users', title: 'Scheduled Maintenance', message: 'The system will be down for maintenance on July 20 from 2–4 AM.', type: 'Info', sent: false, sentAt: '' },
+  { id: 'notif_3', userId: 'all', userName: 'All Users', title: 'Scheduled Maintenance', message: 'The system will be down for maintenance on July 20 from 2 to 4 AM.', type: 'Info', sent: false, sentAt: '' },
   { id: 'notif_4', userId: 'usr_5', userName: 'Casey Kim', title: 'Complete Your KYC', message: 'Please submit your identity documents to unlock all features.', type: 'Alert', sent: true, sentAt: '2026-07-12T10:00:00Z' },
 ];
 

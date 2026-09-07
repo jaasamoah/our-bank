@@ -1,5 +1,6 @@
 import React from 'react';
 import { NavLink } from 'react-router-dom';
+import Brand from '../../components/Brand';
 import {
   BellIcon,
   BuildingLibraryIcon,
@@ -33,12 +34,9 @@ const AdminSidebar: React.FC<{ onNavigate?: () => void }> = ({ onNavigate }) => 
 
   return (
     <div className="flex h-full flex-col bg-white">
-      <div className="flex items-center gap-2 px-6 py-6 border-b border-slate-100">
-        <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-brand-700 text-white text-lg font-bold">
-          H
-        </div>
+      <div className="flex items-center px-6 py-6 border-b border-slate-100">
         <div>
-          <span className="text-base font-bold text-slate-900 block">Horizon Bank</span>
+          <Brand className="text-lg block" />
           <span className="text-xs font-medium text-brand-600 bg-brand-50 px-1.5 py-0.5 rounded">Admin Panel</span>
         </div>
       </div>

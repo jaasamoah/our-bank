@@ -147,7 +147,7 @@ const AdminAccounts: React.FC = () => {
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/40 px-4">
           <div className="w-full max-w-sm rounded-2xl bg-white p-6 shadow-xl">
             <h2 className="text-lg font-bold text-slate-900 mb-1">Edit Account</h2>
-            <p className="text-sm text-slate-500 mb-5">{editAccount.userName} — {editAccount.number}</p>
+            <p className="text-sm text-slate-500 mb-5">{editAccount.userName} · {editAccount.number}</p>
             <div className="space-y-4">
               <div>
                 <label className="block text-xs font-medium text-slate-600 mb-1">Balance (USD)</label>
