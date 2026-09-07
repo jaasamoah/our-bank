@@ -262,6 +262,8 @@ ENABLE_API_DOCS = os.getenv("ENABLE_API_DOCS", "false").lower() == "true"
 CSRF_COOKIE = "csrf_token"
 CSRF_EXEMPT_PATHS = {
     "/api/auth/login",
+    "/api/auth/login/security-questions",
+    "/api/auth/login/otp",
     "/api/auth/refresh",
     "/api/auth/logout",
     "/api/auth/password-reset/request",

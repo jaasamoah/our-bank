@@ -1,12 +1,28 @@
 import React, { createContext, useContext, useEffect, useState, ReactNode } from 'react';
+import axios from 'axios';
 import type { MockUser } from '../mock/data';
-import { getCurrentUser, loginRequest, logoutRequest } from '../services/api';
+import {
+  getCurrentUser,
+  loginRequest,
+  logoutRequest,
+  verifyLoginOtp,
+  verifySecurityQuestions,
+  type ApiSecurityQuestion,
+} from '../services/api';
 
 interface AuthContextType {
   isAuthenticated: boolean;
   isLoading: boolean;
   user: MockUser | null;
-  login: (username: string, password: string) => Promise<{ success: boolean; error?: string }>;
+  login: (email: string, password: string) => Promise<{
+    success: boolean;
+    stage?: 'security_questions' | 'otp';
+    challengeToken?: string;
+    questions?: ApiSecurityQuestion[];
+    error?: string;
+  }>;
+  verifySecurityQuestions: (challengeToken: string, answers: Array<{ question_id: number; answer: string }>) => Promise<{ success: boolean; error?: string }>;
+  verifyLoginOtp: (challengeToken: string, otp: string) => Promise<{ success: boolean; error?: string }>;
   logout: () => void;
 }
 
@@ -43,18 +59,60 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
       .finally(() => setIsLoading(false));
   }, []);
 
-  const login = async (username: string, password: string) => {
-    if (username.trim().length === 0 || password.trim().length === 0) {
-      return { success: false, error: 'Please enter your username and password.' };
+  const login = async (email: string, password: string) => {
+    if (email.trim().length === 0 || password.trim().length === 0) {
+      return { success: false, error: 'Please enter your email and password.' };
     }
 
     try {
-      await loginRequest(username, password);
+      const result = await loginRequest(email, password);
+      if (result.stage !== 'complete') {
+        return {
+          success: false,
+          stage: result.stage,
+          challengeToken: result.challenge_token,
+          questions: result.questions,
+          error: result.message,
+        };
+      }
       const apiUser = await getCurrentUser();
       setUser(mapUser(apiUser));
       return { success: true };
-    } catch {
-      return { success: false, error: 'Invalid username or password.' };
+    } catch (error) {
+      return {
+        success: false,
+        error: axios.isAxiosError(error) ? error.response?.data?.detail ?? 'Invalid email or password.' : 'Invalid email or password.',
+      };
+    }
+  };
+
+  const completeLogin = async () => {
+    const apiUser = await getCurrentUser();
+    setUser(mapUser(apiUser));
+    return { success: true as const };
+  };
+
+  const completeSecurityQuestions = async (challengeToken: string, answers: Array<{ question_id: number; answer: string }>) => {
+    try {
+      await verifySecurityQuestions(challengeToken, answers);
+      return { success: true };
+    } catch (error) {
+      return {
+        success: false,
+        error: axios.isAxiosError(error) ? error.response?.data?.detail ?? 'The security answers are incorrect.' : 'The security answers are incorrect.',
+      };
+    }
+  };
+
+  const completeOtp = async (challengeToken: string, otp: string) => {
+    try {
+      await verifyLoginOtp(challengeToken, otp);
+      return completeLogin();
+    } catch (error) {
+      return {
+        success: false,
+        error: axios.isAxiosError(error) ? error.response?.data?.detail ?? 'The verification code is incorrect.' : 'The verification code is incorrect.',
+      };
     }
   };
 
@@ -64,7 +122,7 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
   };
 
   return (
-    <AuthContext.Provider value={{ isAuthenticated: Boolean(user), isLoading, user, login, logout }}>
+    <AuthContext.Provider value={{ isAuthenticated: Boolean(user), isLoading, user, login, verifySecurityQuestions: completeSecurityQuestions, verifyLoginOtp: completeOtp, logout }}>
       {children}
     </AuthContext.Provider>
   );

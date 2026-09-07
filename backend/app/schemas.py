@@ -138,6 +138,33 @@ class PasswordResetResponse(BaseModel):
     reset_token: Optional[str] = None
 
 
+class SecurityQuestionAnswer(StrictModel):
+    question_id: StrictInt
+    answer: str = Field(min_length=1, max_length=200)
+
+
+class LoginSecurityVerification(StrictModel):
+    challenge_token: str = Field(min_length=32, max_length=256)
+    answers: list[SecurityQuestionAnswer] = Field(min_length=1, max_length=5)
+
+
+class LoginOtpVerification(StrictModel):
+    challenge_token: str = Field(min_length=32, max_length=256)
+    otp: str = Field(min_length=6, max_length=6, pattern=r"^\d{6}$")
+
+
+class SecurityQuestionOut(BaseModel):
+    id: int
+    question: str
+
+
+class LoginChallengeResponse(BaseModel):
+    stage: str
+    challenge_token: str
+    questions: list[SecurityQuestionOut] = []
+    message: Optional[str] = None
+
+
 class ComplaintCreate(StrictModel):
     subject: str = Field(min_length=1, max_length=160)
     message: str = Field(min_length=1, max_length=5000)
@@ -205,6 +232,19 @@ class AdminUserOut(BaseModel):
 
     class Config:
         from_attributes = True
+
+
+class AdminSecurityQuestionInput(StrictModel):
+    question: str = Field(min_length=5, max_length=200)
+    answer: str = Field(min_length=1, max_length=200)
+
+
+class AdminSecurityQuestionsUpdate(StrictModel):
+    questions: list[AdminSecurityQuestionInput] = Field(min_length=2, max_length=3)
+
+
+class AdminSecurityQuestionsOut(BaseModel):
+    questions: list[SecurityQuestionOut]
 
 
 class AdminAccountUpdate(StrictModel):

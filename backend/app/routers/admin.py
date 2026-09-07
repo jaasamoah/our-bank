@@ -14,6 +14,8 @@ from ..models import (
     PasswordResetToken,
     Payee,
     PublicSupportRequest,
+    LoginChallenge,
+    SecurityQuestion,
     Transaction,
     User,
     UserRole,
@@ -32,6 +34,8 @@ from ..schemas import (
     AdminUserCreate,
     AdminUserOut,
     AdminUserUpdate,
+    AdminSecurityQuestionsOut,
+    AdminSecurityQuestionsUpdate,
     BeneficiaryOut,
     CardOut,
     ComplaintOut,
@@ -55,6 +59,10 @@ def serialize_user(user: User) -> dict:
         "created_at": user.created_at,
         "total_balance": sum(account.balance or 0 for account in user.accounts),
     }
+
+
+def serialize_security_question(question: SecurityQuestion) -> dict:
+    return {"id": question.id, "question": question.question}
 
 
 def serialize_transaction(transaction: Transaction) -> dict:
@@ -154,9 +162,71 @@ def delete_user(
     db.query(Investment).filter(Investment.user_id == user_id).delete(synchronize_session=False)
     db.query(Complaint).filter(Complaint.user_id == user_id).delete(synchronize_session=False)
     db.query(PasswordResetToken).filter(PasswordResetToken.user_id == user_id).delete(synchronize_session=False)
+    db.query(SecurityQuestion).filter(SecurityQuestion.user_id == user_id).delete(synchronize_session=False)
+    db.query(LoginChallenge).filter(LoginChallenge.user_id == user_id).delete(synchronize_session=False)
     db.query(Account).filter(Account.user_id == user_id).delete(synchronize_session=False)
     db.delete(user)
     db.commit()
+
+
+@router.get("/users/{user_id}/security-questions", response_model=AdminSecurityQuestionsOut)
+def get_security_questions(
+    user_id: int,
+    _: User = Depends(get_current_admin),
+    db: Session = Depends(get_db),
+):
+    user = db.query(User).filter(User.id == user_id, User.role == UserRole.CUSTOMER).first()
+    if not user:
+        raise HTTPException(status_code=404, detail="Customer not found")
+    questions = (
+        db.query(SecurityQuestion)
+        .filter(SecurityQuestion.user_id == user_id)
+        .order_by(SecurityQuestion.position.asc(), SecurityQuestion.id.asc())
+        .all()
+    )
+    return {"questions": [serialize_security_question(question) for question in questions]}
+
+
+@router.put("/users/{user_id}/security-questions", response_model=AdminSecurityQuestionsOut)
+def replace_security_questions(
+    user_id: int,
+    payload: AdminSecurityQuestionsUpdate,
+    _: User = Depends(get_current_admin),
+    db: Session = Depends(get_db),
+):
+    from ..auth import get_password_hash
+
+    user = db.query(User).filter(User.id == user_id, User.role == UserRole.CUSTOMER).first()
+    if not user:
+        raise HTTPException(status_code=404, detail="Customer not found")
+
+    normalized_questions = [
+        (item.question.strip(), item.answer.strip())
+        for item in payload.questions
+    ]
+    if len({question.casefold() for question, _ in normalized_questions}) != len(normalized_questions):
+        raise HTTPException(status_code=400, detail="Security questions must be unique")
+    if any(not question or not answer for question, answer in normalized_questions):
+        raise HTTPException(status_code=400, detail="Security questions and answers are required")
+
+    db.query(SecurityQuestion).filter(SecurityQuestion.user_id == user_id).delete(synchronize_session=False)
+    for position, (question, answer) in enumerate(normalized_questions):
+        db.add(
+            SecurityQuestion(
+                user_id=user_id,
+                question=question,
+                answer_hash=get_password_hash(answer.casefold()),
+                position=position,
+            )
+        )
+    db.commit()
+    questions = (
+        db.query(SecurityQuestion)
+        .filter(SecurityQuestion.user_id == user_id)
+        .order_by(SecurityQuestion.position.asc(), SecurityQuestion.id.asc())
+        .all()
+    )
+    return {"questions": [serialize_security_question(question) for question in questions]}
 
 
 @router.get("/accounts")

@@ -8,12 +8,16 @@ import {
   deleteAdminBeneficiary,
   deleteAdminUser,
   getAdminBeneficiaries,
+  getAdminSecurityQuestions,
   getAdminUsers,
   updateAdminBeneficiary,
+  updateAdminSecurityQuestions,
   updateAdminUser,
   type ApiBeneficiary,
 } from '../../services/api';
 import LoadingSpinner from '../../components/LoadingSpinner';
+
+type SecurityQuestionForm = { question: string; answer: string };
 
 const statusColors: Record<string, string> = {
   Active: 'bg-emerald-50 text-emerald-700',
@@ -47,6 +51,9 @@ const AdminUsers: React.FC = () => {
   const [beneficiaryForm, setBeneficiaryForm] = useState({ name: '', relationship: '', bank: '', account_number: '', notes: '', created_at: new Date().toISOString().slice(0, 10) });
   const [editingBeneficiary, setEditingBeneficiary] = useState<ApiBeneficiary | null>(null);
   const [beneficiarySaving, setBeneficiarySaving] = useState(false);
+  const [securityUser, setSecurityUser] = useState<ManagedUser | null>(null);
+  const [securityQuestions, setSecurityQuestions] = useState<SecurityQuestionForm[]>([]);
+  const [securitySaving, setSecuritySaving] = useState(false);
 
   const mapUser = (user: Awaited<ReturnType<typeof getAdminUsers>>[number]): ManagedUser => ({
     id: String(user.id),
@@ -138,6 +145,40 @@ const AdminUsers: React.FC = () => {
       setUsers((prev) => prev.map((u) => u.id === id ? mapUser(updated) : u));
     } catch {
       setError('We could not update this customer. Please try again.');
+    }
+  };
+
+  const openSecurityQuestions = async (user: ManagedUser) => {
+    setSecurityUser(user);
+    setSecurityQuestions([{ question: '', answer: '' }, { question: '', answer: '' }]);
+    setError('');
+    try {
+      const existing = await getAdminSecurityQuestions(Number(user.id));
+      const configured = existing.map((item) => ({ question: item.question, answer: '' }));
+      setSecurityQuestions(configured.length >= 2 ? configured : [...configured, ...Array.from({ length: 2 - configured.length }, () => ({ question: '', answer: '' }))]);
+    } catch {
+      setError('We could not load this customer’s security questions.');
+    }
+  };
+
+  const saveSecurityQuestions = async () => {
+    if (!securityUser || securityQuestions.length < 2 || securityQuestions.length > 3) return;
+    if (securityQuestions.some((item) => !item.question.trim() || !item.answer.trim())) {
+      setError('Enter a question and answer for every security question.');
+      return;
+    }
+    setSecuritySaving(true);
+    setError('');
+    try {
+      await updateAdminSecurityQuestions(Number(securityUser.id), securityQuestions.map((item) => ({
+        question: item.question.trim(),
+        answer: item.answer.trim(),
+      })));
+      setSecurityUser(null);
+    } catch {
+      setError('We could not save this customer’s security questions.');
+    } finally {
+      setSecuritySaving(false);
     }
   };
 
@@ -275,6 +316,7 @@ const AdminUsers: React.FC = () => {
                           {u.status === 'Active' ? 'Suspend' : 'Activate'}
                         </button>
                         <button onClick={() => void openBeneficiaries(u)} className="rounded-lg bg-slate-100 px-3 py-1.5 text-xs font-medium text-slate-700 hover:bg-slate-200 transition">Beneficiaries</button>
+                        <button onClick={() => void openSecurityQuestions(u)} className="rounded-lg bg-blue-50 px-3 py-1.5 text-xs font-medium text-blue-700 hover:bg-blue-100 transition">Security questions</button>
                         <button onClick={() => void removeUser(u)} className="rounded-lg bg-red-50 px-3 py-1.5 text-xs font-medium text-red-700 hover:bg-red-100 transition">Delete</button>
                       </div>
                     </td>
@@ -336,6 +378,42 @@ const AdminUsers: React.FC = () => {
             <div className="flex gap-3 mt-6">
               <button onClick={() => setShowModal(false)} className="flex-1 rounded-xl border border-slate-200 py-2.5 text-sm font-medium text-slate-600 hover:bg-slate-50 transition">Cancel</button>
               <button onClick={handleSave} className="flex-1 rounded-xl bg-brand-700 py-2.5 text-sm font-semibold text-white hover:bg-brand-800 transition">Save</button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {securityUser && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/40 px-4">
+          <div className="max-h-[90vh] w-full max-w-lg overflow-y-auto rounded-2xl bg-white p-6 shadow-xl">
+            <div className="flex items-start justify-between gap-4">
+              <div>
+                <h2 className="text-lg font-bold text-slate-900">Security questions</h2>
+                <p className="mt-1 text-sm text-slate-500">{securityUser.fullName} · answers are never displayed after saving</p>
+              </div>
+              <button type="button" onClick={() => setSecurityUser(null)} className="text-sm text-slate-400 hover:text-slate-700">Close</button>
+            </div>
+            <div className="mt-5 space-y-4">
+              {securityQuestions.map((item, index) => (
+                <div key={index} className="rounded-xl border border-slate-100 p-4">
+                  <div className="mb-3 flex items-center justify-between">
+                    <p className="text-xs font-semibold uppercase tracking-wide text-slate-500">Question {index + 1}</p>
+                    {securityQuestions.length > 2 && (
+                      <button type="button" onClick={() => setSecurityQuestions((current) => current.filter((_, itemIndex) => itemIndex !== index))} className="text-xs font-medium text-red-700">Remove</button>
+                    )}
+                  </div>
+                  <input value={item.question} onChange={(event) => setSecurityQuestions((current) => current.map((entry, itemIndex) => itemIndex === index ? { ...entry, question: event.target.value } : entry))} placeholder="What was the name of your first school?" className="w-full rounded-xl border border-slate-200 px-3 py-2.5 text-sm outline-none focus:border-brand-500" />
+                  <input type="password" autoComplete="new-password" value={item.answer} onChange={(event) => setSecurityQuestions((current) => current.map((entry, itemIndex) => itemIndex === index ? { ...entry, answer: event.target.value } : entry))} placeholder="Answer" className="mt-3 w-full rounded-xl border border-slate-200 px-3 py-2.5 text-sm outline-none focus:border-brand-500" />
+                </div>
+              ))}
+              {securityQuestions.length < 3 && (
+                <button type="button" onClick={() => setSecurityQuestions((current) => [...current, { question: '', answer: '' }])} className="text-sm font-semibold text-brand-700 hover:text-brand-800">+ Add another question</button>
+              )}
+              {error && <p className="rounded-xl bg-red-50 px-3 py-2 text-sm text-red-700">{error}</p>}
+            </div>
+            <div className="mt-6 flex gap-3">
+              <button type="button" onClick={() => setSecurityUser(null)} className="flex-1 rounded-xl border border-slate-200 py-2.5 text-sm font-medium text-slate-600 hover:bg-slate-50">Cancel</button>
+              <button type="button" onClick={() => void saveSecurityQuestions()} disabled={securitySaving} className="flex-1 rounded-xl bg-brand-700 py-2.5 text-sm font-semibold text-white disabled:opacity-60">{securitySaving ? 'Saving…' : 'Save questions'}</button>
             </div>
           </div>
         </div>

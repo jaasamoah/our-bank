@@ -30,6 +30,8 @@ class User(Base):
     complaints = orm_relationship("Complaint", back_populates="user")
     loans = orm_relationship("Loan", back_populates="user")
     beneficiaries = orm_relationship("Beneficiary", back_populates="user")
+    security_questions = orm_relationship("SecurityQuestion", back_populates="user", cascade="all, delete-orphan")
+    login_challenges = orm_relationship("LoginChallenge", back_populates="user", cascade="all, delete-orphan")
 
 class Account(Base):
     __tablename__ = "accounts"
@@ -176,6 +178,37 @@ class RefreshToken(Base):
     created_at = Column(DateTime(timezone=True), server_default=func.now())
 
     user = orm_relationship("User")
+
+
+class SecurityQuestion(Base):
+    __tablename__ = "security_questions"
+
+    id = Column(Integer, primary_key=True, index=True)
+    user_id = Column(Integer, ForeignKey("users.id"), nullable=False, index=True)
+    question = Column(String, nullable=False)
+    answer_hash = Column(String, nullable=False)
+    position = Column(Integer, nullable=False, default=0)
+    created_at = Column(DateTime(timezone=True), server_default=func.now())
+
+    user = orm_relationship("User", back_populates="security_questions")
+
+
+class LoginChallenge(Base):
+    __tablename__ = "login_challenges"
+
+    id = Column(Integer, primary_key=True, index=True)
+    user_id = Column(Integer, ForeignKey("users.id"), nullable=False, index=True)
+    token_hash = Column(String, unique=True, nullable=False, index=True)
+    security_verified = Column(Boolean, nullable=False, default=False)
+    otp_hash = Column(String, nullable=True)
+    otp_expires_at = Column(DateTime(timezone=True), nullable=True)
+    otp_attempts = Column(Integer, nullable=False, default=0)
+    security_attempts = Column(Integer, nullable=False, default=0)
+    expires_at = Column(DateTime(timezone=True), nullable=False)
+    completed_at = Column(DateTime(timezone=True), nullable=True)
+    created_at = Column(DateTime(timezone=True), server_default=func.now())
+
+    user = orm_relationship("User", back_populates="login_challenges")
 
 
 class Complaint(Base):

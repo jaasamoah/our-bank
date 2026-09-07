@@ -21,6 +21,8 @@ function getCookie(name: string) {
 
 const csrfExemptPaths = new Set([
   '/api/auth/login',
+  '/api/auth/login/security-questions',
+  '/api/auth/login/otp',
   '/api/auth/refresh',
   '/api/auth/logout',
   '/api/auth/password-reset/request',
@@ -81,6 +83,11 @@ export interface ApiUser {
   role: string;
   is_active: boolean;
   created_at: string;
+}
+
+export interface ApiSecurityQuestion {
+  id: number;
+  question: string;
 }
 
 export interface ApiAccount {
@@ -216,17 +223,40 @@ export interface ApiBeneficiary {
 }
 
 export interface LoginResponse {
+  stage: 'complete' | 'security_questions' | 'otp';
+  challenge_token?: string;
+  questions?: ApiSecurityQuestion[];
+  message?: string;
   access_token?: string;
   token_type: string;
   role: string;
 }
 
-export async function loginRequest(username: string, password: string) {
+export async function loginRequest(email: string, password: string) {
   const form = new URLSearchParams();
-  form.set('username', username);
+  form.set('username', email);
   form.set('password', password);
   const response = await api.post<LoginResponse>('/api/auth/login', form, {
     headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+  });
+  return response.data;
+}
+
+export async function verifySecurityQuestions(
+  challengeToken: string,
+  answers: Array<{ question_id: number; answer: string }>,
+) {
+  const response = await api.post<LoginResponse>('/api/auth/login/security-questions', {
+    challenge_token: challengeToken,
+    answers,
+  });
+  return response.data;
+}
+
+export async function verifyLoginOtp(challengeToken: string, otp: string) {
+  const response = await api.post<LoginResponse>('/api/auth/login/otp', {
+    challenge_token: challengeToken,
+    otp,
   });
   return response.data;
 }
@@ -381,6 +411,19 @@ export async function updateAdminUser(userId: number, payload: {
 }) {
   const response = await api.patch<ApiUser & { total_balance: number }>(`/api/admin/users/${userId}`, payload);
   return response.data;
+}
+
+export async function getAdminSecurityQuestions(userId: number) {
+  const response = await api.get<{ questions: ApiSecurityQuestion[] }>(`/api/admin/users/${userId}/security-questions`);
+  return response.data.questions;
+}
+
+export async function updateAdminSecurityQuestions(
+  userId: number,
+  questions: Array<{ question: string; answer: string }>,
+) {
+  const response = await api.put<{ questions: ApiSecurityQuestion[] }>(`/api/admin/users/${userId}/security-questions`, { questions });
+  return response.data.questions;
 }
 
 export async function deleteAdminUser(userId: number) {

@@ -2,28 +2,79 @@ import React, { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { ArrowLeftIcon, LockClosedIcon, ShieldCheckIcon } from '@heroicons/react/24/outline';
 import { useAuth } from '../context/AuthContext';
+import type { ApiSecurityQuestion } from '../services/api';
 import Brand from '../components/Brand';
 import LoadingSpinner from '../components/LoadingSpinner';
 
 const Login: React.FC = () => {
-  const [username, setUsername] = useState('');
+  const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
+  const [step, setStep] = useState<'credentials' | 'security_questions' | 'otp'>('credentials');
+  const [challengeToken, setChallengeToken] = useState('');
+  const [questions, setQuestions] = useState<ApiSecurityQuestion[]>([]);
+  const [answers, setAnswers] = useState<Record<number, string>>({});
+  const [otp, setOtp] = useState('');
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
-  const { login } = useAuth();
+  const { login, verifySecurityQuestions, verifyLoginOtp } = useAuth();
   const navigate = useNavigate();
 
-  const handleSubmit = async (event: React.FormEvent) => {
+  const handleCredentials = async (event: React.FormEvent) => {
     event.preventDefault();
     setError('');
     setLoading(true);
-    const result = await login(username, password);
+    const result = await login(email, password);
+    setLoading(false);
+    if (result.success) {
+      navigate('/dashboard');
+    } else if (result.stage && result.challengeToken) {
+      setChallengeToken(result.challengeToken);
+      setQuestions(result.questions ?? []);
+      setStep(result.stage);
+    } else {
+      setError(result.error ?? 'Something went wrong.');
+    }
+  };
+
+  const handleSecurityQuestions = async (event: React.FormEvent) => {
+    event.preventDefault();
+    setError('');
+    setLoading(true);
+    const result = await verifySecurityQuestions(
+      challengeToken,
+      questions.map((question) => ({
+        question_id: question.id,
+        answer: answers[question.id] ?? '',
+      })),
+    );
+    setLoading(false);
+    if (result.success) {
+      setStep('otp');
+    } else {
+      setError(result.error ?? 'The security answers are incorrect.');
+    }
+  };
+
+  const handleOtp = async (event: React.FormEvent) => {
+    event.preventDefault();
+    setError('');
+    setLoading(true);
+    const result = await verifyLoginOtp(challengeToken, otp);
     setLoading(false);
     if (result.success) {
       navigate('/dashboard');
     } else {
-      setError(result.error ?? 'Something went wrong.');
+      setError(result.error ?? 'The verification code is incorrect.');
     }
+  };
+
+  const restart = () => {
+    setStep('credentials');
+    setChallengeToken('');
+    setQuestions([]);
+    setAnswers({});
+    setOtp('');
+    setError('');
   };
 
   return (
@@ -43,31 +94,71 @@ const Login: React.FC = () => {
             <div className="mx-auto flex h-12 w-12 items-center justify-center rounded-2xl bg-blue-50 text-blue-700">
               <LockClosedIcon className="h-6 w-6" />
             </div>
-            <h1 className="mt-5 text-2xl font-bold tracking-[-.04em] text-slate-950">Welcome back</h1>
-            <p className="mt-2 text-sm text-slate-500">Sign in to access your telosbank accounts</p>
+            <h1 className="mt-5 text-2xl font-bold tracking-[-.04em] text-slate-950">
+              {step === 'credentials' ? 'Welcome back' : step === 'security_questions' ? 'Confirm your identity' : 'Enter your verification code'}
+            </h1>
+            <p className="mt-2 text-sm text-slate-500">
+              {step === 'credentials'
+                ? 'Sign in to access your telosbank accounts'
+                : step === 'security_questions'
+                  ? 'Answer your security questions before continuing'
+                  : 'We sent a one-time code to your email address'}
+            </p>
           </div>
 
-          <form className="mt-8 space-y-5" onSubmit={handleSubmit}>
-            <div>
-              <label htmlFor="username" className="mb-1.5 block text-sm font-semibold text-slate-700">Username</label>
-              <input id="username" type="text" autoComplete="username" value={username} onChange={(event) => setUsername(event.target.value)} className="block w-full rounded-xl border border-slate-200 px-4 py-3 text-slate-900 placeholder-slate-400 outline-none transition focus:border-blue-500 focus:ring-4 focus:ring-blue-50" placeholder="Enter username" required />
-            </div>
-            <div>
-              <label htmlFor="password" className="mb-1.5 block text-sm font-semibold text-slate-700">Password</label>
-              <input id="password" type="password" autoComplete="current-password" value={password} onChange={(event) => setPassword(event.target.value)} className="block w-full rounded-xl border border-slate-200 px-4 py-3 text-slate-900 placeholder-slate-400 outline-none transition focus:border-blue-500 focus:ring-4 focus:ring-blue-50" placeholder="Enter password" required />
-            </div>
-            {error && <div className="rounded-xl border border-red-100 bg-red-50 px-4 py-3 text-sm text-red-700">{error}</div>}
-            <button type="submit" disabled={loading} className="flex w-full items-center justify-center rounded-xl bg-blue-700 px-4 py-3 text-sm font-semibold text-white transition hover:bg-blue-800 disabled:cursor-not-allowed disabled:opacity-70">
-              {loading ? <LoadingSpinner label="Signing in" size="sm" tone="light" /> : 'Sign in'}
-            </button>
-            <div className="text-center">
-              <Link to="/reset-password" className="text-sm font-semibold text-blue-700 hover:text-blue-900">Forgot your password?</Link>
-            </div>
-          </form>
+          {step === 'credentials' && (
+            <form className="mt-8 space-y-5" onSubmit={handleCredentials}>
+              <div>
+                <label htmlFor="email" className="mb-1.5 block text-sm font-semibold text-slate-700">Email</label>
+                <input id="email" type="email" autoComplete="email" value={email} onChange={(event) => setEmail(event.target.value)} className="block w-full rounded-xl border border-slate-200 px-4 py-3 text-slate-900 placeholder-slate-400 outline-none transition focus:border-blue-500 focus:ring-4 focus:ring-blue-50" placeholder="you@example.com" required />
+              </div>
+              <div>
+                <label htmlFor="password" className="mb-1.5 block text-sm font-semibold text-slate-700">Password</label>
+                <input id="password" type="password" autoComplete="current-password" value={password} onChange={(event) => setPassword(event.target.value)} className="block w-full rounded-xl border border-slate-200 px-4 py-3 text-slate-900 placeholder-slate-400 outline-none transition focus:border-blue-500 focus:ring-4 focus:ring-blue-50" placeholder="Enter password" required />
+              </div>
+              {error && <div className="rounded-xl border border-red-100 bg-red-50 px-4 py-3 text-sm text-red-700">{error}</div>}
+              <button type="submit" disabled={loading} className="flex w-full items-center justify-center rounded-xl bg-blue-700 px-4 py-3 text-sm font-semibold text-white transition hover:bg-blue-800 disabled:cursor-not-allowed disabled:opacity-70">
+                {loading ? <LoadingSpinner label="Checking credentials" size="sm" tone="light" /> : 'Continue'}
+              </button>
+              <div className="text-center">
+                <Link to="/reset-password" className="text-sm font-semibold text-blue-700 hover:text-blue-900">Forgot your password?</Link>
+              </div>
+            </form>
+          )}
+
+          {step === 'security_questions' && (
+            <form className="mt-8 space-y-5" onSubmit={handleSecurityQuestions}>
+              {questions.map((question) => (
+                <div key={question.id}>
+                  <label htmlFor={`security-question-${question.id}`} className="mb-1.5 block text-sm font-semibold text-slate-700">{question.question}</label>
+                  <input id={`security-question-${question.id}`} type="password" autoComplete="off" value={answers[question.id] ?? ''} onChange={(event) => setAnswers((current) => ({ ...current, [question.id]: event.target.value }))} className="block w-full rounded-xl border border-slate-200 px-4 py-3 text-slate-900 placeholder-slate-400 outline-none transition focus:border-blue-500 focus:ring-4 focus:ring-blue-50" placeholder="Your answer" required />
+                </div>
+              ))}
+              {error && <div className="rounded-xl border border-red-100 bg-red-50 px-4 py-3 text-sm text-red-700">{error}</div>}
+              <button type="submit" disabled={loading} className="flex w-full items-center justify-center rounded-xl bg-blue-700 px-4 py-3 text-sm font-semibold text-white transition hover:bg-blue-800 disabled:cursor-not-allowed disabled:opacity-70">
+                {loading ? <LoadingSpinner label="Checking answers" size="sm" tone="light" /> : 'Continue'}
+              </button>
+              <button type="button" onClick={restart} className="w-full text-sm font-semibold text-slate-500 hover:text-slate-700">Use a different account</button>
+            </form>
+          )}
+
+          {step === 'otp' && (
+            <form className="mt-8 space-y-5" onSubmit={handleOtp}>
+              <div>
+                <label htmlFor="otp" className="mb-1.5 block text-sm font-semibold text-slate-700">6-digit code</label>
+                <input id="otp" inputMode="numeric" autoComplete="one-time-code" maxLength={6} value={otp} onChange={(event) => setOtp(event.target.value.replace(/\D/g, '').slice(0, 6))} className="block w-full rounded-xl border border-slate-200 px-4 py-3 text-center text-2xl tracking-[.35em] text-slate-900 placeholder-slate-400 outline-none transition focus:border-blue-500 focus:ring-4 focus:ring-blue-50" placeholder="000000" required />
+              </div>
+              {error && <div className="rounded-xl border border-red-100 bg-red-50 px-4 py-3 text-sm text-red-700">{error}</div>}
+              <button type="submit" disabled={loading || otp.length !== 6} className="flex w-full items-center justify-center rounded-xl bg-blue-700 px-4 py-3 text-sm font-semibold text-white transition hover:bg-blue-800 disabled:cursor-not-allowed disabled:opacity-70">
+                {loading ? <LoadingSpinner label="Verifying code" size="sm" tone="light" /> : 'Verify and sign in'}
+              </button>
+              <button type="button" onClick={restart} className="w-full text-sm font-semibold text-slate-500 hover:text-slate-700">Use a different account</button>
+            </form>
+          )}
 
           <div className="mt-8 flex items-start gap-3 rounded-2xl bg-blue-50 p-4">
             <ShieldCheckIcon className="mt-0.5 h-5 w-5 shrink-0 text-blue-700" />
-            <p className="text-xs leading-5 text-slate-600">Your account is protected with secure sign in and activity monitoring.</p>
+            <p className="text-xs leading-5 text-slate-600">Your account is protected with security questions and a one-time email verification code.</p>
           </div>
         </div>
 
