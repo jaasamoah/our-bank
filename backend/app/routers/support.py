@@ -5,11 +5,17 @@ from ..auth import get_current_user
 from ..database import get_db
 from ..models import Complaint, PublicSupportRequest, User
 from ..schemas import ComplaintCreate, ComplaintOut, PublicSupportRequestCreate, PublicSupportRequestOut
+from ..rate_limit import rate_limit
 
 router = APIRouter()
 
 
-@router.post("/public", response_model=PublicSupportRequestOut, status_code=201)
+@router.post(
+    "/public",
+    response_model=PublicSupportRequestOut,
+    status_code=201,
+    dependencies=[Depends(rate_limit("public-support", 10))],
+)
 def create_public_support_request(
     payload: PublicSupportRequestCreate,
     db: Session = Depends(get_db),

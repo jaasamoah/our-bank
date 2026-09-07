@@ -6,6 +6,7 @@ from ..database import get_db
 from ..auth import get_current_user
 from ..models import Account, Payee, User, Transaction
 from ..schemas import TransferOut, TransferRequest
+from ..rate_limit import rate_limit
 
 router = APIRouter()
 
@@ -17,7 +18,7 @@ def get_transactions(
     return db.query(Transaction).filter(Transaction.user_id == current_user.id).all()
 
 
-@router.post("/transfer", response_model=TransferOut)
+@router.post("/transfer", response_model=TransferOut, dependencies=[Depends(rate_limit("transfer", 20))])
 def create_transfer(
     transfer: TransferRequest,
     current_user: User = Depends(get_current_user),

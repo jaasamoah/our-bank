@@ -1,9 +1,10 @@
 import React, { createContext, useContext, useEffect, useState, ReactNode } from 'react';
 import type { AdminUser } from '../mock/adminData';
-import { adminLoginRequest, getAdminUser } from '../../services/api';
+import { adminLoginRequest, getAdminUser, logoutRequest } from '../../services/api';
 
 interface AdminAuthContextType {
   isAuthenticated: boolean;
+  isLoading: boolean;
   admin: AdminUser | null;
   login: (username: string, password: string) => Promise<{ success: boolean; error?: string }>;
   logout: () => void;
@@ -11,14 +12,11 @@ interface AdminAuthContextType {
 
 const AdminAuthContext = createContext<AdminAuthContextType | undefined>(undefined);
 
-const STORAGE_KEY = 'admin_token';
-
 export const AdminAuthProvider: React.FC<{ children: ReactNode }> = ({ children }) => {
-  const [token, setToken] = useState<string | null>(() => localStorage.getItem(STORAGE_KEY));
   const [admin, setAdmin] = useState<AdminUser | null>(null);
+  const [isLoading, setIsLoading] = useState(true);
 
   useEffect(() => {
-    if (!token) return;
     getAdminUser()
       .then((user) => setAdmin({
         id: String(user.id),
@@ -28,12 +26,9 @@ export const AdminAuthProvider: React.FC<{ children: ReactNode }> = ({ children 
         role: user.role === 'super_admin' ? 'superadmin' : 'admin',
         avatarInitials: user.full_name.split(' ').map((part) => part[0]).join('').slice(0, 2).toUpperCase(),
       }))
-      .catch(() => {
-        localStorage.removeItem(STORAGE_KEY);
-        setToken(null);
-        setAdmin(null);
-      });
-  }, [token]);
+      .catch(() => setAdmin(null))
+      .finally(() => setIsLoading(false));
+  }, []);
 
   const login = async (username: string, password: string) => {
     if (username.trim().length === 0 || password.trim().length === 0) {
@@ -44,8 +39,6 @@ export const AdminAuthProvider: React.FC<{ children: ReactNode }> = ({ children 
       if (!['admin', 'super_admin'].includes(result.role)) {
         return { success: false, error: 'This account does not have administrator access.' };
       }
-      localStorage.setItem(STORAGE_KEY, result.access_token);
-      setToken(result.access_token);
       const user = await getAdminUser();
       setAdmin({
         id: String(user.id),
@@ -62,13 +55,12 @@ export const AdminAuthProvider: React.FC<{ children: ReactNode }> = ({ children 
   };
 
   const logout = () => {
-    localStorage.removeItem(STORAGE_KEY);
-    setToken(null);
+    void logoutRequest();
     setAdmin(null);
   };
 
   return (
-      <AdminAuthContext.Provider value={{ isAuthenticated: Boolean(token), admin, login, logout }}>
+      <AdminAuthContext.Provider value={{ isAuthenticated: Boolean(admin), isLoading, admin, login, logout }}>
       {children}
     </AdminAuthContext.Provider>
   );

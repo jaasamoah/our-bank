@@ -4,21 +4,71 @@ const API_BASE_URL = import.meta.env.VITE_API_URL || '';
 
 const api = axios.create({
   baseURL: API_BASE_URL,
+  withCredentials: true,
   headers: {
     'Content-Type': 'application/json',
   },
 });
 
-// Add token to requests
-api.interceptors.request.use((config) => {
-  const token = config.url?.startsWith('/api/admin')
-    ? localStorage.getItem('admin_token')
-    : localStorage.getItem('token');
-  if (token) {
-    config.headers.Authorization = `Bearer ${token}`;
+function getCookie(name: string) {
+  return document.cookie
+    .split('; ')
+    .find((cookie) => cookie.startsWith(`${name}=`))
+    ?.split('=')
+    .slice(1)
+    .join('=');
+}
+
+const csrfExemptPaths = new Set([
+  '/api/auth/login',
+  '/api/auth/refresh',
+  '/api/auth/logout',
+  '/api/auth/password-reset/request',
+  '/api/auth/password-reset/confirm',
+]);
+
+// Authentication is cookie-based. Only the non-HttpOnly CSRF token is read by JS.
+api.interceptors.request.use(async (config) => {
+  const method = (config.method || 'get').toLowerCase();
+  if (['post', 'put', 'patch', 'delete'].includes(method) && !csrfExemptPaths.has(config.url || '')) {
+    let csrf = getCookie('csrf_token');
+    if (!csrf) {
+      await api.get('/api/security/csrf');
+      csrf = getCookie('csrf_token');
+    }
+    if (csrf) {
+      config.headers['X-CSRF-Token'] = csrf;
+    }
   }
   return config;
 });
+
+let refreshPromise: Promise<void> | null = null;
+api.interceptors.response.use(
+  (response) => response,
+  async (error) => {
+    const original = error.config;
+    const url = original?.url || '';
+    if (
+      error.response?.status === 401 &&
+      original &&
+      !original._retry &&
+      !url.includes('/api/auth/login') &&
+      !url.includes('/api/auth/refresh') &&
+      !url.includes('/api/auth/logout')
+    ) {
+      original._retry = true;
+      refreshPromise ??= api.post('/api/auth/refresh', undefined, {
+        headers: url.startsWith('/api/admin') ? { 'X-Client-Role': 'admin' } : undefined,
+      }).then(() => undefined).finally(() => {
+        refreshPromise = null;
+      });
+      await refreshPromise;
+      return api(original);
+    }
+    return Promise.reject(error);
+  },
+);
 
 export default api;
 
@@ -165,7 +215,7 @@ export interface ApiBeneficiary {
 }
 
 export interface LoginResponse {
-  access_token: string;
+  access_token?: string;
   token_type: string;
   role: string;
 }
@@ -181,7 +231,20 @@ export async function loginRequest(username: string, password: string) {
 }
 
 export async function adminLoginRequest(username: string, password: string) {
-  return loginRequest(username, password);
+  const form = new URLSearchParams();
+  form.set('username', username);
+  form.set('password', password);
+  const response = await api.post<LoginResponse>('/api/auth/login', form, {
+    headers: {
+      'Content-Type': 'application/x-www-form-urlencoded',
+      'X-Client-Role': 'admin',
+    },
+  });
+  return response.data;
+}
+
+export async function logoutRequest() {
+  await api.post('/api/auth/logout');
 }
 
 export async function getCurrentUser() {

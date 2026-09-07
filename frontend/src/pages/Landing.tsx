@@ -6,7 +6,6 @@ import {
   BanknotesIcon,
   Bars3Icon,
   CheckCircleIcon,
-  ChevronRightIcon,
   LockClosedIcon,
   ShieldCheckIcon,
   SparklesIcon,

@@ -3,7 +3,8 @@ import { Navigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 
 const ProtectedRoute: React.FC<{ children: ReactNode }> = ({ children }) => {
-  const { isAuthenticated } = useAuth();
+  const { isAuthenticated, isLoading } = useAuth();
+  if (isLoading) return null;
   if (!isAuthenticated) {
     return <Navigate to="/login" replace />;
   }

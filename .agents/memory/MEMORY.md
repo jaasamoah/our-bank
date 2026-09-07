@@ -1,3 +1,4 @@
 - [Nested frontend package installs](nested-frontend-install.md) — Install Node dependencies from the nested frontend directory when no root package manifest exists.
 - [Clean restart after context edits](hmr-context-restart.md) — Restart the frontend workflow before judging provider errors after React context changes.
 - [Round-trip API checks](round-trip-api-checks.md) — Verify optional fields through create/readback; schema acceptance alone can hide persistence gaps.
+- [Dual cookie auth](dual-cookie-auth.md) — Customer and admin providers share the frontend, so keep separate cookie namespaces and rotate refresh tokens.

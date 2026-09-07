@@ -59,7 +59,7 @@ export function mapCard(card: ApiCard, accountName?: string) {
     holder: card.holder_name,
     number: card.card_number
       ? card.card_number.replace(/(\d{4})(?=\d)/g, '$1 ')
-      : `${card.last_four} •••• •••• ${card.last_four}`,
+      : `•••• •••• •••• ${card.last_four}`,
     expiry: card.expiry,
     network: card.network as 'Visa' | 'Mastercard',
     frozen: card.frozen,

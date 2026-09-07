@@ -1,9 +1,13 @@
 from datetime import datetime
+import os
+import secrets
 
-from fastapi import FastAPI
+from fastapi import FastAPI, Request
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi.responses import JSONResponse
 from scalar_fastapi import get_scalar_api_reference
 from sqlalchemy import inspect, text
+from sqlalchemy.exc import SQLAlchemyError
 
 from .auth import get_password_hash
 from .database import Base, SessionLocal, engine
@@ -243,20 +247,88 @@ def seed_demo_data():
 
 seed_demo_data()
 
+APP_ENV = os.getenv("APP_ENV", "development").lower()
+ENABLE_API_DOCS = os.getenv("ENABLE_API_DOCS", "false").lower() == "true"
+CSRF_COOKIE = "csrf_token"
+CSRF_EXEMPT_PATHS = {
+    "/api/auth/login",
+    "/api/auth/refresh",
+    "/api/auth/logout",
+    "/api/auth/password-reset/request",
+    "/api/auth/password-reset/confirm",
+}
+
 app = FastAPI(
     title="telosbank API",
     description="Secure banking services for customer and administrator portals",
-    version="1.0.0"
+    version="1.0.0",
+    docs_url="/docs" if ENABLE_API_DOCS else None,
+    redoc_url="/redoc" if ENABLE_API_DOCS else None,
+    openapi_url="/openapi.json" if ENABLE_API_DOCS else None,
 )
 
 # CORS middleware
+configured_origins = [
+    origin.strip()
+    for origin in os.getenv("CORS_ORIGINS", "http://localhost:5000").split(",")
+    if origin.strip()
+]
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"],  # Allow all origins (Replit proxy)
+    allow_origins=configured_origins,
     allow_credentials=True,
     allow_methods=["*"],
-    allow_headers=["*"],
+    allow_headers=["Authorization", "Content-Type", "X-CSRF-Token"],
 )
+
+
+@app.middleware("http")
+async def security_headers_and_csrf(request: Request, call_next):
+    if (
+        request.method not in {"GET", "HEAD", "OPTIONS"}
+        and request.url.path.startswith("/api/")
+        and request.url.path not in CSRF_EXEMPT_PATHS
+    ):
+        csrf_cookie = request.cookies.get(CSRF_COOKIE)
+        csrf_header = request.headers.get("X-CSRF-Token")
+        if not csrf_cookie or not csrf_header or not secrets.compare_digest(csrf_cookie, csrf_header):
+            return JSONResponse(status_code=403, content={"detail": "CSRF validation failed"})
+
+    response = await call_next(request)
+    if not request.cookies.get(CSRF_COOKIE):
+        response.set_cookie(
+            CSRF_COOKIE,
+            secrets.token_urlsafe(24),
+            max_age=7 * 86400,
+            secure=os.getenv("COOKIE_SECURE", "true" if APP_ENV == "production" else "false").lower() == "true",
+            httponly=False,
+            samesite="lax",
+            path="/",
+        )
+
+    response.headers["X-Content-Type-Options"] = "nosniff"
+    response.headers["X-Frame-Options"] = "DENY"
+    response.headers["Referrer-Policy"] = "strict-origin-when-cross-origin"
+    response.headers["Permissions-Policy"] = "camera=(), microphone=(), geolocation=()"
+    response.headers["Content-Security-Policy"] = (
+        "default-src 'none'; frame-ancestors 'none'; base-uri 'none'; "
+        "form-action 'self'; object-src 'none'"
+    )
+    if request.url.path.startswith("/api/"):
+        response.headers["Cache-Control"] = "no-store"
+    if APP_ENV == "production":
+        response.headers["Strict-Transport-Security"] = "max-age=31536000; includeSubDomains"
+    return response
+
+
+@app.exception_handler(SQLAlchemyError)
+async def database_error_handler(request: Request, exc: SQLAlchemyError):
+    return JSONResponse(status_code=500, content={"detail": "A database error occurred."})
+
+
+@app.exception_handler(Exception)
+async def unexpected_error_handler(request: Request, exc: Exception):
+    return JSONResponse(status_code=500, content={"detail": "An unexpected server error occurred."})
 
 # Include routers
 app.include_router(auth.router, prefix="/api/auth", tags=["Authentication"])
@@ -280,9 +352,15 @@ async def health_check():
     return {"status": "healthy"}
 
 
-@app.get("/scalar", include_in_schema=False)
-def get_scalar_docs():
-    return get_scalar_api_reference(
-        openapi_url=app.openapi_url,
-        title="Scalar API",
-    )
+@app.get("/api/security/csrf", include_in_schema=False)
+async def csrf_bootstrap():
+    return {"status": "ok"}
+
+
+if ENABLE_API_DOCS:
+    @app.get("/scalar", include_in_schema=False)
+    def get_scalar_docs():
+        return get_scalar_api_reference(
+            openapi_url=app.openapi_url,
+            title="Scalar API",
+        )

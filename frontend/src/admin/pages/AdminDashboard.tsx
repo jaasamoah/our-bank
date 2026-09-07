@@ -6,7 +6,7 @@ import {
   UsersIcon,
 } from '@heroicons/react/24/outline';
 import AdminLayout from '../components/AdminLayout';
-import { managedUsers, managedTransactions, managedLoans, kycRecords, formatCurrency } from '../mock/adminData';
+import { managedUsers, managedTransactions, kycRecords, formatCurrency } from '../mock/adminData';
 
 const stats = [
   { label: 'Total Users', value: '6', sub: '+1 this week', icon: UsersIcon, color: 'bg-brand-50 text-brand-700' },

@@ -10,7 +10,6 @@ import {
   updateAdminLoan,
   type ApiUser,
 } from '../../services/api';
-import LoadingSpinner from '../../components/LoadingSpinner';
 
 const statusColors: Record<string, string> = {
   Active: 'bg-emerald-50 text-emerald-700',
@@ -29,7 +28,6 @@ const AdminLoans: React.FC = () => {
   const [termInput, setTermInput] = useState('');
   const [dateInput, setDateInput] = useState('');
   const [descriptionInput, setDescriptionInput] = useState('');
-  const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState('');
   const [customers, setCustomers] = useState<Array<ApiUser & { total_balance: number }>>([]);
@@ -66,7 +64,7 @@ const AdminLoans: React.FC = () => {
         setNewLoan((current) => ({ ...current, userId: current.userId || String(customerData[0]?.id ?? '') }));
       })
       .catch(() => setError('We could not load loans. Please refresh and try again.'))
-      .finally(() => setLoading(false));
+      .catch(() => setError('We could not load loans. Please refresh and try again.'));
   }, []);
 
   const openEdit = (l: ManagedLoan) => {

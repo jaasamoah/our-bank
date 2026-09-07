@@ -9,7 +9,7 @@ const ResetPassword: React.FC = () => {
   const [searchParams] = useSearchParams();
   const navigate = useNavigate();
   const [identifier, setIdentifier] = useState('');
-  const [token, setToken] = useState(searchParams.get('token') ?? '');
+  const [token] = useState(searchParams.get('token') ?? '');
   const [newPassword, setNewPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
   const [step, setStep] = useState<'request' | 'confirm' | 'complete'>(token ? 'confirm' : 'request');
@@ -24,10 +24,7 @@ const ResetPassword: React.FC = () => {
     try {
       const result = await requestPasswordReset(identifier);
       setMessage(result.message);
-      if (result.reset_token) {
-        setToken(result.reset_token);
-        setStep('confirm');
-      }
+      setMessage(`${result.message} Check your email for the reset link.`);
     } catch {
       setError('We could not start the password reset. Check your details and try again.');
     } finally {

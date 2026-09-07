@@ -5,6 +5,7 @@ from ..auth import get_current_user, verify_password
 from ..database import get_db
 from ..models import Payee, User
 from ..schemas import PayeeCreate, PayeeOut, PasswordConfirmation
+from ..rate_limit import rate_limit
 
 router = APIRouter()
 
@@ -17,7 +18,7 @@ def get_payees(
     return db.query(Payee).filter(Payee.user_id == current_user.id).order_by(Payee.name).all()
 
 
-@router.post("/", response_model=PayeeOut, status_code=201)
+@router.post("/", response_model=PayeeOut, status_code=201, dependencies=[Depends(rate_limit("payee-create", 10))])
 def create_payee(
     payload: PayeeCreate,
     current_user: User = Depends(get_current_user),
@@ -46,7 +47,7 @@ def create_payee(
     return payee
 
 
-@router.delete("/{payee_id}", status_code=204)
+@router.delete("/{payee_id}", status_code=204, dependencies=[Depends(rate_limit("payee-delete", 10))])
 def delete_payee(
     payee_id: int,
     payload: PasswordConfirmation,

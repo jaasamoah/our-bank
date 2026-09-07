@@ -14,7 +14,15 @@ port 5000 and proxies `/api` requests to the backend on port 8000.
 
 - `DATABASE_URL` is provided by the Replit environment and is used by the
   backend for its PostgreSQL connection.
-- `SESSION_SECRET` is used to sign backend JWTs.
+- `SESSION_SECRET` is required and must be at least 32 characters; it is used to
+  sign short-lived backend access JWTs.
+- `APP_ENV=production` enables HSTS. API documentation is disabled unless
+  `ENABLE_API_DOCS=true` is explicitly set.
+- `COOKIE_SECURE=true` should be used in HTTPS environments (it defaults to
+  true in production). `REDIS_URL` enables shared Redis-backed throttling;
+  without it, the backend uses a bounded per-process fallback limiter.
+- `CORS_ORIGINS` is a comma-separated allowlist and should contain only trusted
+  frontend origins.
 - `VITE_API_URL` is optional; when unset, the frontend uses its same-origin
   `/api` proxy.
 

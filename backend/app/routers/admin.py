@@ -35,6 +35,7 @@ from ..schemas import (
     BeneficiaryOut,
     CardOut,
     ComplaintOut,
+    UserOut,
 )
 
 router = APIRouter()
@@ -71,7 +72,7 @@ def serialize_transaction(transaction: Transaction) -> dict:
     }
 
 
-@router.get("/me")
+@router.get("/me", response_model=UserOut)
 def admin_me(current_user: User = Depends(get_current_admin)):
     return current_user
 
