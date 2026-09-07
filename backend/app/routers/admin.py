@@ -49,6 +49,7 @@ def serialize_user(user: User) -> dict:
         "email": user.email,
         "username": user.username,
         "full_name": user.full_name,
+        "address": user.address,
         "role": user.role,
         "is_active": user.is_active,
         "created_at": user.created_at,
@@ -100,6 +101,7 @@ def create_user(
         email=payload.email,
         username=payload.username.strip(),
         full_name=payload.full_name.strip(),
+        address=payload.address.strip() if payload.address else None,
         hashed_password=get_password_hash(payload.password),
         role=UserRole.CUSTOMER,
     )

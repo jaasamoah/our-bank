@@ -29,7 +29,7 @@ const kycColors: Record<string, string> = {
 };
 
 const emptyUser: Omit<ManagedUser, 'id'> = {
-  fullName: '', email: '', username: '', status: 'Pending',
+  fullName: '', email: '', username: '', address: '', status: 'Pending',
   kycStatus: 'Not Started', joinedDate: new Date().toISOString().slice(0, 10), totalBalance: 0,
 };
 
@@ -53,6 +53,7 @@ const AdminUsers: React.FC = () => {
     fullName: user.full_name,
     email: user.email,
     username: user.username,
+    address: user.address ?? '',
     status: user.is_active ? 'Active' : 'Suspended',
     kycStatus: 'Not Started',
     joinedDate: user.created_at,
@@ -82,7 +83,7 @@ const AdminUsers: React.FC = () => {
 
   const openEdit = (u: ManagedUser) => {
     setEditUser(u);
-    setForm({ fullName: u.fullName, email: u.email, username: u.username, status: u.status, kycStatus: u.kycStatus, joinedDate: u.joinedDate, totalBalance: u.totalBalance });
+    setForm({ fullName: u.fullName, email: u.email, username: u.username, address: u.address, status: u.status, kycStatus: u.kycStatus, joinedDate: u.joinedDate, totalBalance: u.totalBalance });
     setPassword('');
     setError('');
     setShowModal(true);
@@ -99,6 +100,7 @@ const AdminUsers: React.FC = () => {
             full_name: form.fullName,
             email: form.email,
             username: form.username,
+            address: form.address.trim(),
             is_active: form.status === 'Active',
             created_at: new Date(`${form.joinedDate}T00:00:00`).toISOString(),
           })
@@ -106,6 +108,7 @@ const AdminUsers: React.FC = () => {
             full_name: form.fullName,
             email: form.email,
             username: form.username,
+            address: form.address.trim(),
             password,
           });
       setUsers((prev) => editUser
@@ -230,6 +233,7 @@ const AdminUsers: React.FC = () => {
                 <tr className="border-b border-slate-100 bg-slate-50 text-left">
                   <th className="px-6 py-3 text-xs font-semibold text-slate-500 uppercase tracking-wide">User</th>
                   <th className="px-6 py-3 text-xs font-semibold text-slate-500 uppercase tracking-wide">Username</th>
+                  <th className="px-6 py-3 text-xs font-semibold text-slate-500 uppercase tracking-wide">Address</th>
                   <th className="px-6 py-3 text-xs font-semibold text-slate-500 uppercase tracking-wide">Status</th>
                   <th className="px-6 py-3 text-xs font-semibold text-slate-500 uppercase tracking-wide">KYC</th>
                   <th className="px-6 py-3 text-xs font-semibold text-slate-500 uppercase tracking-wide">Balance</th>
@@ -252,6 +256,7 @@ const AdminUsers: React.FC = () => {
                       </div>
                     </td>
                     <td className="px-6 py-4 text-slate-600 font-mono text-xs">{u.username}</td>
+                    <td className="max-w-xs px-6 py-4 text-slate-600 text-xs">{u.address || 'Not provided'}</td>
                     <td className="px-6 py-4">
                       <span className={`px-2.5 py-1 rounded-full text-xs font-medium ${statusColors[u.status]}`}>{u.status}</span>
                     </td>
@@ -305,6 +310,10 @@ const AdminUsers: React.FC = () => {
                 <label className="block text-xs font-medium text-slate-600 mb-1">Username</label>
                 <input value={form.username} onChange={e => setForm(f => ({ ...f, username: e.target.value }))} className="w-full rounded-xl border border-slate-200 px-3 py-2.5 text-sm outline-none focus:border-brand-500 focus:ring-2 focus:ring-brand-100" />
               </div>
+               <div>
+                 <label className="block text-xs font-medium text-slate-600 mb-1">Address</label>
+                 <textarea value={form.address} onChange={e => setForm(f => ({ ...f, address: e.target.value }))} rows={3} placeholder="Street, city, region, postal code" className="w-full resize-none rounded-xl border border-slate-200 px-3 py-2.5 text-sm outline-none focus:border-brand-500 focus:ring-2 focus:ring-brand-100" />
+               </div>
               <div>
                 <label className="block text-xs font-medium text-slate-600 mb-1">Date joined</label>
                 <input type="date" value={form.joinedDate.slice(0, 10)} onChange={e => setForm(f => ({ ...f, joinedDate: e.target.value }))} className="w-full rounded-xl border border-slate-200 px-3 py-2.5 text-sm outline-none focus:border-brand-500 focus:ring-2 focus:ring-brand-100" />

@@ -179,6 +179,7 @@ class AdminUserCreate(StrictModel):
     email: EmailStr
     username: str = Field(min_length=3, max_length=64, pattern=r"^[A-Za-z0-9_.-]+$")
     full_name: str = Field(min_length=1, max_length=120)
+    address: Optional[str] = Field(default=None, max_length=500)
     password: str = Field(min_length=12, max_length=128)
 
 
@@ -186,6 +187,7 @@ class AdminUserUpdate(StrictModel):
     email: Optional[EmailStr] = None
     username: Optional[str] = None
     full_name: Optional[str] = None
+    address: Optional[str] = Field(default=None, max_length=500)
     is_active: Optional[bool] = None
     created_at: Optional[datetime] = None
 
@@ -195,6 +197,7 @@ class AdminUserOut(BaseModel):
     email: EmailStr
     username: str
     full_name: str
+    address: Optional[str] = None
     role: UserRole
     is_active: bool
     created_at: datetime

@@ -12,6 +12,7 @@ export interface ManagedUser {
   fullName: string;
   email: string;
   username: string;
+  address: string;
   status: 'Active' | 'Suspended' | 'Pending';
   kycStatus: 'Verified' | 'Pending' | 'Rejected' | 'Not Started';
   joinedDate: string;

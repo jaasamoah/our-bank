@@ -30,6 +30,10 @@ def ensure_legacy_columns():
         "iban": "VARCHAR",
         "swift_code": "VARCHAR",
     }
+    user_columns = {column["name"] for column in inspect(engine).get_columns("users")}
+    missing_user = {
+        "address": "VARCHAR",
+    }
     with engine.begin() as connection:
         for name, column_type in missing.items():
             if name not in card_columns:
@@ -37,6 +41,9 @@ def ensure_legacy_columns():
         for name, column_type in missing_payee.items():
             if name not in payee_columns:
                 connection.execute(text(f"ALTER TABLE payees ADD COLUMN {name} {column_type}"))
+        for name, column_type in missing_user.items():
+            if name not in user_columns:
+                connection.execute(text(f"ALTER TABLE users ADD COLUMN {name} {column_type}"))
 
 
 ensure_legacy_columns()

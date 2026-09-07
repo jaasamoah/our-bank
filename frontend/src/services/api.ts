@@ -77,6 +77,7 @@ export interface ApiUser {
   email: string;
   username: string;
   full_name: string;
+  address?: string | null;
   role: string;
   is_active: boolean;
   created_at: string;
@@ -363,6 +364,7 @@ export async function createAdminUser(payload: {
   email: string;
   username: string;
   full_name: string;
+  address?: string;
   password: string;
 }) {
   const response = await api.post<ApiUser & { total_balance: number }>('/api/admin/users', payload);
@@ -373,6 +375,7 @@ export async function updateAdminUser(userId: number, payload: {
   email?: string;
   username?: string;
   full_name?: string;
+  address?: string;
   is_active?: boolean;
   created_at?: string;
 }) {
