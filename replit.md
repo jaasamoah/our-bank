@@ -18,6 +18,10 @@ port 5000 and proxies `/api` requests to the backend on port 8000.
   sign short-lived backend access JWTs.
 - `APP_ENV=production` enables HSTS. API documentation is disabled unless
   `ENABLE_API_DOCS=true` is explicitly set.
+- `SEED_DEMO_DATA` controls sample-account creation. Set it to `true` only for
+  a disposable development database. It defaults to `false` unless
+  `APP_ENV=development` is explicitly set. Turning it off does not delete
+  records that were already seeded.
 - `COOKIE_SECURE=true` should be used in HTTPS environments (it defaults to
   true in production). `REDIS_URL` enables shared Redis-backed throttling;
   without it, the backend uses a bounded per-process fallback limiter.

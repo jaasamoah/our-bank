@@ -41,6 +41,9 @@ def ensure_legacy_columns():
 
 ensure_legacy_columns()
 
+APP_ENV = os.getenv("APP_ENV", "").lower()
+SEED_DEMO_DATA = os.getenv("SEED_DEMO_DATA", "true" if APP_ENV == "development" else "false").lower() == "true"
+
 
 def seed_demo_data():
     """Ensure the documented demo account has useful data on a fresh database."""
@@ -245,9 +248,9 @@ def seed_demo_data():
         db.close()
 
 
-seed_demo_data()
+if SEED_DEMO_DATA:
+    seed_demo_data()
 
-APP_ENV = os.getenv("APP_ENV", "development").lower()
 ENABLE_API_DOCS = os.getenv("ENABLE_API_DOCS", "false").lower() == "true"
 CSRF_COOKIE = "csrf_token"
 CSRF_EXEMPT_PATHS = {
