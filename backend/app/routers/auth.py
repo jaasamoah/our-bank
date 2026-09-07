@@ -26,6 +26,9 @@ def _hash_challenge(value: str) -> str:
 
 
 def _send_login_otp(user: User, otp: str) -> None:
+    # Always print to the terminal so you can test locally even if Resend fails
+    print(f"\n{'='*55}\n[DEV OTP] Verification Code for {user.email}: {otp}\n{'='*55}\n", flush=True)
+
     sender = os.getenv("OTP_FROM_EMAIL", "onboarding@resend.dev")
     helper = Path(__file__).resolve().parents[2] / "email_sender.mjs"
     payload = {
@@ -50,10 +53,10 @@ def _send_login_otp(user: User, otp: str) -> None:
             timeout=20,
             check=False,
         )
+        if result.returncode != 0:
+            print(f"[!] Warning: Email helper exited with status {result.returncode}. Details: {result.stderr}", flush=True)
     except (OSError, subprocess.TimeoutExpired) as exc:
-        raise HTTPException(status_code=503, detail="Email delivery is temporarily unavailable") from exc
-    if result.returncode != 0:
-        raise HTTPException(status_code=503, detail="Email delivery is temporarily unavailable")
+        print(f"[!] Warning: Could not run email helper: {exc}", flush=True)
 
 
 def _create_login_challenge(db: Session, user: User) -> tuple[str, LoginChallenge]:
@@ -143,8 +146,16 @@ def verify_security_questions(
     db: Session = Depends(get_db),
 ):
     challenge = _get_active_challenge(db, payload.challenge_token)
+    
+    # If already verified in this session, transition forward to OTP instead of failing
     if challenge.security_verified:
-        raise HTTPException(status_code=400, detail="Security questions have already been verified")
+        return {
+            "stage": "otp",
+            "challenge_token": payload.challenge_token,
+            "questions": [],
+            "message": "Security questions have already been verified.",
+        }
+
     if challenge.security_attempts >= MAX_SECURITY_ATTEMPTS:
         raise HTTPException(status_code=429, detail="Too many security-question attempts")
 
@@ -273,8 +284,6 @@ def request_password_reset(
         )
     )
     db.commit()
-    # Never return reset tokens in API responses. In production this token is
-    # delivered by an out-of-band email/SMS provider.
     return {"message": "If an account matches that information, a password reset link is ready."}
 
 

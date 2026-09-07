@@ -50,6 +50,10 @@ const Login: React.FC = () => {
     setLoading(false);
     if (result.success) {
       setStep('otp');
+    } else if (result.error && result.error.toLowerCase().includes('already been verified')) {
+      // If questions were already verified, proceed directly to OTP
+      setError('');
+      setStep('otp');
     } else {
       setError(result.error ?? 'The security answers are incorrect.');
     }
