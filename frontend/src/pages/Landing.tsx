@@ -17,6 +17,7 @@ import AccountCard from '../components/AccountCard';
 import PublicSupportWidget from '../components/PublicSupportWidget';
 import TransactionRow from '../components/TransactionRow';
 import { formatCurrency, mockAccounts, mockTransactions } from '../mock/data';
+import officeImage from '../assets/telos-office.jpg';
 
 type RevealProps = {
   children: ReactNode;
@@ -104,7 +105,7 @@ function Landing() {
 
       <header className="fixed inset-x-0 top-0 z-40 px-3 pt-3 sm:px-6">
         <div className="mx-auto flex max-w-6xl items-center justify-between rounded-2xl border border-blue-100/80 bg-white/90 px-4 py-3 shadow-lg shadow-blue-950/10 backdrop-blur-xl sm:px-6">
-          <a href="#top" aria-label="Telos home" className="shrink-0">
+          <a href="#top" aria-label="telosbank home" className="shrink-0">
             <Brand className="text-2xl" />
           </a>
           <nav className="hidden items-center gap-7 lg:flex" aria-label="Main navigation">
@@ -143,6 +144,12 @@ function Landing() {
 
       <main id="top" className="pt-24">
         <section className="relative overflow-hidden bg-blue-50">
+          <img
+            src={officeImage}
+            alt="Modern corporate office interior"
+            className="absolute inset-y-0 right-0 h-full w-full object-cover object-center opacity-20 lg:w-[63%] lg:opacity-35"
+          />
+          <div className="absolute inset-0 bg-gradient-to-r from-blue-50 via-blue-50/95 to-blue-50/35" />
           <div className="telos-grid absolute inset-0 opacity-60" />
           <div className="absolute -right-32 -top-28 h-96 w-96 rounded-full bg-blue-200/55 blur-3xl" />
           <div className="absolute -bottom-48 left-1/3 h-96 w-96 rounded-full bg-white/90 blur-3xl" />
@@ -155,11 +162,11 @@ function Landing() {
                 Your money, <span className="text-blue-700">in focus.</span>
               </h1>
               <p className="mt-6 max-w-lg text-lg leading-8 text-slate-600">
-                Telos gives you a calmer way to manage everyday banking, cards, savings, and plans for what comes next.
+                telosbank gives you a calmer way to manage everyday banking, cards, savings, and plans for what comes next.
               </p>
               <div className="mt-8 flex flex-col items-start gap-4 sm:flex-row sm:items-center">
                 <button type="button" onClick={() => setSignUpOpen(true)} className="telos-pill group flex items-center gap-3 rounded-xl bg-blue-700 px-5 py-3.5 text-sm font-semibold text-white shadow-xl shadow-blue-700/20 hover:bg-blue-800">
-                  Start with Telos
+                  Start with telosbank
                   <ArrowUpRightIcon className="h-4 w-4 transition-transform group-hover:translate-x-0.5 group-hover:-translate-y-0.5" />
                 </button>
                 <a href="#everyday" className="flex items-center gap-2 text-sm font-semibold text-blue-700 hover:text-blue-900">
@@ -177,7 +184,7 @@ function Landing() {
               <div className="relative rounded-3xl border border-white/80 bg-white/80 p-4 shadow-2xl shadow-blue-950/15 backdrop-blur sm:p-6">
                 <div className="flex items-center justify-between border-b border-blue-50 pb-4">
                   <div>
-                    <p className="text-xs font-semibold uppercase tracking-[.16em] text-blue-700">Inside Telos</p>
+                    <p className="text-xs font-semibold uppercase tracking-[.16em] text-blue-700">Inside telosbank</p>
                     <p className="mt-1 text-sm font-medium text-slate-500">The same account view customers use</p>
                   </div>
                   <span className="flex h-9 w-9 items-center justify-center rounded-xl bg-blue-700 text-white"><SparklesIcon className="h-5 w-5" /></span>
@@ -196,6 +203,14 @@ function Landing() {
                 </div>
               </div>
             </Reveal>
+            <a
+              href="https://unsplash.com/"
+              target="_blank"
+              rel="noreferrer"
+              className="absolute bottom-4 right-5 z-10 text-[10px] font-medium text-slate-500/80 underline decoration-slate-400/60 underline-offset-2 hover:text-blue-700"
+            >
+              Real office photo via Unsplash
+            </a>
           </div>
         </section>
 
@@ -253,10 +268,10 @@ function Landing() {
               <p className="text-xs font-bold uppercase tracking-[.2em] text-blue-200">Cards that work with you</p>
               <h2 className="mt-5 max-w-xl text-4xl font-bold leading-tight tracking-[-.05em] sm:text-5xl">Control your card without calling around.</h2>
               <p className="mt-5 max-w-lg text-base leading-7 text-blue-100">
-                Freeze a card, review the full number, and stay close to every purchase from the Telos dashboard.
+                Freeze a card, review the full number, and stay close to every purchase from the telosbank dashboard.
               </p>
               <button type="button" onClick={() => setSignUpOpen(true)} className="mt-8 flex items-center gap-2 text-sm font-semibold text-white hover:text-blue-200">
-                Get started with Telos <ArrowLongRightIcon className="h-4 w-4" />
+                Get started with telosbank <ArrowLongRightIcon className="h-4 w-4" />
               </button>
             </Reveal>
             <Reveal delay={100} className="relative min-h-[280px]">
@@ -313,14 +328,14 @@ function Landing() {
           <div className="mx-auto max-w-6xl px-5 py-20 sm:px-8 lg:px-10 lg:py-28">
             <Reveal className="grid gap-12 lg:grid-cols-[.8fr_1.2fr] lg:items-start">
               <div>
-                <p className="text-xs font-bold uppercase tracking-[.2em] text-blue-700">About Telos</p>
+                <p className="text-xs font-bold uppercase tracking-[.2em] text-blue-700">About telosbank</p>
                 <h2 className="mt-5 text-4xl font-bold leading-tight tracking-[-.05em] text-slate-950 sm:text-5xl">A bank that helps you see the next step.</h2>
               </div>
               <div className="grid gap-4 sm:grid-cols-2">
                 <div className="rounded-3xl bg-blue-700 p-6 text-white sm:row-span-2">
                   <ShieldCheckIcon className="h-7 w-7 text-blue-200" />
                   <p className="mt-16 text-2xl font-bold tracking-[-.04em]">Clear by default.</p>
-                  <p className="mt-4 text-sm leading-6 text-blue-100">Telos brings the important details forward, without making you dig through a maze of screens.</p>
+                  <p className="mt-4 text-sm leading-6 text-blue-100">telosbank brings the important details forward, without making you dig through a maze of screens.</p>
                 </div>
                 <div className="rounded-3xl bg-white p-6 shadow-sm">
                   <CheckCircleIcon className="h-6 w-6 text-blue-700" />
@@ -343,7 +358,7 @@ function Landing() {
               <div>
                 <p className="text-xs font-bold uppercase tracking-[.2em] text-blue-700">Contact</p>
                 <h2 className="mt-4 text-3xl font-bold tracking-[-.04em] text-slate-950 sm:text-4xl">Have a question?</h2>
-                <p className="mt-4 max-w-xl text-base leading-7 text-slate-600">Use the chat button to send a request to Telos, or visit a branch to speak with our team in person.</p>
+                <p className="mt-4 max-w-xl text-base leading-7 text-slate-600">Use the chat button to send a request to telosbank, or visit a branch to speak with our team in person.</p>
               </div>
               <div className="mt-7 flex flex-col gap-3 text-sm font-semibold text-slate-700 lg:mt-0 lg:min-w-[230px]">
                 <button type="button" onClick={() => setSignUpOpen(true)} className="rounded-xl bg-blue-700 px-5 py-3 text-white hover:bg-blue-800">Open an account</button>
@@ -365,7 +380,7 @@ function Landing() {
             <a href="#contact" className="hover:text-white">Contact</a>
             <Link to="/login" className="hover:text-white">Sign in</Link>
           </div>
-          <p className="text-xs text-slate-500">© {new Date().getFullYear()} Telos Bank</p>
+          <p className="text-xs text-slate-500">© {new Date().getFullYear()} telosbank</p>
         </div>
       </footer>
 
@@ -376,7 +391,7 @@ function Landing() {
           <div className="max-h-[calc(100dvh-2rem)] w-full max-w-lg overflow-y-auto rounded-3xl bg-white p-6 shadow-2xl sm:p-8">
             <div className="flex items-start justify-between gap-4">
               <div>
-                <p className="text-xs font-bold uppercase tracking-[.2em] text-blue-700">Start with Telos</p>
+                <p className="text-xs font-bold uppercase tracking-[.2em] text-blue-700">Start with telosbank</p>
                 <h2 id="signup-title" className="mt-3 text-3xl font-bold tracking-[-.05em] text-slate-950">{formSubmitted ? 'Your next step is ready.' : 'Tell us where to start.'}</h2>
               </div>
               <button type="button" aria-label="Close sign up dialog" onClick={() => setSignUpOpen(false)} className="rounded-full p-2 text-slate-400 hover:bg-blue-50 hover:text-blue-700"><XMarkIcon className="h-5 w-5" /></button>
@@ -386,17 +401,17 @@ function Landing() {
                 <div className="rounded-2xl bg-blue-50 p-5">
                   <CheckCircleIcon className="h-7 w-7 text-blue-700" />
                   <p className="mt-4 text-sm font-bold text-slate-950">Thanks. Your starting point is saved for this visit.</p>
-                  <p className="mt-2 text-sm leading-6 text-slate-600">Complete the form, then visit your nearest Telos branch with a valid photo ID so a banker can finish setting things up with you.</p>
+                  <p className="mt-2 text-sm leading-6 text-slate-600">Complete the form, then visit your nearest telosbank branch with a valid photo ID so a banker can finish setting things up with you.</p>
                 </div>
                 <button type="button" onClick={() => { setSignUpOpen(false); setFormSubmitted(false); }} className="mt-5 w-full rounded-xl bg-blue-700 px-5 py-3 text-sm font-semibold text-white hover:bg-blue-800">Close</button>
               </div>
             ) : (
               <>
-                <p className="mt-4 text-sm leading-6 text-slate-600">Registration has two simple parts: complete this short form, then visit your nearest branch so a Telos banker can verify your identity and finish setting things up.</p>
+                <p className="mt-4 text-sm leading-6 text-slate-600">Registration has two simple parts: complete this short form, then visit your nearest branch so a telosbank banker can verify your identity and finish setting things up.</p>
                 <form onSubmit={handleSignUp} className="mt-6 space-y-4">
                   <label className="block"><span className="mb-1.5 block text-xs font-bold text-slate-700">Full name</span><input required name="name" placeholder="Your name" className="w-full rounded-xl border border-slate-200 px-4 py-3 text-sm outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-100" /></label>
                   <label className="block"><span className="mb-1.5 block text-xs font-bold text-slate-700">Mobile number</span><input required name="phone" type="tel" placeholder="(555) 000-0000" className="w-full rounded-xl border border-slate-200 px-4 py-3 text-sm outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-100" /></label>
-                  <label className="block"><span className="mb-1.5 block text-xs font-bold text-slate-700">What brings you to Telos?</span><select name="interest" className="w-full rounded-xl border border-slate-200 bg-white px-4 py-3 text-sm outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-100"><option>Everyday banking</option><option>A new card</option><option>Saving and investing</option><option>A loan</option></select></label>
+                  <label className="block"><span className="mb-1.5 block text-xs font-bold text-slate-700">What brings you to telosbank?</span><select name="interest" className="w-full rounded-xl border border-slate-200 bg-white px-4 py-3 text-sm outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-100"><option>Everyday banking</option><option>A new card</option><option>Saving and investing</option><option>A loan</option></select></label>
                   <div className="flex items-start gap-2 rounded-xl bg-blue-50 p-3 text-xs leading-5 text-slate-600"><LockClosedIcon className="mt-0.5 h-4 w-4 shrink-0 text-blue-700" /> We do not submit an application here. Bring a valid photo ID to your nearest branch.</div>
                   <button type="submit" className="w-full rounded-xl bg-blue-700 px-5 py-3.5 text-sm font-semibold text-white hover:bg-blue-800">Continue to branch visit</button>
                 </form>

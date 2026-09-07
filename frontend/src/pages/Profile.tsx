@@ -29,7 +29,7 @@ const Profile = () => {
         <section className="space-y-5 rounded-2xl bg-white p-6 shadow-card lg:col-span-2">
           <div>
             <h3 className="text-sm font-semibold text-slate-900">Personal information</h3>
-            <p className="mt-1 text-sm text-slate-500">These details are managed by Telos administrators.</p>
+            <p className="mt-1 text-sm text-slate-500">These details are managed by telosbank administrators.</p>
           </div>
           <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
             <div>

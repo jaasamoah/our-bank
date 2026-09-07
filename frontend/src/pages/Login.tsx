@@ -32,7 +32,7 @@ const Login: React.FC = () => {
       <div className="absolute -bottom-40 -right-20 h-96 w-96 rounded-full bg-white blur-3xl" />
       <div className="relative w-full max-w-md">
         <div className="mb-8 text-center">
-          <Link to="/" aria-label="Telos home" className="inline-flex">
+          <Link to="/" aria-label="telosbank home" className="inline-flex">
             <Brand className="text-3xl" />
           </Link>
           <p className="mt-3 text-sm text-slate-500">Banking made clear and personal.</p>
@@ -44,7 +44,7 @@ const Login: React.FC = () => {
               <LockClosedIcon className="h-6 w-6" />
             </div>
             <h1 className="mt-5 text-2xl font-bold tracking-[-.04em] text-slate-950">Welcome back</h1>
-            <p className="mt-2 text-sm text-slate-500">Sign in to access your Telos accounts</p>
+            <p className="mt-2 text-sm text-slate-500">Sign in to access your telosbank accounts</p>
           </div>
 
           <form className="mt-8 space-y-5" onSubmit={handleSubmit}>
@@ -72,7 +72,7 @@ const Login: React.FC = () => {
         </div>
 
         <Link to="/" className="mx-auto mt-6 flex w-fit items-center gap-2 text-sm font-semibold text-slate-500 hover:text-blue-700">
-          <ArrowLeftIcon className="h-4 w-4" /> Back to Telos
+          <ArrowLeftIcon className="h-4 w-4" /> Back to telosbank
         </Link>
       </div>
     </div>

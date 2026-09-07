@@ -118,7 +118,7 @@ const AdminCards: React.FC = () => {
                 c.type === 'Credit' ? 'from-slate-700 to-slate-900' : 'from-brand-600 to-brand-800'
               } text-white`}>
                 <div className="flex items-center justify-between mb-6">
-                  <span className="text-xs font-medium opacity-70">telos</span>
+                  <span className="text-xs font-medium opacity-70">telosbank</span>
                   <span className="text-xs font-medium opacity-70">{c.network}</span>
                 </div>
                 <p className="font-mono text-sm tracking-widest mb-2">{c.number}</p>

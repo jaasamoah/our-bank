@@ -26,8 +26,10 @@ def create_payee(
     name = payload.name.strip()
     bank = payload.bank.strip()
     account_number = payload.account_number.strip()
-    if not name or not bank or len(account_number) < 4:
-        raise HTTPException(status_code=400, detail="Enter a name, bank, and valid account number")
+    iban = payload.iban.strip()
+    swift_code = payload.swift_code.strip().upper()
+    if not name or not bank or len(account_number) < 4 or not iban or not swift_code:
+        raise HTTPException(status_code=400, detail="Enter a name, bank, account number, IBAN, and SWIFT code")
     if not verify_password(payload.password, current_user.hashed_password):
         raise HTTPException(status_code=401, detail="Password is incorrect")
     payee = Payee(
@@ -35,8 +37,8 @@ def create_payee(
         name=name,
         bank=bank,
         account_number=account_number,
-        iban=(payload.iban or "").strip() or None,
-        swift_code=(payload.swift_code or "").strip().upper() or None,
+        iban=iban,
+        swift_code=swift_code,
     )
     db.add(payee)
     db.commit()

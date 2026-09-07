@@ -21,7 +21,7 @@ const PublicSupportWidget: React.FC = () => {
       setEmail('');
       setSubject('');
       setMessage('');
-      setNotice('Thanks. Your request is with the Telos team.');
+      setNotice('Thanks. Your request is with the telosbank team.');
     } catch {
       setNotice('We could not send that request. Please try again.');
     } finally {
@@ -35,7 +35,7 @@ const PublicSupportWidget: React.FC = () => {
         <div className="fixed bottom-24 right-4 z-50 w-[min(calc(100vw-2rem),23rem)] rounded-3xl border border-blue-100 bg-white p-5 text-left shadow-2xl shadow-blue-950/20 sm:right-8">
           <div className="mb-4 flex items-start justify-between gap-4">
             <div>
-              <p className="text-sm font-bold text-slate-950">Talk to Telos</p>
+              <p className="text-sm font-bold text-slate-950">Talk to telosbank</p>
               <p className="mt-1 text-xs leading-5 text-slate-500">Leave a request and our team will follow up.</p>
             </div>
             <button type="button" onClick={() => setOpen(false)} className="rounded-full p-1.5 text-slate-400 hover:bg-blue-50 hover:text-blue-700" aria-label="Close chat">

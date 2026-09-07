@@ -100,8 +100,8 @@ class PayeeCreate(BaseModel):
     name: str
     bank: str
     account_number: str
-    iban: Optional[str] = None
-    swift_code: Optional[str] = None
+    iban: str
+    swift_code: str
     password: str
 
 

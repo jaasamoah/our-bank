@@ -48,7 +48,7 @@ const AdminLogin: React.FC = () => {
           </p>
         </div>
         <p className="text-white/40 text-sm">
-          © 2026 Telos Bank. Authorized personnel only.
+          © 2026 telosbank. Authorized personnel only.
         </p>
       </div>
 

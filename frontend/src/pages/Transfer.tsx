@@ -95,6 +95,10 @@ const Transfer = () => {
 
   const handleAddPayee = async () => {
     setError(null);
+    if (!newPayee.iban.trim() || !newPayee.swift_code.trim()) {
+      setError('Enter the IBAN and SWIFT code to save this payee.');
+      return;
+    }
     if (!newPayee.password) {
       setError('Enter your password to save this payee.');
       return;
@@ -216,8 +220,8 @@ const Transfer = () => {
                 <input value={newPayee.bank} onChange={(e) => setNewPayee({ ...newPayee, bank: e.target.value })} placeholder="Bank name" required className="w-full rounded-xl border border-slate-200 px-3 py-2.5 text-sm outline-none focus:border-brand-500" />
                 <input value={newPayee.account_number} onChange={(e) => setNewPayee({ ...newPayee, account_number: e.target.value })} placeholder="Account number" required className="w-full rounded-xl border border-slate-200 px-3 py-2.5 text-sm outline-none focus:border-brand-500" />
                 <div className="grid grid-cols-1 gap-2 sm:grid-cols-2">
-                  <input value={newPayee.iban} onChange={(e) => setNewPayee({ ...newPayee, iban: e.target.value })} placeholder="IBAN number (optional)" className="min-w-0 rounded-xl border border-slate-200 px-3 py-2.5 text-sm outline-none focus:border-brand-500" />
-                  <input value={newPayee.swift_code} onChange={(e) => setNewPayee({ ...newPayee, swift_code: e.target.value })} placeholder="SWIFT code (optional)" className="min-w-0 rounded-xl border border-slate-200 px-3 py-2.5 text-sm uppercase outline-none focus:border-brand-500" />
+                  <input value={newPayee.iban} onChange={(e) => setNewPayee({ ...newPayee, iban: e.target.value })} placeholder="IBAN number" required className="min-w-0 rounded-xl border border-slate-200 px-3 py-2.5 text-sm outline-none focus:border-brand-500" />
+                  <input value={newPayee.swift_code} onChange={(e) => setNewPayee({ ...newPayee, swift_code: e.target.value })} placeholder="SWIFT code" required className="min-w-0 rounded-xl border border-slate-200 px-3 py-2.5 text-sm uppercase outline-none focus:border-brand-500" />
                 </div>
                 <div className="flex justify-end">
                     <button type="button" onClick={handleAddPayee} className="rounded-xl bg-brand-700 px-4 py-2 text-sm font-semibold text-white hover:bg-brand-800">Save</button>
@@ -300,7 +304,7 @@ const Transfer = () => {
           <div className="rounded-2xl bg-brand-50 p-6">
             <h3 className="mb-1 text-sm font-semibold text-brand-800">Good to know</h3>
             <p className="text-sm text-brand-700">
-              Transfers between your Telos accounts update immediately. Every new transfer appears as processing until it is reviewed.
+              Transfers between your telosbank accounts update immediately. Every new transfer appears as processing until it is reviewed.
             </p>
           </div>
         </div>

@@ -243,8 +243,8 @@ export async function createPayee(payload: {
   name: string;
   bank: string;
   account_number: string;
-  iban?: string;
-  swift_code?: string;
+  iban: string;
+  swift_code: string;
   password: string;
 }) {
   const response = await api.post<ApiPayee>('/api/payees/', payload);
