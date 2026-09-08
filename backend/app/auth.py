@@ -87,7 +87,10 @@ def set_auth_cookies(response, access_token: str, refresh_token, admin: bool = F
         samesite=samesite_val,
         max_age=7 * 86400,
         path="/",
-    ):
+    )
+
+
+def get_current_user(request: Request, db: Session = Depends(get_db)) -> User:
     credentials_exception = HTTPException(
         status_code=status.HTTP_401_UNAUTHORIZED,
         detail="Could not validate credentials",
