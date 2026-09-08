@@ -59,31 +59,35 @@ def create_refresh_token(db: Session, user: User) -> str:
     return raw_token
 
 
-def set_auth_cookies(
-    response: Response,
-    access_token: str,
-    refresh_token: str,
-    admin: bool = False,
-):
-    common = {"httponly": True, "secure": COOKIE_SECURE, "samesite": "lax"}
-    access_cookie = ADMIN_ACCESS_COOKIE if admin else ACCESS_COOKIE
-    refresh_cookie = ADMIN_REFRESH_COOKIE if admin else REFRESH_COOKIE
-    response.set_cookie(access_cookie, access_token, max_age=ACCESS_TOKEN_EXPIRE_MINUTES * 60, path="/", **common)
-    response.set_cookie(refresh_cookie, refresh_token, max_age=REFRESH_TOKEN_EXPIRE_DAYS * 86400, path="/api/auth", **common)
+def set_auth_cookies(response, access_token: str, refresh_token, admin: bool = False):
+    import os
+    app_env = os.getenv("APP_ENV", "").lower()
+    is_prod = app_env == "production" or os.getenv("COOKIE_SECURE", "false").lower() == "true"
+    
+    token_str = getattr(refresh_token, "token", refresh_token)
+    prefix = "admin_" if admin else ""
+    
+    samesite_val = "none" if is_prod else "lax"
+    secure_val = True if is_prod else False
 
-
-def clear_auth_cookies(response: Response):
-    response.delete_cookie(ACCESS_COOKIE, path="/")
-    response.delete_cookie(ADMIN_ACCESS_COOKIE, path="/")
-    response.delete_cookie(REFRESH_COOKIE, path="/api/auth")
-    response.delete_cookie(ADMIN_REFRESH_COOKIE, path="/api/auth")
-    response.delete_cookie(CSRF_COOKIE, path="/")
-
-
-async def get_current_user(
-    request: Request,
-    db: Session = Depends(get_db)
-):
+    response.set_cookie(
+        key=f"{prefix}access_token",
+        value=access_token,
+        httponly=True,
+        secure=secure_val,
+        samesite=samesite_val,
+        max_age=15 * 60,
+        path="/",
+    )
+    response.set_cookie(
+        key=f"{prefix}refresh_token",
+        value=str(token_str),
+        httponly=True,
+        secure=secure_val,
+        samesite=samesite_val,
+        max_age=7 * 86400,
+        path="/",
+    ):
     credentials_exception = HTTPException(
         status_code=status.HTTP_401_UNAUTHORIZED,
         detail="Could not validate credentials",
