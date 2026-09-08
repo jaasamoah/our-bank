@@ -286,18 +286,29 @@ app = FastAPI(
     openapi_url="/openapi.json" if ENABLE_API_DOCS else None,
 )
 
-# CORS middleware
-configured_origins = [
+# CORS middleware configuration
+default_origins = [
+    "http://localhost:5173",
+    "http://localhost:3000",
+    "http://localhost:5000",
+    "https://our-bank-one.vercel.app",
+]
+
+env_origins = [
     origin.strip()
-    for origin in os.getenv("CORS_ORIGINS", "http://localhost:5000").split(",")
+    for origin in os.getenv("CORS_ORIGINS", "").split(",")
     if origin.strip()
 ]
+
+configured_origins = list(set(default_origins + env_origins))
+
 app.add_middleware(
     CORSMiddleware,
     allow_origins=configured_origins,
     allow_credentials=True,
     allow_methods=["*"],
-    allow_headers=["Authorization", "Content-Type", "X-CSRF-Token"],
+    allow_headers=["*"],
+    expose_headers=["*"],
 )
 
 
@@ -315,13 +326,14 @@ async def security_headers_and_csrf(request: Request, call_next):
 
     response = await call_next(request)
     if not request.cookies.get(CSRF_COOKIE):
+        is_secure = os.getenv("COOKIE_SECURE", "true" if APP_ENV == "production" else "false").lower() == "true"
         response.set_cookie(
             CSRF_COOKIE,
             secrets.token_urlsafe(24),
             max_age=7 * 86400,
-            secure=os.getenv("COOKIE_SECURE", "true" if APP_ENV == "production" else "false").lower() == "true",
+            secure=is_secure,
             httponly=False,
-            samesite="lax",
+            samesite="none" if is_secure else "lax",
             path="/",
         )
 
