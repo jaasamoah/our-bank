@@ -247,9 +247,106 @@ class AdminSecurityQuestionsOut(BaseModel):
     questions: list[SecurityQuestionOut]
 
 
+class AdminAccountCreate(StrictModel):
+    user_id: StrictInt
+    account_number: Optional[str] = Field(default=None, min_length=4, max_length=64)
+    account_type: str = Field(min_length=1, max_length=64)
+    balance: StrictFloat = Field(default=0, ge=-1_000_000_000, le=1_000_000_000)
+    currency: str = Field(default="USD", min_length=3, max_length=8)
+    status: str = Field(default="Active", min_length=1, max_length=32)
+
+
 class AdminAccountUpdate(StrictModel):
+    account_number: Optional[str] = Field(default=None, min_length=4, max_length=64)
+    account_type: Optional[str] = Field(default=None, min_length=1, max_length=64)
     balance: Optional[StrictFloat] = Field(default=None, ge=-1_000_000_000, le=1_000_000_000)
+    currency: Optional[str] = Field(default=None, min_length=3, max_length=8)
     status: Optional[str] = Field(default=None, max_length=32)
+
+
+class AdminAccountOut(BaseModel):
+    id: int
+    user_id: int
+    user_name: str
+    account_number: str
+    account_type: str
+    balance: float
+    currency: str
+    status: str
+
+
+class AdminCardCreate(StrictModel):
+    user_id: StrictInt
+    account_id: StrictInt
+    holder_name: str = Field(min_length=1, max_length=120)
+    card_number: str = Field(min_length=12, max_length=19)
+    expiry: str = Field(min_length=4, max_length=10)
+    cvc: str = Field(min_length=3, max_length=4)
+    network: str = Field(min_length=2, max_length=32)
+    frozen: bool = False
+
+
+class AdminCardUpdate(StrictModel):
+    account_id: Optional[StrictInt] = None
+    holder_name: Optional[str] = Field(default=None, min_length=1, max_length=120)
+    card_number: Optional[str] = Field(default=None, min_length=12, max_length=19)
+    expiry: Optional[str] = Field(default=None, min_length=4, max_length=10)
+    cvc: Optional[str] = Field(default=None, min_length=3, max_length=4)
+    network: Optional[str] = Field(default=None, min_length=2, max_length=32)
+    frozen: Optional[bool] = None
+
+
+class AdminCardOut(BaseModel):
+    id: int
+    user_id: int
+    user_name: str
+    account_id: int
+    account_type: str
+    holder_name: str
+    last_four: str
+    card_number: Optional[str] = None
+    expiry: str
+    cvc: Optional[str] = None
+    network: str
+    frozen: bool
+    created_at: datetime
+
+
+class AdminInvestmentCreate(StrictModel):
+    user_id: StrictInt
+    symbol: str = Field(min_length=1, max_length=32)
+    name: str = Field(min_length=1, max_length=160)
+    asset_class: str = Field(min_length=1, max_length=80)
+    units: StrictFloat = Field(ge=0, le=1_000_000_000)
+    average_cost: StrictFloat = Field(ge=0, le=1_000_000_000)
+    current_price: StrictFloat = Field(ge=0, le=1_000_000_000)
+    market_value: StrictFloat = Field(ge=0, le=1_000_000_000)
+    cost_basis: StrictFloat = Field(ge=0, le=1_000_000_000)
+    daily_change: StrictFloat = Field(ge=-1_000_000_000, le=1_000_000_000)
+    total_return: StrictFloat = Field(ge=-1_000_000_000, le=1_000_000_000)
+    allocation_percentage: StrictFloat = Field(ge=0, le=100)
+    currency: str = Field(default="USD", min_length=3, max_length=8)
+
+
+class AdminInvestmentUpdate(StrictModel):
+    user_id: Optional[StrictInt] = None
+    symbol: Optional[str] = Field(default=None, min_length=1, max_length=32)
+    name: Optional[str] = Field(default=None, min_length=1, max_length=160)
+    asset_class: Optional[str] = Field(default=None, min_length=1, max_length=80)
+    units: Optional[StrictFloat] = Field(default=None, ge=0, le=1_000_000_000)
+    average_cost: Optional[StrictFloat] = Field(default=None, ge=0, le=1_000_000_000)
+    current_price: Optional[StrictFloat] = Field(default=None, ge=0, le=1_000_000_000)
+    market_value: Optional[StrictFloat] = Field(default=None, ge=0, le=1_000_000_000)
+    cost_basis: Optional[StrictFloat] = Field(default=None, ge=0, le=1_000_000_000)
+    daily_change: Optional[StrictFloat] = Field(default=None, ge=-1_000_000_000, le=1_000_000_000)
+    total_return: Optional[StrictFloat] = Field(default=None, ge=-1_000_000_000, le=1_000_000_000)
+    allocation_percentage: Optional[StrictFloat] = Field(default=None, ge=0, le=100)
+    currency: Optional[str] = Field(default=None, min_length=3, max_length=8)
+
+
+class AdminInvestmentOut(InvestmentOut):
+    user_id: int
+    user_name: str
 
 
 class AdminTransactionOut(BaseModel):
@@ -291,13 +388,6 @@ class AdminTransactionCreate(StrictModel):
     status: str = Field(default="processing", max_length=32)
     reference: Optional[str] = Field(default=None, max_length=120)
     created_at: Optional[datetime] = None
-
-
-class AdminCardUpdate(StrictModel):
-    holder_name: Optional[str] = None
-    card_number: Optional[str] = None
-    expiry: Optional[str] = None
-    cvc: Optional[str] = None
 
 
 class LoanOut(BaseModel):

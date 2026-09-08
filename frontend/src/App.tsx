@@ -22,6 +22,7 @@ import AdminUsers from './admin/pages/Users'
 import AdminAccounts from './admin/pages/AdminAccounts'
 import AdminTransactions from './admin/pages/AdminTransactions'
 import AdminCards from './admin/pages/AdminCards'
+import AdminInvestments from './admin/pages/AdminInvestments'
 import AdminLoans from './admin/pages/Loans'
 import AdminKYC from './admin/pages/KYC'
 import AdminNotifications from './admin/pages/Notifications'
@@ -62,6 +63,7 @@ function App() {
               <Route path="/admin/accounts" element={<AdminProtectedRoute><AdminAccounts /></AdminProtectedRoute>} />
               <Route path="/admin/transactions" element={<AdminProtectedRoute><AdminTransactions /></AdminProtectedRoute>} />
               <Route path="/admin/cards" element={<AdminProtectedRoute><AdminCards /></AdminProtectedRoute>} />
+              <Route path="/admin/investments" element={<AdminProtectedRoute><AdminInvestments /></AdminProtectedRoute>} />
               <Route path="/admin/loans" element={<AdminProtectedRoute><AdminLoans /></AdminProtectedRoute>} />
               <Route path="/admin/kyc" element={<AdminProtectedRoute><AdminKYC /></AdminProtectedRoute>} />
               <Route path="/admin/notifications" element={<AdminProtectedRoute><AdminNotifications /></AdminProtectedRoute>} />

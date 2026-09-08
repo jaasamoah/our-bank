@@ -21,9 +21,16 @@ from ..models import (
     UserRole,
 )
 from ..schemas import (
+    AdminAccountCreate,
+    AdminAccountOut,
     AdminAccountUpdate,
     AdminBeneficiaryUpdate,
+    AdminCardCreate,
+    AdminCardOut,
     AdminCardUpdate,
+    AdminInvestmentCreate,
+    AdminInvestmentOut,
+    AdminInvestmentUpdate,
     AdminLoanOut,
     AdminLoanCreate,
     AdminLoanUpdate,
@@ -45,6 +52,7 @@ from ..schemas import (
 router = APIRouter()
 TRANSACTION_STATUSES = {"processing", "completed", "failed", "reversed", "on_hold"}
 LOAN_STATUSES = {"active", "pending", "paid", "defaulted"}
+ACCOUNT_STATUSES = {"active", "frozen", "closed"}
 
 
 def serialize_user(user: User) -> dict:
@@ -63,6 +71,58 @@ def serialize_user(user: User) -> dict:
 
 def serialize_security_question(question: SecurityQuestion) -> dict:
     return {"id": question.id, "question": question.question}
+
+
+def serialize_account(account: Account) -> dict:
+    return {
+        "id": account.id,
+        "user_id": account.user_id,
+        "user_name": account.user.full_name,
+        "account_number": account.account_number,
+        "account_type": account.account_type,
+        "balance": account.balance,
+        "currency": account.currency,
+        "status": account.status or "Active",
+    }
+
+
+def serialize_card(card: Card) -> dict:
+    return {
+        "id": card.id,
+        "user_id": card.user_id,
+        "user_name": card.user.full_name,
+        "account_id": card.account_id,
+        "account_type": card.account.account_type,
+        "holder_name": card.holder_name,
+        "last_four": card.last_four,
+        "card_number": card.card_number,
+        "expiry": card.expiry,
+        "cvc": card.cvc,
+        "network": card.network,
+        "frozen": card.frozen,
+        "created_at": card.created_at,
+    }
+
+
+def serialize_investment(investment: Investment) -> dict:
+    return {
+        "id": investment.id,
+        "user_id": investment.user_id,
+        "user_name": investment.user.full_name,
+        "symbol": investment.symbol,
+        "name": investment.name,
+        "asset_class": investment.asset_class,
+        "units": investment.units,
+        "average_cost": investment.average_cost,
+        "current_price": investment.current_price,
+        "market_value": investment.market_value,
+        "cost_basis": investment.cost_basis,
+        "daily_change": investment.daily_change,
+        "total_return": investment.total_return,
+        "allocation_percentage": investment.allocation_percentage,
+        "currency": investment.currency,
+        "created_at": investment.created_at,
+    }
 
 
 def serialize_transaction(transaction: Transaction) -> dict:
@@ -229,25 +289,44 @@ def replace_security_questions(
     return {"questions": [serialize_security_question(question) for question in questions]}
 
 
-@router.get("/accounts")
+@router.get("/accounts", response_model=list[AdminAccountOut])
 def list_accounts(
     _: User = Depends(get_current_admin),
     db: Session = Depends(get_db),
 ):
     accounts = db.query(Account).join(User).order_by(Account.id).all()
-    return [
-        {
-            "id": account.id,
-            "user_id": account.user_id,
-            "user_name": account.user.full_name,
-            "account_number": account.account_number,
-            "account_type": account.account_type,
-            "balance": account.balance,
-            "currency": account.currency,
-            "status": "Active",
-        }
-        for account in accounts
-    ]
+    return [serialize_account(account) for account in accounts]
+
+
+@router.post("/accounts", response_model=AdminAccountOut, status_code=201)
+def create_account(
+    payload: AdminAccountCreate,
+    _: User = Depends(get_current_admin),
+    db: Session = Depends(get_db),
+):
+    user = db.query(User).filter(User.id == payload.user_id, User.role == UserRole.CUSTOMER).first()
+    if not user:
+        raise HTTPException(status_code=404, detail="Customer not found")
+    account_type = payload.account_type.strip().lower()
+    currency = payload.currency.strip().upper()
+    status = payload.status.strip().lower()
+    if status not in ACCOUNT_STATUSES:
+        raise HTTPException(status_code=400, detail="Status must be active, frozen, or closed")
+    account_number = (payload.account_number or "").strip() or f"TEL-{uuid4().hex[:12].upper()}"
+    if db.query(Account).filter(Account.account_number == account_number).first():
+        raise HTTPException(status_code=400, detail="Account number is already in use")
+    account = Account(
+        user_id=user.id,
+        account_number=account_number,
+        account_type=account_type,
+        balance=payload.balance,
+        currency=currency,
+        status=status.title(),
+    )
+    db.add(account)
+    db.commit()
+    db.refresh(account)
+    return serialize_account(account)
 
 
 @router.patch("/accounts/{account_id}")
@@ -261,20 +340,42 @@ def update_account(
     if not account:
         raise HTTPException(status_code=404, detail="Account not found")
     values = payload.model_dump(exclude_unset=True)
+    if "account_number" in values:
+        account_number = (values["account_number"] or "").strip()
+        if not account_number:
+            raise HTTPException(status_code=400, detail="Account number is required")
+        if db.query(Account).filter(Account.account_number == account_number, Account.id != account_id).first():
+            raise HTTPException(status_code=400, detail="Account number is already in use")
+        account.account_number = account_number
+    if "account_type" in values:
+        account.account_type = (values["account_type"] or "").strip().lower()
     if "balance" in values:
         account.balance = values["balance"]
+    if "currency" in values:
+        account.currency = (values["currency"] or "").strip().upper()
+    if "status" in values:
+        status = (values["status"] or "").strip().lower()
+        if status not in ACCOUNT_STATUSES:
+            raise HTTPException(status_code=400, detail="Status must be active, frozen, or closed")
+        account.status = status.title()
     db.commit()
     db.refresh(account)
-    return {
-        "id": account.id,
-        "user_id": account.user_id,
-        "user_name": account.user.full_name,
-        "account_number": account.account_number,
-        "account_type": account.account_type,
-        "balance": account.balance,
-        "currency": account.currency,
-        "status": values.get("status", "Active"),
-    }
+    return serialize_account(account)
+
+
+@router.delete("/accounts/{account_id}", status_code=204)
+def delete_account(
+    account_id: int,
+    _: User = Depends(get_current_admin),
+    db: Session = Depends(get_db),
+):
+    account = db.query(Account).filter(Account.id == account_id).first()
+    if not account:
+        raise HTTPException(status_code=404, detail="Account not found")
+    db.query(Transaction).filter(Transaction.account_id == account_id).delete(synchronize_session=False)
+    db.query(Card).filter(Card.account_id == account_id).delete(synchronize_session=False)
+    db.delete(account)
+    db.commit()
 
 
 @router.post("/transactions", response_model=AdminTransactionOut, status_code=201)
@@ -489,15 +590,50 @@ def update_transaction_status(
     }
 
 
-@router.get("/cards", response_model=list[CardOut])
+@router.get("/cards", response_model=list[AdminCardOut])
 def list_cards(
     _: User = Depends(get_current_admin),
     db: Session = Depends(get_db),
 ):
-    return db.query(Card).order_by(Card.id).all()
+    return [serialize_card(card) for card in db.query(Card).join(Account).join(User).order_by(Card.id).all()]
 
 
-@router.patch("/cards/{card_id}/freeze", response_model=CardOut)
+@router.post("/cards", response_model=AdminCardOut, status_code=201)
+def create_card(
+    payload: AdminCardCreate,
+    _: User = Depends(get_current_admin),
+    db: Session = Depends(get_db),
+):
+    user = db.query(User).filter(User.id == payload.user_id, User.role == UserRole.CUSTOMER).first()
+    if not user:
+        raise HTTPException(status_code=404, detail="Customer not found")
+    account = db.query(Account).filter(Account.id == payload.account_id, Account.user_id == user.id).first()
+    if not account:
+        raise HTTPException(status_code=400, detail="Account does not belong to this customer")
+    card_number = "".join(payload.card_number.split())
+    cvc = "".join(payload.cvc.split())
+    if not card_number.isdigit() or not 12 <= len(card_number) <= 19:
+        raise HTTPException(status_code=400, detail="Card number must contain 12 to 19 digits")
+    if not cvc.isdigit() or len(cvc) not in {3, 4}:
+        raise HTTPException(status_code=400, detail="CVC must contain 3 or 4 digits")
+    card = Card(
+        user_id=user.id,
+        account_id=account.id,
+        holder_name=payload.holder_name.strip(),
+        last_four=card_number[-4:],
+        card_number=card_number,
+        expiry=payload.expiry.strip(),
+        cvc=cvc,
+        network=payload.network.strip(),
+        frozen=payload.frozen,
+    )
+    db.add(card)
+    db.commit()
+    db.refresh(card)
+    return serialize_card(card)
+
+
+@router.patch("/cards/{card_id}/freeze", response_model=AdminCardOut)
 def set_card_frozen(
     card_id: int,
     frozen: bool,
@@ -510,10 +646,10 @@ def set_card_frozen(
     card.frozen = frozen
     db.commit()
     db.refresh(card)
-    return card
+    return serialize_card(card)
 
 
-@router.patch("/cards/{card_id}", response_model=CardOut)
+@router.patch("/cards/{card_id}", response_model=AdminCardOut)
 def update_card(
     card_id: int,
     payload: AdminCardUpdate,
@@ -525,6 +661,12 @@ def update_card(
         raise HTTPException(status_code=404, detail="Card not found")
 
     values = payload.model_dump(exclude_unset=True)
+    if "account_id" in values:
+        account = db.query(Account).filter(Account.id == values["account_id"]).first()
+        if not account:
+            raise HTTPException(status_code=404, detail="Account not found")
+        card.account_id = account.id
+        card.user_id = account.user_id
     if "holder_name" in values:
         holder_name = (values["holder_name"] or "").strip()
         if not holder_name:
@@ -546,10 +688,155 @@ def update_card(
         if not cvc.isdigit() or len(cvc) not in {3, 4}:
             raise HTTPException(status_code=400, detail="CVC must contain 3 or 4 digits")
         card.cvc = cvc
+    if "network" in values:
+        network = (values["network"] or "").strip()
+        if not network:
+            raise HTTPException(status_code=400, detail="Card network is required")
+        card.network = network
+    if "frozen" in values:
+        card.frozen = values["frozen"]
 
     db.commit()
     db.refresh(card)
-    return card
+    return serialize_card(card)
+
+
+@router.delete("/cards/{card_id}", status_code=204)
+def delete_card(
+    card_id: int,
+    _: User = Depends(get_current_admin),
+    db: Session = Depends(get_db),
+):
+    card = db.query(Card).filter(Card.id == card_id).first()
+    if not card:
+        raise HTTPException(status_code=404, detail="Card not found")
+    db.delete(card)
+    db.commit()
+
+
+@router.get("/investments", response_model=list[AdminInvestmentOut])
+def list_investments(
+    _: User = Depends(get_current_admin),
+    db: Session = Depends(get_db),
+):
+    investments = (
+        db.query(Investment)
+        .join(User)
+        .order_by(Investment.created_at.desc(), Investment.id.desc())
+        .all()
+    )
+    return [serialize_investment(investment) for investment in investments]
+
+
+@router.post("/investments", response_model=AdminInvestmentOut, status_code=201)
+def create_investment(
+    payload: AdminInvestmentCreate,
+    _: User = Depends(get_current_admin),
+    db: Session = Depends(get_db),
+):
+    user = db.query(User).filter(User.id == payload.user_id, User.role == UserRole.CUSTOMER).first()
+    if not user:
+        raise HTTPException(status_code=404, detail="Customer not found")
+    investment = Investment(
+        user_id=user.id,
+        symbol=payload.symbol.strip().upper(),
+        name=payload.name.strip(),
+        asset_class=payload.asset_class.strip(),
+        units=payload.units,
+        average_cost=payload.average_cost,
+        current_price=payload.current_price,
+        market_value=payload.market_value,
+        cost_basis=payload.cost_basis,
+        daily_change=payload.daily_change,
+        total_return=payload.total_return,
+        allocation_percentage=payload.allocation_percentage,
+        currency=payload.currency.strip().upper(),
+    )
+    db.add(investment)
+    db.commit()
+    db.refresh(investment)
+    return serialize_investment(investment)
+
+
+@router.patch("/investments/{investment_id}", response_model=AdminInvestmentOut)
+def update_investment(
+    investment_id: int,
+    payload: AdminInvestmentUpdate,
+    _: User = Depends(get_current_admin),
+    db: Session = Depends(get_db),
+):
+    investment = db.query(Investment).filter(Investment.id == investment_id).first()
+    if not investment:
+        raise HTTPException(status_code=404, detail="Investment not found")
+    values = payload.model_dump(exclude_unset=True)
+    if "user_id" in values:
+        user = db.query(User).filter(User.id == values["user_id"], User.role == UserRole.CUSTOMER).first()
+        if not user:
+            raise HTTPException(status_code=404, detail="Customer not found")
+        investment.user_id = user.id
+    for key, value in values.items():
+        if key == "user_id":
+            continue
+        if isinstance(value, str):
+            value = value.strip()
+            if key == "symbol":
+                value = value.upper()
+            if key == "currency":
+                value = value.upper()
+        setattr(investment, key, value)
+    db.commit()
+    db.refresh(investment)
+    return serialize_investment(investment)
+
+
+@router.delete("/investments/{investment_id}", status_code=204)
+def delete_investment(
+    investment_id: int,
+    _: User = Depends(get_current_admin),
+    db: Session = Depends(get_db),
+):
+    investment = db.query(Investment).filter(Investment.id == investment_id).first()
+    if not investment:
+        raise HTTPException(status_code=404, detail="Investment not found")
+    db.delete(investment)
+    db.commit()
+
+
+@router.get("/dashboard")
+def get_dashboard(
+    _: User = Depends(get_current_admin),
+    db: Session = Depends(get_db),
+):
+    customers = db.query(User).filter(User.role == UserRole.CUSTOMER).all()
+    accounts = db.query(Account).all()
+    investments = db.query(Investment).all()
+    loans = db.query(Loan).all()
+    cards = db.query(Card).all()
+    transactions = (
+        db.query(Transaction)
+        .join(User, Transaction.user_id == User.id)
+        .join(Account, Transaction.account_id == Account.id)
+        .order_by(Transaction.created_at.desc(), Transaction.id.desc())
+        .limit(8)
+        .all()
+    )
+    account_assets = sum(account.balance or 0 for account in accounts)
+    investment_assets = sum(investment.market_value or 0 for investment in investments)
+    return {
+        "total_users": len(customers),
+        "active_users": sum(1 for user in customers if user.is_active),
+        "total_accounts": len(accounts),
+        "active_accounts": sum(1 for account in accounts if (account.status or "Active").lower() == "active"),
+        "total_cards": len(cards),
+        "active_cards": sum(1 for card in cards if not card.frozen),
+        "active_loans": sum(1 for loan in loans if loan.status == "active"),
+        "total_assets": round(account_assets + investment_assets, 2),
+        "total_account_balances": round(account_assets, 2),
+        "total_investment_value": round(investment_assets, 2),
+        "pending_transactions": sum(1 for transaction in db.query(Transaction).all() if transaction.status in {"processing", "on_hold"}),
+        "failed_transactions": sum(1 for transaction in db.query(Transaction).all() if transaction.status == "failed"),
+        "recent_transactions": [serialize_transaction(transaction) for transaction in transactions],
+    }
 
 
 @router.get("/loans", response_model=list[AdminLoanOut])

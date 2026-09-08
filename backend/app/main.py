@@ -34,6 +34,10 @@ def ensure_legacy_columns():
     missing_user = {
         "address": "VARCHAR",
     }
+    account_columns = {column["name"] for column in inspect(engine).get_columns("accounts")}
+    missing_account = {
+        "status": "VARCHAR NOT NULL DEFAULT 'Active'",
+    }
     with engine.begin() as connection:
         for name, column_type in missing.items():
             if name not in card_columns:
@@ -44,6 +48,9 @@ def ensure_legacy_columns():
         for name, column_type in missing_user.items():
             if name not in user_columns:
                 connection.execute(text(f"ALTER TABLE users ADD COLUMN {name} {column_type}"))
+        for name, column_type in missing_account.items():
+            if name not in account_columns:
+                connection.execute(text(f"ALTER TABLE accounts ADD COLUMN {name} {column_type}"))
 
 
 ensure_legacy_columns()

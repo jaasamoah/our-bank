@@ -165,7 +165,7 @@ const AdminLoans: React.FC = () => {
   return (
     <AdminLayout title="Loan Management" subtitle="Monitor and manage customer loans">
       <div className="space-y-6">
-        {error && <div className="rounded-xl bg-red-50 px-4 py-3 text-sm text-red-700">{error}</div>}
+        {error && !showCreate && !editLoan && <div className="rounded-xl bg-red-50 px-4 py-3 text-sm text-red-700">{error}</div>}
         <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
           <div className="rounded-2xl bg-white border border-slate-100 shadow-sm p-5">
             <p className="text-xs text-slate-500 mb-1">Total Disbursed</p>
@@ -230,6 +230,7 @@ const AdminLoans: React.FC = () => {
           <div className="max-h-[90vh] w-full max-w-lg overflow-y-auto rounded-2xl bg-white p-6 shadow-xl">
             <h2 className="text-lg font-bold text-slate-900">Create loan</h2>
             <p className="mt-1 text-sm text-slate-500">Assign the loan to a customer profile.</p>
+            {error && <p className="mt-4 rounded-xl bg-red-50 px-3 py-2 text-sm text-red-700">{error}</p>}
             <div className="mt-5 space-y-4">
               <label className="block text-xs font-medium text-slate-600">Customer
                 <select value={newLoan.userId} onChange={(event) => setNewLoan((current) => ({ ...current, userId: event.target.value }))} className="mt-1 block w-full rounded-xl border border-slate-200 px-3 py-2.5 text-sm">
@@ -276,6 +277,7 @@ const AdminLoans: React.FC = () => {
           <div className="w-full max-w-sm rounded-2xl bg-white p-6 shadow-xl">
             <h2 className="text-lg font-bold text-slate-900 mb-1">Edit Loan</h2>
             <p className="text-sm text-slate-500 mb-5">{editLoan.userName}</p>
+            {error && <p className="mb-4 rounded-xl bg-red-50 px-3 py-2 text-sm text-red-700">{error}</p>}
             <div className="space-y-4">
               <div className="grid grid-cols-2 gap-3">
                 <div>

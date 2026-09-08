@@ -13,6 +13,7 @@ import {
   updateAdminBeneficiary,
   updateAdminSecurityQuestions,
   updateAdminUser,
+  getApiValidationErrors,
   type ApiBeneficiary,
 } from '../../services/api';
 import LoadingSpinner from '../../components/LoadingSpinner';
@@ -46,6 +47,7 @@ const AdminUsers: React.FC = () => {
   const [password, setPassword] = useState('');
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
+  const [fieldErrors, setFieldErrors] = useState<Record<string, string>>({});
   const [beneficiaryUser, setBeneficiaryUser] = useState<ManagedUser | null>(null);
   const [beneficiaries, setBeneficiaries] = useState<ApiBeneficiary[]>([]);
   const [beneficiaryForm, setBeneficiaryForm] = useState({ name: '', relationship: '', bank: '', account_number: '', notes: '', created_at: new Date().toISOString().slice(0, 10) });
@@ -85,6 +87,7 @@ const AdminUsers: React.FC = () => {
     setForm(emptyUser);
     setPassword('');
     setError('');
+    setFieldErrors({});
     setShowModal(true);
   };
 
@@ -93,14 +96,22 @@ const AdminUsers: React.FC = () => {
     setForm({ fullName: u.fullName, email: u.email, username: u.username, address: u.address, status: u.status, kycStatus: u.kycStatus, joinedDate: u.joinedDate, totalBalance: u.totalBalance });
     setPassword('');
     setError('');
+    setFieldErrors({});
     setShowModal(true);
   };
 
   const handleSave = async () => {
-    if (!form.fullName || !form.email || !form.username || (!editUser && password.length < 8)) {
-      setError(editUser ? 'Complete the required fields.' : 'Complete all fields and use a password of at least 8 characters.');
+    const next: Record<string, string> = {};
+    if (!form.fullName.trim()) next.full_name = 'Full name is required.';
+    if (!form.email.trim()) next.email = 'Email is required.';
+    if (!form.username.trim()) next.username = 'Username is required.';
+    if (!editUser && password.length < 12) next.password = 'Password must be at least 12 characters.';
+    setFieldErrors(next);
+    if (Object.keys(next).length > 0) {
+      setError('');
       return;
     }
+    setError('');
     try {
       const updated = editUser
         ? await updateAdminUser(Number(editUser.id), {
@@ -122,8 +133,10 @@ const AdminUsers: React.FC = () => {
         ? prev.map((u) => u.id === editUser.id ? mapUser(updated) : u)
         : [mapUser(updated), ...prev]);
       setShowModal(false);
-    } catch {
-      setError('We could not save this customer. Check for duplicate details and try again.');
+    } catch (saveError) {
+      const parsed = getApiValidationErrors(saveError);
+      setFieldErrors(parsed.fields);
+      setError(parsed.form || 'We could not save this customer. Check for duplicate details and try again.');
     }
   };
 
@@ -333,24 +346,29 @@ const AdminUsers: React.FC = () => {
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/40 px-4">
           <div className="w-full max-w-md rounded-2xl bg-white p-6 shadow-xl">
             <h2 className="text-lg font-bold text-slate-900 mb-5">{editUser ? 'Edit User' : 'Create New User'}</h2>
+            {error && <p className="mb-4 rounded-xl bg-red-50 px-3 py-2 text-sm text-red-700">{error}</p>}
             <div className="space-y-4">
               <div>
                 <label className="block text-xs font-medium text-slate-600 mb-1">Full Name</label>
                 <input value={form.fullName} onChange={e => setForm(f => ({ ...f, fullName: e.target.value }))} className="w-full rounded-xl border border-slate-200 px-3 py-2.5 text-sm outline-none focus:border-brand-500 focus:ring-2 focus:ring-brand-100" />
+                {fieldErrors.full_name && <p className="mt-1 text-xs text-red-600">{fieldErrors.full_name}</p>}
               </div>
                {!editUser && (
                  <div>
                    <label className="block text-xs font-medium text-slate-600 mb-1">Temporary password</label>
-                   <input type="password" value={password} onChange={e => setPassword(e.target.value)} minLength={8} placeholder="At least 8 characters" className="w-full rounded-xl border border-slate-200 px-3 py-2.5 text-sm outline-none focus:border-brand-500 focus:ring-2 focus:ring-brand-100" />
+                    <input type="password" value={password} onChange={e => setPassword(e.target.value)} minLength={12} placeholder="At least 12 characters" className="w-full rounded-xl border border-slate-200 px-3 py-2.5 text-sm outline-none focus:border-brand-500 focus:ring-2 focus:ring-brand-100" />
+                    {fieldErrors.password && <p className="mt-1 text-xs text-red-600">{fieldErrors.password}</p>}
                  </div>
                )}
               <div>
                 <label className="block text-xs font-medium text-slate-600 mb-1">Email</label>
                 <input value={form.email} onChange={e => setForm(f => ({ ...f, email: e.target.value }))} className="w-full rounded-xl border border-slate-200 px-3 py-2.5 text-sm outline-none focus:border-brand-500 focus:ring-2 focus:ring-brand-100" />
+                 {fieldErrors.email && <p className="mt-1 text-xs text-red-600">{fieldErrors.email}</p>}
               </div>
               <div>
                 <label className="block text-xs font-medium text-slate-600 mb-1">Username</label>
                 <input value={form.username} onChange={e => setForm(f => ({ ...f, username: e.target.value }))} className="w-full rounded-xl border border-slate-200 px-3 py-2.5 text-sm outline-none focus:border-brand-500 focus:ring-2 focus:ring-brand-100" />
+                 {fieldErrors.username && <p className="mt-1 text-xs text-red-600">{fieldErrors.username}</p>}
               </div>
                <div>
                  <label className="block text-xs font-medium text-slate-600 mb-1">Address</label>

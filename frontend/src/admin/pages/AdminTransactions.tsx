@@ -266,7 +266,7 @@ const AdminTransactions: React.FC = () => {
             <button type="button" onClick={openCreate} className="shrink-0 rounded-xl bg-brand-700 px-4 py-2.5 text-sm font-semibold text-white hover:bg-brand-800">New transaction</button>
           </div>
         </div>
-        {error && <div className="rounded-2xl bg-red-50 p-4 text-sm text-red-700">{error}</div>}
+        {error && !showCreate && !editingTransaction && <div className="rounded-2xl bg-red-50 p-4 text-sm text-red-700">{error}</div>}
         <div className="overflow-hidden rounded-2xl border border-slate-100 bg-white shadow-sm">
           {loading ? <div className="p-10"><LoadingSpinner label="Loading transactions" /></div> : filtered.length === 0 ? <p className="p-10 text-center text-sm text-slate-500">No transactions match your filters.</p> : (
             <div className="overflow-x-auto">
@@ -305,6 +305,7 @@ const AdminTransactions: React.FC = () => {
           <div className="max-h-[90vh] w-full max-w-lg overflow-y-auto rounded-2xl bg-white p-6 shadow-xl">
             <h2 className="text-lg font-bold text-slate-900">Create transaction</h2>
             <p className="mt-1 text-sm text-slate-500">Choose the exact customer account this record belongs to.</p>
+            {error && <p className="mt-4 rounded-xl bg-red-50 px-3 py-2 text-sm text-red-700">{error}</p>}
             <div className="mt-5 space-y-4">
               <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
                 <label className="text-sm font-medium text-slate-700">Customer<select value={form.userId} onChange={(event) => { const userId = event.target.value; const firstAccount = accounts.find((account) => String(account.user_id) === userId); setForm((current) => ({ ...current, userId, accountId: firstAccount ? String(firstAccount.id) : '' })); }} className="mt-1.5 block w-full rounded-xl border border-slate-200 px-3 py-2.5 font-normal"><option value="">Select customer</option>{customers.map((customer) => <option key={customer.id} value={customer.id}>{customer.full_name}</option>)}</select></label>
@@ -333,6 +334,7 @@ const AdminTransactions: React.FC = () => {
           <div className="max-h-[90vh] w-full max-w-lg overflow-y-auto rounded-2xl bg-white p-6 shadow-xl">
             <h2 className="text-lg font-bold text-slate-900">Edit transaction</h2>
             <p className="mt-1 text-sm text-slate-500">Changes are saved to the customer portal and account balance.</p>
+            {error && <p className="mt-4 rounded-xl bg-red-50 px-3 py-2 text-sm text-red-700">{error}</p>}
             <div className="mt-5 space-y-4">
               <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
                 <label className="text-sm font-medium text-slate-700">Customer<select value={editForm.userId} onChange={(event) => { const userId = event.target.value; const firstAccount = accounts.find((account) => String(account.user_id) === userId); setEditForm((current) => current ? { ...current, userId, accountId: firstAccount ? String(firstAccount.id) : '' } : current); }} className="mt-1.5 block w-full rounded-xl border border-slate-200 px-3 py-2.5 font-normal">{customers.map((customer) => <option key={customer.id} value={customer.id}>{customer.full_name}</option>)}</select></label>

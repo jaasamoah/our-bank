@@ -21,6 +21,7 @@ const navItems = [
   { to: '/admin/accounts', label: 'Accounts', icon: BuildingLibraryIcon },
   { to: '/admin/transactions', label: 'Transactions', icon: CreditCardIcon },
   { to: '/admin/cards', label: 'Cards', icon: CreditCardIcon },
+  { to: '/admin/investments', label: 'Investments', icon: ChartBarIcon },
   { to: '/admin/loans', label: 'Loans', icon: ClipboardDocumentListIcon },
   { to: '/admin/kyc', label: 'KYC Approvals', icon: MagnifyingGlassIcon },
   { to: '/admin/notifications', label: 'Notifications', icon: BellIcon },

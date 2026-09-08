@@ -10,6 +10,23 @@ const api = axios.create({
   },
 });
 
+export function getApiValidationErrors(error: unknown): { form: string; fields: Record<string, string> } {
+  const fields: Record<string, string> = {};
+  let form = '';
+  if (axios.isAxiosError(error)) {
+    const detail = error.response?.data?.detail;
+    if (Array.isArray(detail)) {
+      detail.forEach((item: { loc?: Array<string | number>; msg?: string }) => {
+        const field = item.loc?.filter((part) => part !== 'body').at(-1);
+        if (field) fields[String(field)] = item.msg || 'This value is invalid.';
+      });
+    } else if (typeof detail === 'string') {
+      form = detail;
+    }
+  }
+  return { form, fields };
+}
+
 function getCookie(name: string) {
   return document.cookie
     .split('; ')
@@ -192,6 +209,27 @@ export interface ApiAdminAccount {
   balance: number;
   currency: string;
   status: string;
+}
+
+export interface ApiAdminInvestment extends InvestmentHolding {
+  user_id: number;
+  user_name: string;
+}
+
+export interface ApiAdminDashboard {
+  total_users: number;
+  active_users: number;
+  total_accounts: number;
+  active_accounts: number;
+  total_cards: number;
+  active_cards: number;
+  active_loans: number;
+  total_assets: number;
+  total_account_balances: number;
+  total_investment_value: number;
+  pending_transactions: number;
+  failed_transactions: number;
+  recent_transactions: ApiAdminTransaction[];
 }
 
 export interface ApiLoan {
@@ -435,6 +473,18 @@ export async function getAdminAccounts() {
   return response.data;
 }
 
+export async function createAdminAccount(payload: {
+  user_id: number;
+  account_number?: string;
+  account_type: string;
+  balance: number;
+  currency: string;
+  status: string;
+}) {
+  const response = await api.post<ApiAdminAccount>('/api/admin/accounts', payload);
+  return response.data;
+}
+
 export async function getAdminTransactions() {
   const response = await api.get<ApiAdminTransaction[]>('/api/admin/transactions');
   return response.data;
@@ -484,30 +534,99 @@ export async function deleteAdminTransaction(transactionId: number) {
   await api.delete(`/api/admin/transactions/${transactionId}`);
 }
 
-export async function updateAdminAccount(accountId: number, payload: { balance?: number; status?: string }) {
+export async function updateAdminAccount(accountId: number, payload: {
+  account_number?: string;
+  account_type?: string;
+  balance?: number;
+  currency?: string;
+  status?: string;
+}) {
   const response = await api.patch<ApiAdminAccount>(`/api/admin/accounts/${accountId}`, payload);
   return response.data;
 }
 
+export async function deleteAdminAccount(accountId: number) {
+  await api.delete(`/api/admin/accounts/${accountId}`);
+}
+
 export async function getAdminCards() {
-  const response = await api.get<ApiCard[]>('/api/admin/cards');
+  const response = await api.get<Array<ApiCard & { user_id: number; user_name: string; account_type: string }>>('/api/admin/cards');
   return response.data;
 }
 
 export async function updateAdminCardFreeze(cardId: number, frozen: boolean) {
-  const response = await api.patch<ApiCard>(`/api/admin/cards/${cardId}/freeze`, null, {
+  const response = await api.patch<ApiCard & { user_id: number; user_name: string; account_type: string }>(`/api/admin/cards/${cardId}/freeze`, null, {
     params: { frozen },
   });
   return response.data;
 }
 
+export async function createAdminCard(payload: {
+  user_id: number;
+  account_id: number;
+  holder_name: string;
+  card_number: string;
+  expiry: string;
+  cvc: string;
+  network: string;
+  frozen: boolean;
+}) {
+  const response = await api.post<ApiCard & { user_id: number; user_name: string; account_type: string }>('/api/admin/cards', payload);
+  return response.data;
+}
+
 export async function updateAdminCard(cardId: number, payload: {
+  account_id?: number;
   holder_name?: string;
   card_number?: string;
   expiry?: string;
   cvc?: string;
+  network?: string;
+  frozen?: boolean;
 }) {
-  const response = await api.patch<ApiCard>(`/api/admin/cards/${cardId}`, payload);
+  const response = await api.patch<ApiCard & { user_id: number; user_name: string; account_type: string }>(`/api/admin/cards/${cardId}`, payload);
+  return response.data;
+}
+
+export async function deleteAdminCard(cardId: number) {
+  await api.delete(`/api/admin/cards/${cardId}`);
+}
+
+export async function getAdminInvestments() {
+  const response = await api.get<ApiAdminInvestment[]>('/api/admin/investments');
+  return response.data;
+}
+
+export async function createAdminInvestment(payload: {
+  user_id: number;
+  symbol: string;
+  name: string;
+  asset_class: string;
+  units: number;
+  average_cost: number;
+  current_price: number;
+  market_value: number;
+  cost_basis: number;
+  daily_change: number;
+  total_return: number;
+  allocation_percentage: number;
+  currency: string;
+}) {
+  const response = await api.post<ApiAdminInvestment>('/api/admin/investments', payload);
+  return response.data;
+}
+
+export async function updateAdminInvestment(investmentId: number, payload: Partial<Omit<ApiAdminInvestment, 'id' | 'user_name' | 'created_at'>>) {
+  const response = await api.patch<ApiAdminInvestment>(`/api/admin/investments/${investmentId}`, payload);
+  return response.data;
+}
+
+export async function deleteAdminInvestment(investmentId: number) {
+  await api.delete(`/api/admin/investments/${investmentId}`);
+}
+
+export async function getAdminDashboard() {
+  const response = await api.get<ApiAdminDashboard>('/api/admin/dashboard');
   return response.data;
 }
 

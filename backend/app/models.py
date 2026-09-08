@@ -42,6 +42,7 @@ class Account(Base):
     account_type = Column(String)  # checking, savings, etc.
     balance = Column(Float, default=0.0)
     currency = Column(String, default="USD")
+    status = Column(String, nullable=False, default="Active")
     created_at = Column(DateTime(timezone=True), server_default=func.now())
     
     user = orm_relationship("User", back_populates="accounts")
