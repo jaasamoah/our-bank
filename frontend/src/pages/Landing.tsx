@@ -1,420 +1,1427 @@
-import { useEffect, useRef, useState, type FormEvent, type ReactNode } from 'react';
-import { Link } from 'react-router-dom';
+import { FormEvent, MouseEvent, useEffect, useState } from "react";
+import { Link } from "react-router-dom";
 import {
-  ArrowLongRightIcon,
-  ArrowUpRightIcon,
-  BanknotesIcon,
+  ArrowRightIcon,
   Bars3Icon,
+  BuildingLibraryIcon,
   CheckCircleIcon,
+  ChevronRightIcon,
+  CreditCardIcon,
+  CurrencyDollarIcon,
+  DevicePhoneMobileIcon,
+  GlobeAltIcon,
   LockClosedIcon,
   ShieldCheckIcon,
   SparklesIcon,
   XMarkIcon,
-} from '@heroicons/react/24/outline';
-import Brand from '../components/Brand';
-import AccountCard from '../components/AccountCard';
-import PublicSupportWidget from '../components/PublicSupportWidget';
-import TransactionRow from '../components/TransactionRow';
-import { formatCurrency, mockAccounts, mockTransactions } from '../mock/data';
-import officeImage from '../assets/telos-office.jpg';
+} from "@heroicons/react/24/outline";
+
+import Brand from "../components/Brand";
+import PublicSupportWidget from "../components/PublicSupportWidget";
+import officeImage from "../assets/telos-office.jpg";
 
 type RevealProps = {
-  children: ReactNode;
+  children: React.ReactNode;
   className?: string;
-  delay?: number;
 };
 
-function Reveal({ children, className = '', delay = 0 }: RevealProps) {
-  const revealRef = useRef<HTMLDivElement>(null);
+function Reveal({ children, className = "" }: RevealProps) {
+  const [visible, setVisible] = useState(false);
 
   useEffect(() => {
-    const element = revealRef.current;
-    if (!element) return;
-    const observer = new IntersectionObserver(
-      ([entry]) => {
-        if (entry.isIntersecting) {
-          element.style.transitionDelay = `${delay}ms`;
-          element.classList.add('telos-visible');
-          observer.unobserve(element);
-        }
-      },
-      { threshold: 0.12 },
-    );
-    observer.observe(element);
-    return () => observer.disconnect();
-  }, [delay]);
+    const timer = window.setTimeout(() => setVisible(true), 100);
+    return () => window.clearTimeout(timer);
+  }, []);
 
   return (
-    <div ref={revealRef} className={`telos-reveal ${className}`}>
+    <div
+      className={`transition-all duration-700 ${
+        visible ? "translate-y-0 opacity-100" : "translate-y-4 opacity-0"
+      } ${className}`}
+    >
       {children}
     </div>
   );
 }
 
-const navItems = [
-  { label: 'Everyday', href: '#everyday' },
-  { label: 'Cards', href: '#cards' },
-  { label: 'Loans', href: '#loans' },
-  { label: 'About', href: '#about' },
+const productLinks = [
+  {
+    label: "Checking",
+    href: "#everyday",
+    icon: BuildingLibraryIcon,
+  },
+  {
+    label: "Savings",
+    href: "#savings",
+    icon: CurrencyDollarIcon,
+  },
+  {
+    label: "Cards",
+    href: "#cards",
+    icon: CreditCardIcon,
+  },
+  {
+    label: "Loans",
+    href: "#loans",
+    icon: CurrencyDollarIcon,
+  },
+  {
+    label: "Digital banking",
+    href: "#digital",
+    icon: DevicePhoneMobileIcon,
+  },
 ];
 
-function Landing() {
-  const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
-  const [signUpOpen, setSignUpOpen] = useState(false);
-  const [formSubmitted, setFormSubmitted] = useState(false);
+const accountBenefits = [
+  "No monthly maintenance fees",
+  "Simple transfers between your accounts",
+  "Secure access wherever you are",
+  "Clear transaction history and balances",
+];
+
+const securityBenefits = [
+  {
+    title: "Secure account access",
+    description:
+      "Modern safeguards help protect your account whenever you sign in or manage your money.",
+  },
+  {
+    title: "Transaction visibility",
+    description:
+      "Stay informed with a clear view of your account activity and recent transactions.",
+  },
+  {
+    title: "Support when you need it",
+    description:
+      "Get help through Telosbank support without losing track of what you were doing.",
+  },
+];
+
+export default function Landing() {
+  const [mobileOpen, setMobileOpen] = useState(false);
+  const [signupOpen, setSignupOpen] = useState(false);
+  const [submitted, setSubmitted] = useState(false);
 
   useEffect(() => {
-    const handleEscape = (event: KeyboardEvent) => {
-      if (event.key === 'Escape') {
-        setMobileMenuOpen(false);
-        setSignUpOpen(false);
+    if (!signupOpen) {
+      setSubmitted(false);
+    }
+  }, [signupOpen]);
+
+  useEffect(() => {
+    const onEscape = (event: KeyboardEvent) => {
+      if (event.key === "Escape") {
+        setSignupOpen(false);
+        setMobileOpen(false);
       }
     };
-    window.addEventListener('keydown', handleEscape);
-    return () => window.removeEventListener('keydown', handleEscape);
+
+    window.addEventListener("keydown", onEscape);
+    return () => window.removeEventListener("keydown", onEscape);
   }, []);
 
-  useEffect(() => {
-    document.body.style.overflow = signUpOpen ? 'hidden' : '';
-    return () => {
-      document.body.style.overflow = '';
-    };
-  }, [signUpOpen]);
+  const closeMobileMenu = () => setMobileOpen(false);
 
-  const handleSignUp = (event: FormEvent<HTMLFormElement>) => {
+  const handleSmoothScroll = (event: MouseEvent<HTMLAnchorElement>, href: string) => {
+    if (href.startsWith("#")) {
+      event.preventDefault();
+      const targetId = href.slice(1);
+      const element = document.getElementById(targetId);
+      if (element) {
+        element.scrollIntoView({ behavior: "smooth" });
+      }
+    }
+  };
+
+  const handleSignup = (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault();
-    setFormSubmitted(true);
+    setSubmitted(true);
   };
 
   return (
-    <div className="min-h-[100dvh] overflow-x-hidden bg-white text-slate-950">
-      <style>{`
-        html { scroll-behavior: smooth; }
-        .telos-reveal { opacity: 0; transform: translateY(22px); transition: opacity 650ms ease, transform 650ms ease; }
-        .telos-visible { opacity: 1; transform: translateY(0); }
-        .telos-grid { background-image: linear-gradient(rgba(30, 64, 175, .08) 1px, transparent 1px), linear-gradient(90deg, rgba(30, 64, 175, .08) 1px, transparent 1px); background-size: 42px 42px; }
-        .telos-pill { transition: transform 180ms ease, box-shadow 180ms ease, background-color 180ms ease; }
-        .telos-pill:hover { transform: translateY(-2px); }
-        @media (prefers-reduced-motion: reduce) {
-          html { scroll-behavior: auto; }
-          .telos-reveal { opacity: 1; transform: none; transition: none; }
-          .telos-pill { transition: none; }
-        }
-      `}</style>
-
-      <header className="fixed inset-x-0 top-0 z-40 px-3 pt-3 sm:px-6">
-        <div className="mx-auto flex max-w-6xl items-center justify-between rounded-2xl border border-blue-100/80 bg-white/90 px-4 py-3 shadow-lg shadow-blue-950/10 backdrop-blur-xl sm:px-6">
-          <a href="#top" aria-label="telosbank home" className="shrink-0">
-            <Brand className="text-2xl" />
-          </a>
-          <nav className="hidden items-center gap-7 lg:flex" aria-label="Main navigation">
-            {navItems.map((item) => (
-              <a key={item.href} href={item.href} className="text-sm font-medium text-slate-600 transition-colors hover:text-blue-700">
-                {item.label}
-              </a>
-            ))}
-            <a href="#contact" className="text-sm font-medium text-slate-600 transition-colors hover:text-blue-700">Contact</a>
-          </nav>
-          <div className="hidden items-center gap-2 lg:flex">
-            <Link to="/login" className="rounded-xl px-4 py-2.5 text-sm font-semibold text-slate-700 transition hover:bg-blue-50 hover:text-blue-700">Sign in</Link>
-            <button type="button" onClick={() => setSignUpOpen(true)} className="telos-pill rounded-xl bg-blue-700 px-4 py-2.5 text-sm font-semibold text-white shadow-md shadow-blue-700/20 hover:bg-blue-800">Sign up</button>
+    <div className="min-h-screen bg-white text-slate-950">
+      {/* =========================================================
+          UTILITY BAR
+      ========================================================== */}
+      <div className="hidden border-b border-slate-200 bg-slate-50 lg:block">
+        <div className="mx-auto flex max-w-[1440px] items-center justify-between px-8 py-2 text-[13px] text-slate-600 xl:px-12">
+          <div className="flex items-center gap-6">
+            <span className="font-semibold text-blue-800">Personal</span>
+            <a
+              href="#about"
+              onClick={(e) => handleSmoothScroll(e, "#about")}
+              className="transition-colors hover:text-blue-800"
+            >
+              About us
+            </a>
+            <a
+              href="#contact"
+              onClick={(e) => handleSmoothScroll(e, "#contact")}
+              className="transition-colors hover:text-blue-800"
+            >
+              Help &amp; support
+            </a>
+            <a
+              href="#security"
+              onClick={(e) => handleSmoothScroll(e, "#security")}
+              className="transition-colors hover:text-blue-800"
+            >
+              Security
+            </a>
           </div>
-          <button type="button" aria-label={mobileMenuOpen ? 'Close menu' : 'Open menu'} onClick={() => setMobileMenuOpen((open) => !open)} className="rounded-xl p-2 text-slate-700 hover:bg-blue-50 lg:hidden">
-            {mobileMenuOpen ? <XMarkIcon className="h-6 w-6" /> : <Bars3Icon className="h-6 w-6" />}
+
+          <div className="flex items-center gap-2">
+            <GlobeAltIcon className="h-4 w-4" />
+            <span>Banking made simple</span>
+          </div>
+        </div>
+      </div>
+
+      {/* =========================================================
+          HEADER
+      ========================================================== */}
+      <header className="sticky top-0 z-40 border-b border-slate-200 bg-white/95 backdrop-blur">
+        <div className="mx-auto flex h-[72px] max-w-[1440px] items-center justify-between px-5 sm:px-8 xl:px-12">
+          <a
+            href="#top"
+            onClick={(e) => handleSmoothScroll(e, "#top")}
+            aria-label="Telosbank home"
+            className="flex shrink-0 items-center"
+          >
+            <Brand />
+          </a>
+
+          <nav className="hidden items-center gap-1 lg:flex">
+            <a
+              href="#everyday"
+              onClick={(e) => handleSmoothScroll(e, "#everyday")}
+              className="px-4 py-6 text-sm font-semibold text-slate-700 transition hover:text-blue-800"
+            >
+              Everyday Banking
+            </a>
+
+            <a
+              href="#cards"
+              onClick={(e) => handleSmoothScroll(e, "#cards")}
+              className="px-4 py-6 text-sm font-semibold text-slate-700 transition hover:text-blue-800"
+            >
+              Cards
+            </a>
+
+            <a
+              href="#loans"
+              onClick={(e) => handleSmoothScroll(e, "#loans")}
+              className="px-4 py-6 text-sm font-semibold text-slate-700 transition hover:text-blue-800"
+            >
+              Loans
+            </a>
+
+            <a
+              href="#digital"
+              onClick={(e) => handleSmoothScroll(e, "#digital")}
+              className="px-4 py-6 text-sm font-semibold text-slate-700 transition hover:text-blue-800"
+            >
+              Digital Banking
+            </a>
+
+            <a
+              href="#about"
+              onClick={(e) => handleSmoothScroll(e, "#about")}
+              className="px-4 py-6 text-sm font-semibold text-slate-700 transition hover:text-blue-800"
+            >
+              Why Telosbank
+            </a>
+          </nav>
+
+          <div className="hidden items-center gap-3 lg:flex">
+            <Link
+              to="/login"
+              className="inline-flex h-10 items-center justify-center border border-blue-800 px-5 text-sm font-semibold text-blue-800 transition hover:bg-blue-50"
+            >
+              Sign in
+            </Link>
+
+            <button
+              type="button"
+              onClick={() => setSignupOpen(true)}
+              className="inline-flex h-10 items-center justify-center bg-blue-800 px-5 text-sm font-semibold text-white transition hover:bg-blue-900"
+            >
+              Open an account
+            </button>
+          </div>
+
+          <button
+            type="button"
+            onClick={() => setMobileOpen((current) => !current)}
+            className="inline-flex h-10 w-10 items-center justify-center text-slate-800 lg:hidden"
+            aria-label="Toggle menu"
+            aria-expanded={mobileOpen}
+          >
+            {mobileOpen ? (
+              <XMarkIcon className="h-6 w-6" />
+            ) : (
+              <Bars3Icon className="h-6 w-6" />
+            )}
           </button>
         </div>
-        {mobileMenuOpen && (
-          <div className="mx-auto mt-2 max-w-6xl rounded-2xl border border-blue-100 bg-white p-4 shadow-xl lg:hidden">
-            <nav className="flex flex-col" aria-label="Mobile navigation">
-              {navItems.map((item) => (
-                <a key={item.href} href={item.href} onClick={() => setMobileMenuOpen(false)} className="border-b border-blue-50 px-2 py-3 text-sm font-semibold text-slate-700 last:border-0">
-                  {item.label}
-                </a>
-              ))}
-              <a href="#contact" onClick={() => setMobileMenuOpen(false)} className="border-b border-blue-50 px-2 py-3 text-sm font-semibold text-slate-700">Contact</a>
-              <div className="mt-3 flex gap-2">
-                <Link to="/login" className="flex-1 rounded-xl border border-blue-100 px-4 py-3 text-center text-sm font-semibold text-slate-700">Sign in</Link>
-                <button type="button" onClick={() => { setMobileMenuOpen(false); setSignUpOpen(true); }} className="flex-1 rounded-xl bg-blue-700 px-4 py-3 text-sm font-semibold text-white">Sign up</button>
+
+        {mobileOpen && (
+          <div className="border-t border-slate-200 bg-white lg:hidden">
+            <div className="mx-auto max-w-[1440px] px-5 py-5 sm:px-8">
+              <nav className="grid">
+                {[
+                  ["Everyday Banking", "#everyday"],
+                  ["Cards", "#cards"],
+                  ["Loans", "#loans"],
+                  ["Digital Banking", "#digital"],
+                  ["Why Telosbank", "#about"],
+                  ["Help & Support", "#contact"],
+                ].map(([label, href]) => (
+                  <a
+                    key={href}
+                    href={href}
+                    onClick={(e) => {
+                      closeMobileMenu();
+                      handleSmoothScroll(e, href);
+                    }}
+                    className="border-b border-slate-100 py-4 text-sm font-semibold text-slate-800"
+                  >
+                    {label}
+                  </a>
+                ))}
+              </nav>
+
+              <div className="mt-6 grid grid-cols-2 gap-3">
+                <Link
+                  to="/login"
+                  onClick={closeMobileMenu}
+                  className="inline-flex h-11 items-center justify-center border border-blue-800 px-4 text-sm font-semibold text-blue-800"
+                >
+                  Sign in
+                </Link>
+
+                <button
+                  type="button"
+                  onClick={() => {
+                    closeMobileMenu();
+                    setSignupOpen(true);
+                  }}
+                  className="inline-flex h-11 items-center justify-center bg-blue-800 px-4 text-sm font-semibold text-white"
+                >
+                  Open account
+                </button>
               </div>
-            </nav>
+            </div>
           </div>
         )}
       </header>
 
-      <main id="top" className="pt-24">
-        <section className="relative overflow-hidden bg-blue-50">
-          <img
-            src={officeImage}
-            alt="Modern corporate office interior"
-            className="absolute inset-y-0 right-0 h-full w-full object-cover object-center opacity-20 lg:w-[63%] lg:opacity-35"
-          />
-          <div className="absolute inset-0 bg-gradient-to-r from-blue-50 via-blue-50/95 to-blue-50/35" />
-          <div className="telos-grid absolute inset-0 opacity-60" />
-          <div className="absolute -right-32 -top-28 h-96 w-96 rounded-full bg-blue-200/55 blur-3xl" />
-          <div className="absolute -bottom-48 left-1/3 h-96 w-96 rounded-full bg-white/90 blur-3xl" />
-          <div className="relative mx-auto grid max-w-6xl items-center gap-14 px-5 py-16 sm:px-8 lg:grid-cols-[.9fr_1.1fr] lg:px-10 lg:py-24">
-            <Reveal className="relative z-10">
-              <p className="flex items-center gap-2 text-xs font-bold uppercase tracking-[.2em] text-blue-700">
-                <span className="h-2 w-2 rounded-full bg-blue-600" /> Banking made clear
-              </p>
-              <h1 className="mt-6 max-w-xl text-5xl font-bold leading-[.98] tracking-[-.06em] text-slate-950 sm:text-7xl">
-                Your money, <span className="text-blue-700">in focus.</span>
-              </h1>
-              <p className="mt-6 max-w-lg text-lg leading-8 text-slate-600">
-                telosbank gives you a calmer way to manage everyday banking, cards, savings, and plans for what comes next.
-              </p>
-              <div className="mt-8 flex flex-col items-start gap-4 sm:flex-row sm:items-center">
-                <button type="button" onClick={() => setSignUpOpen(true)} className="telos-pill group flex items-center gap-3 rounded-xl bg-blue-700 px-5 py-3.5 text-sm font-semibold text-white shadow-xl shadow-blue-700/20 hover:bg-blue-800">
-                  Start with telosbank
-                  <ArrowUpRightIcon className="h-4 w-4 transition-transform group-hover:translate-x-0.5 group-hover:-translate-y-0.5" />
-                </button>
-                <a href="#everyday" className="flex items-center gap-2 text-sm font-semibold text-blue-700 hover:text-blue-900">
-                  See the app <ArrowLongRightIcon className="h-4 w-4" />
-                </a>
-              </div>
-              <div className="mt-10 flex flex-wrap gap-x-6 gap-y-3 text-xs font-medium text-slate-600">
-                <span className="flex items-center gap-2"><ShieldCheckIcon className="h-4 w-4 text-blue-700" /> Built for privacy</span>
-                <span className="flex items-center gap-2"><CheckCircleIcon className="h-4 w-4 text-blue-700" /> Human support</span>
-              </div>
-            </Reveal>
+      <main id="top">
+        {/* =======================================================
+            HERO
+        ======================================================== */}
+        <section className="overflow-hidden bg-[#f4f7fb]">
+          <div className="mx-auto grid max-w-[1440px] lg:min-h-[620px] lg:grid-cols-[1.02fr_.98fr]">
+            <div className="flex items-center px-5 py-16 sm:px-8 sm:py-20 lg:px-12 lg:py-24 xl:px-20">
+              <Reveal className="max-w-2xl">
+                <p className="mb-5 text-sm font-bold uppercase tracking-[0.18em] text-blue-800">
+                  Banking for the way you live
+                </p>
 
-            <Reveal delay={100} className="relative">
-              <div className="absolute -right-4 -top-5 h-32 w-32 rounded-full bg-blue-200/80 blur-2xl" />
-              <div className="relative rounded-3xl border border-white/80 bg-white/80 p-4 shadow-2xl shadow-blue-950/15 backdrop-blur sm:p-6">
-                <div className="flex items-center justify-between border-b border-blue-50 pb-4">
+                <h1 className="max-w-[720px] text-[44px] font-semibold leading-[1.03] tracking-[-0.035em] text-slate-950 sm:text-5xl lg:text-[64px]">
+                  Your money should help you move forward.
+                </h1>
+
+                <p className="mt-7 max-w-xl text-lg leading-8 text-slate-600">
+                  Save, spend, transfer and manage your everyday finances
+                  through a banking experience built to keep things clear,
+                  accessible and secure.
+                </p>
+
+                <div className="mt-9 flex flex-col gap-3 sm:flex-row">
+                  <button
+                    type="button"
+                    onClick={() => setSignupOpen(true)}
+                    className="inline-flex min-h-12 items-center justify-center gap-2 bg-blue-800 px-7 text-sm font-bold text-white transition hover:bg-blue-900"
+                  >
+                    Open an account
+                    <ArrowRightIcon className="h-4 w-4" />
+                  </button>
+
+                  <a
+                    href="#everyday"
+                    onClick={(e) => handleSmoothScroll(e, "#everyday")}
+                    className="inline-flex min-h-12 items-center justify-center gap-2 border border-slate-400 bg-white px-7 text-sm font-bold text-slate-900 transition hover:border-slate-900"
+                  >
+                    Explore banking
+                    <ChevronRightIcon className="h-4 w-4" />
+                  </a>
+                </div>
+
+                <div className="mt-10 flex flex-wrap gap-x-8 gap-y-3 border-t border-slate-300 pt-6 text-sm text-slate-600">
+                  <span className="flex items-center gap-2">
+                    <CheckCircleIcon className="h-5 w-5 text-blue-800" />
+                    Simple account access
+                  </span>
+
+                  <span className="flex items-center gap-2">
+                    <CheckCircleIcon className="h-5 w-5 text-blue-800" />
+                    Secure digital banking
+                  </span>
+                </div>
+              </Reveal>
+            </div>
+
+            <div className="relative min-h-[450px] lg:min-h-full">
+              <img
+                src={officeImage}
+                alt="Telosbank banking experience"
+                className="absolute inset-0 h-full w-full object-cover"
+              />
+
+              <div className="absolute inset-0 bg-gradient-to-t from-slate-950/45 via-transparent to-transparent" />
+
+              {/* Banking UI card */}
+              <div className="absolute bottom-6 left-5 right-5 bg-white p-6 shadow-2xl sm:bottom-10 sm:left-10 sm:right-auto sm:w-[390px] lg:bottom-12 lg:left-12">
+                <div className="flex items-start justify-between">
                   <div>
-                    <p className="text-xs font-semibold uppercase tracking-[.16em] text-blue-700">Inside telosbank</p>
-                    <p className="mt-1 text-sm font-medium text-slate-500">The same account view customers use</p>
+                    <p className="text-xs font-bold uppercase tracking-[0.15em] text-slate-500">
+                      Telosbank
+                    </p>
+                    <p className="mt-1 text-sm font-semibold text-slate-800">
+                      Everyday account
+                    </p>
                   </div>
-                  <span className="flex h-9 w-9 items-center justify-center rounded-xl bg-blue-700 text-white"><SparklesIcon className="h-5 w-5" /></span>
-                </div>
-                <div className="mt-5 grid gap-3 sm:grid-cols-2">
-                  {mockAccounts.slice(0, 2).map((account) => <AccountCard key={account.id} account={account} />)}
-                </div>
-                <div className="mt-4 rounded-2xl border border-slate-100 bg-white px-4">
-                  <div className="flex items-center justify-between border-b border-slate-100 py-3">
-                    <p className="text-sm font-bold text-slate-900">Recent activity</p>
-                    <span className="text-xs font-semibold text-blue-700">View all</span>
+
+                  <div className="flex h-10 w-10 items-center justify-center bg-blue-50">
+                    <BuildingLibraryIcon className="h-5 w-5 text-blue-800" />
                   </div>
-                  {mockTransactions.slice(0, 3).map((transaction) => (
-                    <TransactionRow key={transaction.id} txn={transaction} />
-                  ))}
+                </div>
+
+                <div className="mt-7">
+                  <p className="text-sm text-slate-500">Available balance</p>
+                  <p className="mt-1 text-3xl font-semibold tracking-tight text-slate-950">
+                    $8,420.50
+                  </p>
+                </div>
+
+                <div className="mt-6 grid grid-cols-3 border-t border-slate-200 pt-5 text-center">
+                  <div>
+                    <p className="text-xs text-slate-500">Transfer</p>
+                  </div>
+                  <div className="border-x border-slate-200">
+                    <p className="text-xs text-slate-500">Pay</p>
+                  </div>
+                  <div>
+                    <p className="text-xs text-slate-500">History</p>
+                  </div>
                 </div>
               </div>
-            </Reveal>
-            <a
-              href="https://unsplash.com/"
-              target="_blank"
-              rel="noreferrer"
-              className="absolute bottom-4 right-5 z-10 text-[10px] font-medium text-slate-500/80 underline decoration-slate-400/60 underline-offset-2 hover:text-blue-700"
-            >
-              Real office photo via Unsplash
-            </a>
+            </div>
           </div>
         </section>
 
-        <section id="everyday" className="scroll-mt-24 border-b border-blue-100 bg-white">
-          <div className="mx-auto max-w-6xl px-5 py-20 sm:px-8 lg:px-10 lg:py-28">
-            <Reveal className="grid gap-12 lg:grid-cols-[.8fr_1.2fr] lg:items-center">
-              <div>
-                <p className="text-xs font-bold uppercase tracking-[.2em] text-blue-700">Everyday banking</p>
-                <h2 className="mt-5 max-w-lg text-4xl font-bold leading-tight tracking-[-.05em] text-slate-950 sm:text-5xl">The details are easier to see.</h2>
-                <p className="mt-5 max-w-md text-base leading-7 text-slate-600">
-                  Check balances, understand spending, and move through your day without hunting for the information you need.
-                </p>
-                <div className="mt-8 space-y-3">
-                  {['Clear balances at a glance', 'Transactions with useful context', 'A support team that listens'].map((item) => (
-                    <div key={item} className="flex items-center gap-3 text-sm font-semibold text-slate-700">
-                      <CheckCircleIcon className="h-5 w-5 text-blue-700" /> {item}
-                    </div>
-                  ))}
-                </div>
-              </div>
-              <div className="rounded-3xl bg-blue-50 p-4 sm:p-6">
-                <div className="grid gap-4 sm:grid-cols-2">
-                  {mockAccounts.map((account) => <AccountCard key={account.id} account={account} />)}
-                </div>
-                <div className="mt-4 grid gap-4 rounded-2xl bg-white p-5 sm:grid-cols-[1fr_.8fr]">
+        {/* =======================================================
+            QUICK PRODUCT NAVIGATION
+        ======================================================== */}
+        <section className="border-y border-slate-200 bg-white">
+          <div className="mx-auto max-w-[1280px] px-5 sm:px-8">
+            <div className="grid grid-cols-2 md:grid-cols-5">
+              {productLinks.map(({ label, href, icon: Icon }, index) => (
+                <a
+                  key={label}
+                  href={href}
+                  onClick={(e) => handleSmoothScroll(e, href)}
+                  className={`group flex min-h-[118px] items-center justify-between gap-4 px-4 py-6 transition hover:bg-slate-50 md:px-6 ${
+                    index !== productLinks.length - 1
+                      ? "md:border-r md:border-slate-200"
+                      : ""
+                  }`}
+                >
                   <div>
-                    <p className="text-sm font-bold text-slate-900">Spending overview</p>
-                    <div className="mt-5 space-y-3">
+                    <Icon className="mb-3 h-6 w-6 text-blue-800" />
+                    <span className="text-sm font-bold text-slate-900">
+                      {label}
+                    </span>
+                  </div>
+
+                  <ChevronRightIcon className="h-4 w-4 text-slate-400 transition group-hover:translate-x-1 group-hover:text-blue-800" />
+                </a>
+              ))}
+            </div>
+          </div>
+        </section>
+
+        {/* =======================================================
+            EVERYDAY BANKING
+        ======================================================== */}
+        <section
+          id="everyday"
+          className="scroll-mt-28 bg-white px-5 py-20 sm:px-8 lg:py-28"
+        >
+          <div className="mx-auto max-w-[1240px]">
+            <Reveal>
+              <div className="max-w-3xl">
+                <p className="text-sm font-bold uppercase tracking-[0.17em] text-blue-800">
+                  Everyday banking
+                </p>
+
+                <h2 className="mt-4 text-4xl font-semibold tracking-[-0.03em] text-slate-950 sm:text-5xl">
+                  The essentials, without the unnecessary complexity.
+                </h2>
+
+                <p className="mt-5 max-w-2xl text-lg leading-8 text-slate-600">
+                  A straightforward place for your everyday money, with the
+                  tools you need to stay on top of spending and move funds when
+                  you need to.
+                </p>
+              </div>
+            </Reveal>
+
+            <div className="mt-14 grid border-y border-slate-200 lg:grid-cols-3">
+              <article className="py-9 lg:pr-10">
+                <span className="text-sm font-bold text-blue-800">01</span>
+
+                <h3 className="mt-5 text-2xl font-semibold text-slate-950">
+                  Everyday Account
+                </h3>
+
+                <p className="mt-4 leading-7 text-slate-600">
+                  Make deposits, payments and transfers while keeping your
+                  everyday finances organized in one place.
+                </p>
+
+                <a
+                  href="#digital"
+                  onClick={(e) => handleSmoothScroll(e, "#digital")}
+                  className="mt-7 inline-flex items-center gap-2 text-sm font-bold text-blue-800"
+                >
+                  Explore the account
+                  <ArrowRightIcon className="h-4 w-4" />
+                </a>
+              </article>
+
+              <article className="border-t border-slate-200 py-9 lg:border-l lg:border-t-0 lg:px-10">
+                <span className="text-sm font-bold text-blue-800">02</span>
+
+                <h3 className="mt-5 text-2xl font-semibold text-slate-950">
+                  Savings
+                </h3>
+
+                <p className="mt-4 leading-7 text-slate-600">
+                  Separate the money you want to keep from the money you use
+                  every day and build toward your next goal.
+                </p>
+
+                <a
+                  href="#savings"
+                  onClick={(e) => handleSmoothScroll(e, "#savings")}
+                  className="mt-7 inline-flex items-center gap-2 text-sm font-bold text-blue-800"
+                >
+                  Start saving
+                  <ArrowRightIcon className="h-4 w-4" />
+                </a>
+              </article>
+
+              <article className="border-t border-slate-200 py-9 lg:border-l lg:border-t-0 lg:pl-10">
+                <span className="text-sm font-bold text-blue-800">03</span>
+
+                <h3 className="mt-5 text-2xl font-semibold text-slate-950">
+                  Money transfers
+                </h3>
+
+                <p className="mt-4 leading-7 text-slate-600">
+                  Move money with an experience designed to make your balances
+                  and recent activity easy to understand.
+                </p>
+
+                <Link
+                  to="/login"
+                  className="mt-7 inline-flex items-center gap-2 text-sm font-bold text-blue-800"
+                >
+                  Sign in to transfer
+                  <ArrowRightIcon className="h-4 w-4" />
+                </Link>
+              </article>
+            </div>
+          </div>
+        </section>
+
+        {/* =======================================================
+            SAVINGS / FEATURED ACCOUNT
+        ======================================================== */}
+        <section
+          id="savings"
+          className="scroll-mt-28 bg-[#eef4fa] px-5 py-20 sm:px-8 lg:py-28"
+        >
+          <div className="mx-auto grid max-w-[1240px] items-center gap-14 lg:grid-cols-2 lg:gap-20">
+            <Reveal>
+              <div className="max-w-xl">
+                <p className="text-sm font-bold uppercase tracking-[0.17em] text-blue-800">
+                  Save with purpose
+                </p>
+
+                <h2 className="mt-4 text-4xl font-semibold tracking-[-0.03em] text-slate-950 sm:text-5xl">
+                  Give tomorrow&apos;s money a place of its own.
+                </h2>
+
+                <p className="mt-6 text-lg leading-8 text-slate-600">
+                  Build a savings habit without losing sight of your everyday
+                  finances. Keep your goals separate while managing everything
+                  through Telosbank.
+                </p>
+
+                <ul className="mt-8 space-y-4">
+                  {accountBenefits.map((benefit) => (
+                    <li
+                      key={benefit}
+                      className="flex items-start gap-3 text-slate-700"
+                    >
+                      <CheckCircleIcon className="mt-0.5 h-5 w-5 shrink-0 text-blue-800" />
+                      <span>{benefit}</span>
+                    </li>
+                  ))}
+                </ul>
+
+                <button
+                  type="button"
+                  onClick={() => setSignupOpen(true)}
+                  className="mt-9 inline-flex items-center gap-2 bg-blue-800 px-6 py-3.5 text-sm font-bold text-white transition hover:bg-blue-900"
+                >
+                  Open an account
+                  <ArrowRightIcon className="h-4 w-4" />
+                </button>
+              </div>
+            </Reveal>
+
+            <Reveal>
+              <div className="bg-white shadow-[0_25px_80px_rgba(15,23,42,0.12)]">
+                <div className="border-b border-slate-200 px-7 py-5">
+                  <div className="flex items-center justify-between">
+                    <div>
+                      <p className="text-xs font-semibold uppercase tracking-[0.14em] text-slate-500">
+                        My accounts
+                      </p>
+                      <p className="mt-1 font-semibold text-slate-950">
+                        Good evening
+                      </p>
+                    </div>
+
+                    <div className="flex h-10 w-10 items-center justify-center bg-blue-800 text-sm font-bold text-white">
+                      T
+                    </div>
+                  </div>
+                </div>
+
+                <div className="p-7">
+                  <div className="border border-slate-200 p-6">
+                    <div className="flex items-start justify-between">
+                      <div>
+                        <p className="font-semibold text-slate-900">
+                          Everyday Account
+                        </p>
+                        <p className="mt-1 text-sm text-slate-500">
+                          •••• 4821
+                        </p>
+                      </div>
+
+                      <span className="bg-green-50 px-3 py-1 text-xs font-semibold text-green-700">
+                        Active
+                      </span>
+                    </div>
+
+                    <div className="mt-8">
+                      <p className="text-sm text-slate-500">Current balance</p>
+                      <p className="mt-1 text-3xl font-semibold text-slate-950">
+                        $8,420.50
+                      </p>
+                    </div>
+                  </div>
+
+                  <div className="mt-7">
+                    <div className="flex items-center justify-between">
+                      <h3 className="font-semibold text-slate-950">
+                        Recent activity
+                      </h3>
+
+                      <span className="text-xs font-semibold text-blue-800">
+                        View all
+                      </span>
+                    </div>
+
+                    <div className="mt-4 divide-y divide-slate-100">
                       {[
-                        ['Housing', 72, 'bg-blue-700'],
-                        ['Groceries', 42, 'bg-blue-500'],
-                        ['Transport', 28, 'bg-blue-300'],
-                      ].map(([label, width, color]) => (
-                        <div key={label as string}>
-                          <div className="mb-1 flex justify-between text-xs font-medium text-slate-500"><span>{label}</span><span>{width}%</span></div>
-                          <div className="h-2 overflow-hidden rounded-full bg-blue-50"><div className={`h-full rounded-full ${color}`} style={{ width: `${width}%` }} /></div>
+                        ["Transfer received", "Today", "+ $1,250.00"],
+                        ["Online purchase", "Yesterday", "- $184.50"],
+                        ["Mobile transfer", "Sep 04", "- $320.00"],
+                      ].map(([title, date, amount]) => (
+                        <div
+                          key={`${title}-${date}`}
+                          className="flex items-center justify-between py-4"
+                        >
+                          <div className="flex items-center gap-3">
+                            <div className="flex h-9 w-9 items-center justify-center bg-slate-100">
+                              <CurrencyDollarIcon className="h-4 w-4 text-slate-700" />
+                            </div>
+
+                            <div>
+                              <p className="text-sm font-semibold text-slate-900">
+                                {title}
+                              </p>
+                              <p className="mt-0.5 text-xs text-slate-500">
+                                {date}
+                              </p>
+                            </div>
+                          </div>
+
+                          <span className="text-sm font-semibold text-slate-800">
+                            {amount}
+                          </span>
                         </div>
                       ))}
                     </div>
                   </div>
-                  <div className="rounded-2xl bg-blue-700 p-5 text-white">
-                    <LockClosedIcon className="h-6 w-6 text-blue-200" />
-                    <p className="mt-10 text-sm font-bold">Your money stays yours.</p>
-                    <p className="mt-2 text-xs leading-5 text-blue-100">Simple controls and clear activity help you stay in charge.</p>
-                  </div>
                 </div>
               </div>
             </Reveal>
           </div>
         </section>
 
-        <section id="cards" className="scroll-mt-24 bg-blue-700 text-white">
-          <div className="mx-auto grid max-w-6xl gap-12 px-5 py-20 sm:px-8 lg:grid-cols-[1fr_.9fr] lg:items-center lg:px-10 lg:py-28">
+        {/* =======================================================
+            CARDS
+        ======================================================== */}
+        <section
+          id="cards"
+          className="scroll-mt-28 bg-white px-5 py-20 sm:px-8 lg:py-28"
+        >
+          <div className="mx-auto grid max-w-[1240px] gap-14 lg:grid-cols-[.92fr_1.08fr] lg:items-center lg:gap-24">
             <Reveal>
-              <p className="text-xs font-bold uppercase tracking-[.2em] text-blue-200">Cards that work with you</p>
-              <h2 className="mt-5 max-w-xl text-4xl font-bold leading-tight tracking-[-.05em] sm:text-5xl">Control your card without calling around.</h2>
-              <p className="mt-5 max-w-lg text-base leading-7 text-blue-100">
-                Freeze a card, review the full number, and stay close to every purchase from the telosbank dashboard.
-              </p>
-              <button type="button" onClick={() => setSignUpOpen(true)} className="mt-8 flex items-center gap-2 text-sm font-semibold text-white hover:text-blue-200">
-                Get started with telosbank <ArrowLongRightIcon className="h-4 w-4" />
-              </button>
-            </Reveal>
-            <Reveal delay={100} className="relative min-h-[280px]">
-              <div className="absolute left-8 right-0 top-12 h-52 rotate-6 rounded-3xl bg-blue-300 shadow-2xl shadow-blue-950/30" />
-              <div className="absolute inset-x-0 top-0 z-10 h-52 -rotate-6 rounded-3xl bg-white p-6 text-slate-950 shadow-2xl shadow-blue-950/30">
-                <div className="flex items-start justify-between">
-                  <Brand className="text-2xl" />
-                  <span className="text-xs font-bold uppercase tracking-[.18em] text-blue-700">debit</span>
-                </div>
-                <div className="mt-10 h-8 w-12 rounded-md border border-blue-200 bg-blue-50" />
-                <div className="mt-7 flex items-end justify-between text-xs font-bold tracking-[.18em]">
-                  <span>JORDAN ELLIS</span><span>•• 4821</span>
-                </div>
-              </div>
-              <div className="absolute bottom-0 left-5 z-20 rounded-2xl border border-blue-500 bg-blue-800 px-4 py-3 text-xs font-semibold text-white">
-                Freeze or unfreeze in one tap
-              </div>
-            </Reveal>
-          </div>
-        </section>
-
-        <section id="loans" className="scroll-mt-24 border-b border-blue-100 bg-white">
-          <div className="mx-auto max-w-6xl px-5 py-20 sm:px-8 lg:px-10 lg:py-28">
-            <Reveal className="grid gap-10 lg:grid-cols-[.85fr_1.15fr] lg:items-center">
               <div>
-                <p className="text-xs font-bold uppercase tracking-[.2em] text-blue-700">Loans</p>
-                <h2 className="mt-5 text-4xl font-bold leading-tight tracking-[-.05em] text-slate-950 sm:text-5xl">Plans you can understand.</h2>
-                <p className="mt-5 max-w-md text-base leading-7 text-slate-600">
-                  See the amount, rate, remaining balance, and status together so your next decision feels informed.
+                <p className="text-sm font-bold uppercase tracking-[0.17em] text-blue-800">
+                  Telosbank cards
                 </p>
-                <button type="button" onClick={() => setSignUpOpen(true)} className="mt-8 rounded-xl bg-blue-700 px-5 py-3 text-sm font-semibold text-white shadow-lg shadow-blue-700/15 hover:bg-blue-800">Ask about a loan</button>
-              </div>
-              <div className="rounded-3xl border border-blue-100 bg-blue-50 p-5 sm:p-7">
-                <div className="flex items-start justify-between">
-                  <div>
-                    <p className="text-xs font-bold uppercase tracking-[.16em] text-blue-700">Personal loan</p>
-                    <p className="mt-2 text-3xl font-bold tracking-[-.05em] text-slate-950">{formatCurrency(12500)}</p>
+
+                <h2 className="mt-4 text-4xl font-semibold tracking-[-0.03em] text-slate-950 sm:text-5xl">
+                  One card. Everyday control.
+                </h2>
+
+                <p className="mt-6 max-w-xl text-lg leading-8 text-slate-600">
+                  Pay for the things that matter while keeping your account
+                  activity close at hand through Telosbank digital banking.
+                </p>
+
+                <div className="mt-9 grid gap-6 sm:grid-cols-2">
+                  <div className="border-t-2 border-blue-800 pt-5">
+                    <p className="font-semibold text-slate-950">
+                      Connected to your account
+                    </p>
+                    <p className="mt-2 text-sm leading-6 text-slate-600">
+                      See card spending alongside the rest of your account
+                      activity.
+                    </p>
                   </div>
-                  <span className="rounded-full bg-white px-3 py-1.5 text-xs font-bold text-blue-700">In review</span>
+
+                  <div className="border-t-2 border-blue-800 pt-5">
+                    <p className="font-semibold text-slate-950">
+                      Built for daily use
+                    </p>
+                    <p className="mt-2 text-sm leading-6 text-slate-600">
+                      A straightforward way to access your everyday funds.
+                    </p>
+                  </div>
                 </div>
-                <div className="mt-8 grid gap-4 border-t border-blue-100 pt-5 sm:grid-cols-3">
-                  <div><p className="text-xs text-slate-500">Outstanding</p><p className="mt-1 font-bold text-slate-900">{formatCurrency(9800)}</p></div>
-                  <div><p className="text-xs text-slate-500">Rate</p><p className="mt-1 font-bold text-slate-900">6.9%</p></div>
-                  <div><p className="text-xs text-slate-500">Term</p><p className="mt-1 font-bold text-slate-900">48 months</p></div>
+
+                <button
+                  type="button"
+                  onClick={() => setSignupOpen(true)}
+                  className="mt-10 inline-flex items-center gap-2 text-sm font-bold text-blue-800"
+                >
+                  Get started
+                  <ArrowRightIcon className="h-4 w-4" />
+                </button>
+              </div>
+            </Reveal>
+
+            <Reveal>
+              <div className="relative flex min-h-[460px] items-center justify-center overflow-hidden bg-slate-950 px-6 py-16 sm:px-12">
+                <div className="absolute -right-24 -top-24 h-72 w-72 rounded-full border border-white/10" />
+                <div className="absolute -bottom-32 -left-28 h-80 w-80 rounded-full border border-white/10" />
+
+                <div className="relative aspect-[1.58/1] w-full max-w-[510px] overflow-hidden rounded-[22px] border border-white/20 bg-gradient-to-br from-blue-700 via-blue-800 to-slate-950 p-7 text-white shadow-2xl sm:p-9">
+                  <div className="flex items-start justify-between">
+                    <div className="text-xl font-bold tracking-tight">
+                      telosbank
+                    </div>
+                    <CreditCardIcon className="h-8 w-8 text-white/85" />
+                  </div>
+
+                  <div className="mt-16 sm:mt-20">
+                    <div className="h-8 w-11 rounded-md bg-amber-200/90" />
+
+                    <p className="mt-7 text-lg tracking-[0.2em] text-white/90 sm:text-xl">
+                      •••• •••• •••• 4821
+                    </p>
+                  </div>
+
+                  <div className="absolute bottom-7 left-7 right-7 flex items-end justify-between sm:bottom-9 sm:left-9 sm:right-9">
+                    <div>
+                      <p className="text-[10px] uppercase tracking-[0.15em] text-white/60">
+                        Cardholder
+                      </p>
+                      <p className="mt-1 text-sm font-semibold">TELOSBANK</p>
+                    </div>
+
+                    <span className="text-lg font-bold italic">VISA</span>
+                  </div>
                 </div>
-                <div className="mt-6 h-2 overflow-hidden rounded-full bg-white"><div className="h-full w-[22%] rounded-full bg-blue-700" /></div>
-                <p className="mt-2 text-xs text-slate-500">A clear view of where you are today</p>
               </div>
             </Reveal>
           </div>
         </section>
 
-        <section id="about" className="scroll-mt-24 bg-slate-50">
-          <div className="mx-auto max-w-6xl px-5 py-20 sm:px-8 lg:px-10 lg:py-28">
-            <Reveal className="grid gap-12 lg:grid-cols-[.8fr_1.2fr] lg:items-start">
-              <div>
-                <p className="text-xs font-bold uppercase tracking-[.2em] text-blue-700">About telosbank</p>
-                <h2 className="mt-5 text-4xl font-bold leading-tight tracking-[-.05em] text-slate-950 sm:text-5xl">A bank that helps you see the next step.</h2>
+        {/* =======================================================
+            LOANS
+        ======================================================== */}
+        <section
+          id="loans"
+          className="scroll-mt-28 border-y border-slate-200 bg-slate-50 px-5 py-20 sm:px-8 lg:py-28"
+        >
+          <div className="mx-auto max-w-[1240px]">
+            <Reveal>
+              <div className="grid gap-10 lg:grid-cols-[.82fr_1.18fr] lg:gap-20">
+                <div>
+                  <p className="text-sm font-bold uppercase tracking-[0.17em] text-blue-800">
+                    Borrowing
+                  </p>
+
+                  <h2 className="mt-4 text-4xl font-semibold tracking-[-0.03em] text-slate-950 sm:text-5xl">
+                    Support for the plans that need more room.
+                  </h2>
+                </div>
+
+                <div className="lg:pt-8">
+                  <p className="max-w-2xl text-lg leading-8 text-slate-600">
+                    When your next step requires more than what is sitting in
+                    your account today, Telosbank lending options can help you
+                    understand a clearer path forward.
+                  </p>
+                </div>
               </div>
-              <div className="grid gap-4 sm:grid-cols-2">
-                <div className="rounded-3xl bg-blue-700 p-6 text-white sm:row-span-2">
-                  <ShieldCheckIcon className="h-7 w-7 text-blue-200" />
-                  <p className="mt-16 text-2xl font-bold tracking-[-.04em]">Clear by default.</p>
-                  <p className="mt-4 text-sm leading-6 text-blue-100">telosbank brings the important details forward, without making you dig through a maze of screens.</p>
+            </Reveal>
+
+            <div className="mt-14 grid border border-slate-200 bg-white md:grid-cols-3">
+              {[
+                {
+                  number: "01",
+                  title: "Personal loans",
+                  text: "Flexible borrowing for planned expenses and important personal needs.",
+                },
+                {
+                  number: "02",
+                  title: "Simple repayment",
+                  text: "Keep the details clear so you can understand what you owe and when.",
+                },
+                {
+                  number: "03",
+                  title: "Digital access",
+                  text: "See your finances in the same secure Telosbank experience you already use.",
+                },
+              ].map((item, index) => (
+                <article
+                  key={item.title}
+                  className={`p-8 sm:p-10 ${
+                    index !== 2 ? "border-b border-slate-200 md:border-b-0 md:border-r" : ""
+                  }`}
+                >
+                  <span className="text-xs font-bold tracking-[0.15em] text-blue-800">
+                    {item.number}
+                  </span>
+
+                  <h3 className="mt-7 text-2xl font-semibold text-slate-950">
+                    {item.title}
+                  </h3>
+
+                  <p className="mt-4 leading-7 text-slate-600">{item.text}</p>
+
+                  <a
+                    href="#contact"
+                    onClick={(e) => handleSmoothScroll(e, "#contact")}
+                    className="mt-8 inline-flex items-center gap-2 text-sm font-bold text-blue-800"
+                  >
+                    Learn more
+                    <ChevronRightIcon className="h-4 w-4" />
+                  </a>
+                </article>
+              ))}
+            </div>
+          </div>
+        </section>
+
+        {/* =======================================================
+            DIGITAL BANKING
+        ======================================================== */}
+        <section
+          id="digital"
+          className="scroll-mt-28 bg-white px-5 py-20 sm:px-8 lg:py-28"
+        >
+          <div className="mx-auto grid max-w-[1240px] items-center gap-16 lg:grid-cols-2 lg:gap-24">
+            <Reveal>
+              <div className="relative mx-auto max-w-[540px] bg-[#eaf1f8] p-7 sm:p-12">
+                <div className="mx-auto max-w-[390px] overflow-hidden bg-white shadow-[0_24px_70px_rgba(15,23,42,0.15)]">
+                  <div className="bg-blue-800 p-7 text-white">
+                    <div className="flex items-center justify-between">
+                      <div>
+                        <p className="text-sm text-blue-100">Total balance</p>
+                        <p className="mt-1 text-3xl font-semibold">
+                          $12,765.20
+                        </p>
+                      </div>
+
+                      <ShieldCheckIcon className="h-7 w-7" />
+                    </div>
+                  </div>
+
+                  <div className="p-6">
+                    <p className="text-sm font-semibold text-slate-900">
+                      Quick actions
+                    </p>
+
+                    <div className="mt-5 grid grid-cols-3 gap-3">
+                      {["Send", "Pay", "Save"].map((label) => (
+                        <div
+                          key={label}
+                          className="border border-slate-200 px-3 py-4 text-center text-xs font-semibold text-slate-700"
+                        >
+                          {label}
+                        </div>
+                      ))}
+                    </div>
+
+                    <div className="mt-7">
+                      <p className="text-sm font-semibold text-slate-900">
+                        Your accounts
+                      </p>
+
+                      <div className="mt-4 space-y-3">
+                        <div className="flex items-center justify-between border border-slate-200 p-4">
+                          <div>
+                            <p className="text-sm font-semibold">
+                              Everyday Account
+                            </p>
+                            <p className="mt-1 text-xs text-slate-500">
+                              •••• 4821
+                            </p>
+                          </div>
+
+                          <p className="text-sm font-bold">$8,420.50</p>
+                        </div>
+
+                        <div className="flex items-center justify-between border border-slate-200 p-4">
+                          <div>
+                            <p className="text-sm font-semibold">Savings</p>
+                            <p className="mt-1 text-xs text-slate-500">
+                              •••• 1964
+                            </p>
+                          </div>
+
+                          <p className="text-sm font-bold">$4,344.70</p>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
                 </div>
-                <div className="rounded-3xl bg-white p-6 shadow-sm">
-                  <CheckCircleIcon className="h-6 w-6 text-blue-700" />
-                  <p className="mt-8 font-bold text-slate-900">Useful tools</p>
-                  <p className="mt-2 text-sm leading-6 text-slate-600">Accounts, cards, transfers, investments, and loans in one place.</p>
+              </div>
+            </Reveal>
+
+            <Reveal>
+              <div className="max-w-xl">
+                <p className="text-sm font-bold uppercase tracking-[0.17em] text-blue-800">
+                  Digital banking
+                </p>
+
+                <h2 className="mt-4 text-4xl font-semibold tracking-[-0.03em] text-slate-950 sm:text-5xl">
+                  Your bank should be useful before you ever visit a branch.
+                </h2>
+
+                <p className="mt-6 text-lg leading-8 text-slate-600">
+                  Telosbank brings balances, transactions and everyday money
+                  management together so you can take care of routine banking
+                  from wherever you are.
+                </p>
+
+                <div className="mt-9 space-y-6">
+                  {[
+                    [
+                      "See what you have",
+                      "View account balances in a simple, focused dashboard.",
+                    ],
+                    [
+                      "Know where it went",
+                      "Review your transaction activity without unnecessary clutter.",
+                    ],
+                    [
+                      "Move money",
+                      "Access the everyday actions you use most from one place.",
+                    ],
+                  ].map(([title, text]) => (
+                    <div key={title} className="flex gap-4">
+                      <CheckCircleIcon className="mt-1 h-5 w-5 shrink-0 text-blue-800" />
+
+                      <div>
+                        <p className="font-semibold text-slate-950">{title}</p>
+                        <p className="mt-1 leading-7 text-slate-600">{text}</p>
+                      </div>
+                    </div>
+                  ))}
                 </div>
-                <div className="rounded-3xl bg-blue-100 p-6">
-                  <BanknotesIcon className="h-6 w-6 text-blue-700" />
-                  <p className="mt-8 font-bold text-slate-900">Real people</p>
-                  <p className="mt-2 text-sm leading-6 text-slate-600">When you need help, send a request and our team receives it directly.</p>
-                </div>
+
+                <Link
+                  to="/login"
+                  className="mt-9 inline-flex items-center gap-2 bg-blue-800 px-6 py-3.5 text-sm font-bold text-white transition hover:bg-blue-900"
+                >
+                  Sign in to Telosbank
+                  <ArrowRightIcon className="h-4 w-4" />
+                </Link>
               </div>
             </Reveal>
           </div>
         </section>
 
-        <section id="contact" className="scroll-mt-24 bg-white">
-          <div className="mx-auto max-w-6xl px-5 py-20 sm:px-8 lg:px-10 lg:py-28">
-            <Reveal className="rounded-3xl bg-blue-50 p-7 sm:p-10 lg:flex lg:items-center lg:justify-between lg:gap-12">
-              <div>
-                <p className="text-xs font-bold uppercase tracking-[.2em] text-blue-700">Contact</p>
-                <h2 className="mt-4 text-3xl font-bold tracking-[-.04em] text-slate-950 sm:text-4xl">Have a question?</h2>
-                <p className="mt-4 max-w-xl text-base leading-7 text-slate-600">Use the chat button to send a request to telosbank, or visit a branch to speak with our team in person.</p>
+        {/* =======================================================
+            SECURITY
+        ======================================================== */}
+        <section
+          id="security"
+          className="scroll-mt-28 bg-[#10263f] px-5 py-20 text-white sm:px-8 lg:py-24"
+        >
+          <div className="mx-auto max-w-[1240px]">
+            <div className="grid gap-12 lg:grid-cols-[.85fr_1.15fr] lg:gap-20">
+              <Reveal>
+                <div>
+                  <ShieldCheckIcon className="h-10 w-10 text-blue-300" />
+
+                  <p className="mt-7 text-sm font-bold uppercase tracking-[0.17em] text-blue-200">
+                    Security
+                  </p>
+
+                  <h2 className="mt-4 text-4xl font-semibold tracking-[-0.03em] sm:text-5xl">
+                    Protecting your access matters.
+                  </h2>
+
+                  <p className="mt-6 max-w-lg text-lg leading-8 text-slate-300">
+                    Banking should feel convenient without treating security as
+                    an afterthought.
+                  </p>
+                </div>
+              </Reveal>
+
+              <div className="grid md:grid-cols-3">
+                {securityBenefits.map((item, index) => (
+                  <article
+                    key={item.title}
+                    className={`border-t border-white/20 py-7 md:border-t-0 md:px-7 md:py-2 ${
+                      index !== securityBenefits.length - 1
+                        ? "md:border-r md:border-white/20"
+                        : ""
+                    }`}
+                  >
+                    <LockClosedIcon className="h-6 w-6 text-blue-300" />
+
+                    <h3 className="mt-5 text-lg font-semibold">{item.title}</h3>
+
+                    <p className="mt-3 text-sm leading-7 text-slate-300">
+                      {item.description}
+                    </p>
+                  </article>
+                ))}
               </div>
-              <div className="mt-7 flex flex-col gap-3 text-sm font-semibold text-slate-700 lg:mt-0 lg:min-w-[230px]">
-                <button type="button" onClick={() => setSignUpOpen(true)} className="rounded-xl bg-blue-700 px-5 py-3 text-white hover:bg-blue-800">Open an account</button>
-                <a href="tel:+18005550148" className="rounded-xl border border-blue-200 bg-white px-5 py-3 text-center hover:border-blue-400 hover:text-blue-700">Call 1 (800) 555-0148</a>
+            </div>
+          </div>
+        </section>
+
+        {/* =======================================================
+            ABOUT / BRAND STORY
+        ======================================================== */}
+        <section
+          id="about"
+          className="scroll-mt-28 bg-white px-5 py-20 sm:px-8 lg:py-28"
+        >
+          <div className="mx-auto max-w-[1240px]">
+            <Reveal>
+              <div className="mx-auto max-w-4xl text-center">
+                <SparklesIcon className="mx-auto h-8 w-8 text-blue-800" />
+
+                <p className="mt-6 text-sm font-bold uppercase tracking-[0.17em] text-blue-800">
+                  Why Telosbank
+                </p>
+
+                <h2 className="mt-4 text-4xl font-semibold tracking-[-0.03em] text-slate-950 sm:text-5xl">
+                  Banking designed around clarity.
+                </h2>
+
+                <p className="mx-auto mt-6 max-w-3xl text-lg leading-8 text-slate-600">
+                  We believe the experience of managing money should be easier
+                  to understand. Telosbank brings everyday banking into a
+                  focused digital experience so customers can spend less time
+                  figuring out their bank and more time using it.
+                </p>
               </div>
             </Reveal>
+
+            <div className="mt-16 grid border-y border-slate-200 md:grid-cols-3">
+              {[
+                [
+                  "01",
+                  "Clear",
+                  "Important information is presented in a way that is easier to understand.",
+                ],
+                [
+                  "02",
+                  "Accessible",
+                  "Your everyday banking tools remain available through a modern digital experience.",
+                ],
+                [
+                  "03",
+                  "Focused",
+                  "The products and actions you need come first, without unnecessary distraction.",
+                ],
+              ].map(([number, title, description], index) => (
+                <div
+                  key={title}
+                  className={`py-9 md:px-10 ${
+                    index !== 2
+                      ? "border-b border-slate-200 md:border-b-0 md:border-r"
+                      : ""
+                  }`}
+                >
+                  <span className="text-xs font-bold tracking-[0.16em] text-blue-800">
+                    {number}
+                  </span>
+
+                  <h3 className="mt-5 text-2xl font-semibold text-slate-950">
+                    {title}
+                  </h3>
+
+                  <p className="mt-3 leading-7 text-slate-600">{description}</p>
+                </div>
+              ))}
+            </div>
+          </div>
+        </section>
+
+        {/* =======================================================
+            CTA
+        ======================================================== */}
+        <section className="bg-blue-800 px-5 py-16 text-white sm:px-8 lg:py-20">
+          <div className="mx-auto flex max-w-[1240px] flex-col justify-between gap-8 lg:flex-row lg:items-center">
+            <div>
+              <p className="text-sm font-semibold text-blue-100">
+                Ready to get started?
+              </p>
+
+              <h2 className="mt-2 max-w-3xl text-3xl font-semibold tracking-[-0.025em] sm:text-4xl">
+                Make Telosbank part of your everyday finances.
+              </h2>
+            </div>
+
+            <div className="flex shrink-0 flex-col gap-3 sm:flex-row">
+              <button
+                type="button"
+                onClick={() => setSignupOpen(true)}
+                className="inline-flex min-h-12 items-center justify-center gap-2 bg-white px-7 text-sm font-bold text-blue-800 transition hover:bg-blue-50"
+              >
+                Open an account
+                <ArrowRightIcon className="h-4 w-4" />
+              </button>
+
+              <Link
+                to="/login"
+                className="inline-flex min-h-12 items-center justify-center border border-white/60 px-7 text-sm font-bold text-white transition hover:bg-white/10"
+              >
+                Sign in
+              </Link>
+            </div>
+          </div>
+        </section>
+
+        {/* =======================================================
+            CONTACT
+        ======================================================== */}
+        <section
+          id="contact"
+          className="scroll-mt-28 border-b border-slate-200 bg-slate-50 px-5 py-14 sm:px-8"
+        >
+          <div className="mx-auto flex max-w-[1240px] flex-col justify-between gap-8 lg:flex-row lg:items-center">
+            <div>
+              <h2 className="text-2xl font-semibold text-slate-950">
+                Need help?
+              </h2>
+              <p className="mt-2 text-slate-600">
+                Telosbank support is here when you have questions about your
+                banking experience.
+              </p>
+            </div>
+
+            <div className="flex flex-wrap gap-6 text-sm font-semibold text-blue-800">
+              <a
+                href="#contact"
+                onClick={(e) => handleSmoothScroll(e, "#contact")}
+                className="inline-flex items-center gap-2"
+              >
+                Help &amp; support
+                <ChevronRightIcon className="h-4 w-4" />
+              </a>
+
+              <a
+                href="#security"
+                onClick={(e) => handleSmoothScroll(e, "#security")}
+                className="inline-flex items-center gap-2"
+              >
+                Security
+                <ChevronRightIcon className="h-4 w-4" />
+              </a>
+            </div>
           </div>
         </section>
       </main>
 
-      <footer className="bg-slate-950 text-white">
-        <div className="mx-auto flex max-w-6xl flex-col gap-5 px-5 py-9 sm:flex-row sm:items-center sm:justify-between sm:px-8 lg:px-10">
-          <div>
-            <Brand light className="text-2xl" />
-            <p className="mt-2 text-xs text-slate-400">Banking made clear and personal.</p>
+      {/* =========================================================
+          FOOTER
+      ========================================================== */}
+      <footer className="bg-white px-5 pt-16 text-slate-700 sm:px-8">
+        <div className="mx-auto max-w-[1240px]">
+          <div className="grid gap-12 border-b border-slate-200 pb-14 sm:grid-cols-2 lg:grid-cols-5">
+            <div className="sm:col-span-2 lg:col-span-1">
+              <Brand />
+
+              <p className="mt-5 max-w-xs text-sm leading-6 text-slate-500">
+                Clear, accessible everyday banking built around the way you
+                manage money.
+              </p>
+            </div>
+
+            <FooterColumn
+              title="Banking"
+              onLinkClick={handleSmoothScroll}
+              links={[
+                ["Everyday Banking", "#everyday"],
+                ["Savings", "#savings"],
+                ["Cards", "#cards"],
+                ["Loans", "#loans"],
+              ]}
+            />
+
+            <FooterColumn
+              title="Digital banking"
+              onLinkClick={handleSmoothScroll}
+              links={[
+                ["Online banking", "#digital"],
+                ["Sign in", "/login"],
+                ["Security", "#security"],
+              ]}
+            />
+
+            <FooterColumn
+              title="Telosbank"
+              onLinkClick={handleSmoothScroll}
+              links={[
+                ["About us", "#about"],
+                ["Why Telosbank", "#about"],
+                ["Help & support", "#contact"],
+              ]}
+            />
+
+            <FooterColumn
+              title="Resources"
+              onLinkClick={handleSmoothScroll}
+              links={[
+                ["Contact", "#contact"],
+                ["Security", "#security"],
+                ["Open an account", "#open-account"],
+              ]}
+              onOpenAccount={() => setSignupOpen(true)}
+            />
           </div>
-          <div className="flex flex-wrap gap-5 text-xs font-medium text-slate-400">
-            <a href="#about" className="hover:text-white">About</a>
-            <a href="#contact" className="hover:text-white">Contact</a>
-            <Link to="/login" className="hover:text-white">Sign in</Link>
+
+          <div className="flex flex-col justify-between gap-5 py-7 text-xs text-slate-500 sm:flex-row sm:items-center">
+            <p>
+              © {new Date().getFullYear()} Telosbank. All rights reserved.
+            </p>
+
+            <div className="flex flex-wrap gap-x-6 gap-y-2">
+              <span>Privacy</span>
+              <span>Terms</span>
+              <span>Security</span>
+            </div>
           </div>
-          <p className="text-xs text-slate-500">© {new Date().getFullYear()} telosbank</p>
+
+          <div className="border-t border-slate-200 py-7 text-xs leading-6 text-slate-400">
+            <p>
+              Telosbank services and product availability may vary. Information
+              shown on this page is for general informational purposes.
+            </p>
+          </div>
         </div>
       </footer>
 
       <PublicSupportWidget />
 
-      {signUpOpen && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-950/60 p-4 backdrop-blur-sm" role="dialog" aria-modal="true" aria-labelledby="signup-title" onMouseDown={(event) => { if (event.currentTarget === event.target) setSignUpOpen(false); }}>
-          <div className="max-h-[calc(100dvh-2rem)] w-full max-w-lg overflow-y-auto rounded-3xl bg-white p-6 shadow-2xl sm:p-8">
-            <div className="flex items-start justify-between gap-4">
+      {/* =========================================================
+          SIGN-UP MODAL
+      ========================================================== */}
+      {signupOpen && (
+        <div
+          id="open-account"
+          className="fixed inset-0 z-[70] flex items-center justify-center bg-slate-950/55 px-4 py-8 backdrop-blur-sm"
+          onMouseDown={(event) => {
+            if (event.target === event.currentTarget) {
+              setSignupOpen(false);
+            }
+          }}
+        >
+          <div
+            role="dialog"
+            aria-modal="true"
+            aria-labelledby="signup-title"
+            className="max-h-full w-full max-w-lg overflow-y-auto bg-white shadow-2xl"
+          >
+            <div className="flex items-start justify-between border-b border-slate-200 px-6 py-5 sm:px-8">
               <div>
-                <p className="text-xs font-bold uppercase tracking-[.2em] text-blue-700">Start with telosbank</p>
-                <h2 id="signup-title" className="mt-3 text-3xl font-bold tracking-[-.05em] text-slate-950">{formSubmitted ? 'Your next step is ready.' : 'Tell us where to start.'}</h2>
+                <p className="text-xs font-bold uppercase tracking-[0.16em] text-blue-800">
+                  Telosbank
+                </p>
+                <h2
+                  id="signup-title"
+                  className="mt-1 text-2xl font-semibold text-slate-950"
+                >
+                  Open an account
+                </h2>
               </div>
-              <button type="button" aria-label="Close sign up dialog" onClick={() => setSignUpOpen(false)} className="rounded-full p-2 text-slate-400 hover:bg-blue-50 hover:text-blue-700"><XMarkIcon className="h-5 w-5" /></button>
+
+              <button
+                type="button"
+                onClick={() => setSignupOpen(false)}
+                aria-label="Close"
+                className="flex h-9 w-9 items-center justify-center text-slate-500 transition hover:bg-slate-100 hover:text-slate-900"
+              >
+                <XMarkIcon className="h-5 w-5" />
+              </button>
             </div>
-            {formSubmitted ? (
-              <div className="mt-7">
-                <div className="rounded-2xl bg-blue-50 p-5">
-                  <CheckCircleIcon className="h-7 w-7 text-blue-700" />
-                  <p className="mt-4 text-sm font-bold text-slate-950">Thanks. Your starting point is saved for this visit.</p>
-                  <p className="mt-2 text-sm leading-6 text-slate-600">Complete the form, then visit your nearest telosbank branch with a valid photo ID so a banker can finish setting things up with you.</p>
+
+            {submitted ? (
+              <div className="px-6 py-12 text-center sm:px-8">
+                <div className="mx-auto flex h-14 w-14 items-center justify-center bg-green-50">
+                  <CheckCircleIcon className="h-7 w-7 text-green-700" />
                 </div>
-                <button type="button" onClick={() => { setSignUpOpen(false); setFormSubmitted(false); }} className="mt-5 w-full rounded-xl bg-blue-700 px-5 py-3 text-sm font-semibold text-white hover:bg-blue-800">Close</button>
+
+                <h3 className="mt-6 text-2xl font-semibold text-slate-950">
+                  Thanks for getting started.
+                </h3>
+
+                <p className="mx-auto mt-3 max-w-sm leading-7 text-slate-600">
+                  Your account-opening information has been received. Please visit your nearest branch with a valid ID and proof of address to complete your registration.
+                </p>
+
+                <button
+                  type="button"
+                  onClick={() => setSignupOpen(false)}
+                  className="mt-7 bg-blue-800 px-6 py-3 text-sm font-bold text-white"
+                >
+                  Close
+                </button>
               </div>
             ) : (
-              <>
-                <p className="mt-4 text-sm leading-6 text-slate-600">Registration has two simple parts: complete this short form, then visit your nearest branch so a telosbank banker can verify your identity and finish setting things up.</p>
-                <form onSubmit={handleSignUp} className="mt-6 space-y-4">
-                  <label className="block"><span className="mb-1.5 block text-xs font-bold text-slate-700">Full name</span><input required name="name" placeholder="Your name" className="w-full rounded-xl border border-slate-200 px-4 py-3 text-sm outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-100" /></label>
-                  <label className="block"><span className="mb-1.5 block text-xs font-bold text-slate-700">Mobile number</span><input required name="phone" type="tel" placeholder="(555) 000-0000" className="w-full rounded-xl border border-slate-200 px-4 py-3 text-sm outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-100" /></label>
-                  <label className="block"><span className="mb-1.5 block text-xs font-bold text-slate-700">What brings you to telosbank?</span><select name="interest" className="w-full rounded-xl border border-slate-200 bg-white px-4 py-3 text-sm outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-100"><option>Everyday banking</option><option>A new card</option><option>Saving and investing</option><option>A loan</option></select></label>
-                  <div className="flex items-start gap-2 rounded-xl bg-blue-50 p-3 text-xs leading-5 text-slate-600"><LockClosedIcon className="mt-0.5 h-4 w-4 shrink-0 text-blue-700" /> We do not submit an application here. Bring a valid photo ID to your nearest branch.</div>
-                  <button type="submit" className="w-full rounded-xl bg-blue-700 px-5 py-3.5 text-sm font-semibold text-white hover:bg-blue-800">Continue to branch visit</button>
-                </form>
-              </>
+              <form onSubmit={handleSignup} className="px-6 py-7 sm:px-8">
+                <p className="mb-6 text-sm leading-6 text-slate-600">
+                  Enter your details to begin opening your Telosbank account. Please note that you will need to visit your nearest branch to complete registration.
+                </p>
+
+                <div className="grid gap-5 sm:grid-cols-2">
+                  <label className="block">
+                    <span className="text-sm font-semibold text-slate-800">
+                      First name
+                    </span>
+                    <input
+                      type="text"
+                      required
+                      autoComplete="given-name"
+                      className="mt-2 h-12 w-full border border-slate-300 px-3 outline-none transition focus:border-blue-800 focus:ring-1 focus:ring-blue-800"
+                    />
+                  </label>
+
+                  <label className="block">
+                    <span className="text-sm font-semibold text-slate-800">
+                      Last name
+                    </span>
+                    <input
+                      type="text"
+                      required
+                      autoComplete="family-name"
+                      className="mt-2 h-12 w-full border border-slate-300 px-3 outline-none transition focus:border-blue-800 focus:ring-1 focus:ring-blue-800"
+                    />
+                  </label>
+                </div>
+
+                <label className="mt-5 block">
+                  <span className="text-sm font-semibold text-slate-800">
+                    Email address
+                  </span>
+                  <input
+                    type="email"
+                    required
+                    autoComplete="email"
+                    className="mt-2 h-12 w-full border border-slate-300 px-3 outline-none transition focus:border-blue-800 focus:ring-1 focus:ring-blue-800"
+                  />
+                </label>
+
+                <label className="mt-5 block">
+                  <span className="text-sm font-semibold text-slate-800">
+                    Phone number
+                  </span>
+                  <input
+                    type="tel"
+                    required
+                    autoComplete="tel"
+                    className="mt-2 h-12 w-full border border-slate-300 px-3 outline-none transition focus:border-blue-800 focus:ring-1 focus:ring-blue-800"
+                  />
+                </label>
+
+                <label className="mt-5 block">
+                  <span className="text-sm font-semibold text-slate-800">
+                    Account type
+                  </span>
+
+                  <select
+                    required
+                    defaultValue=""
+                    className="mt-2 h-12 w-full border border-slate-300 bg-white px-3 outline-none transition focus:border-blue-800 focus:ring-1 focus:ring-blue-800"
+                  >
+                    <option value="" disabled>
+                      Select an account
+                    </option>
+                    <option value="everyday">Everyday Account</option>
+                    <option value="savings">Savings Account</option>
+                  </select>
+                </label>
+
+                <button
+                  type="submit"
+                  className="mt-7 inline-flex h-12 w-full items-center justify-center gap-2 bg-blue-800 px-6 text-sm font-bold text-white transition hover:bg-blue-900"
+                >
+                  Continue
+                  <ArrowRightIcon className="h-4 w-4" />
+                </button>
+
+                <p className="mt-5 text-center text-xs leading-5 text-slate-500">
+                  Already have an account?{" "}
+                  <Link
+                    to="/login"
+                    className="font-semibold text-blue-800 hover:underline"
+                  >
+                    Sign in
+                  </Link>
+                </p>
+              </form>
             )}
           </div>
         </div>
@@ -423,4 +1430,53 @@ function Landing() {
   );
 }
 
-export default Landing;
+type FooterColumnProps = {
+  title: string;
+  links: [string, string][];
+  onOpenAccount?: () => void;
+  onLinkClick?: (event: MouseEvent<HTMLAnchorElement>, href: string) => void;
+};
+
+function FooterColumn({
+  title,
+  links,
+  onOpenAccount,
+  onLinkClick,
+}: FooterColumnProps) {
+  return (
+    <div>
+      <h3 className="text-sm font-bold text-slate-950">{title}</h3>
+
+      <ul className="mt-5 space-y-3">
+        {links.map(([label, href]) => (
+          <li key={`${title}-${label}`}>
+            {href === "/login" ? (
+              <Link
+                to={href}
+                className="text-sm text-slate-600 transition hover:text-blue-800"
+              >
+                {label}
+              </Link>
+            ) : href === "#open-account" && onOpenAccount ? (
+              <button
+                type="button"
+                onClick={onOpenAccount}
+                className="text-left text-sm text-slate-600 transition hover:text-blue-800"
+              >
+                {label}
+              </button>
+            ) : (
+              <a
+                href={href}
+                onClick={(e) => onLinkClick && onLinkClick(e, href)}
+                className="text-sm text-slate-600 transition hover:text-blue-800"
+              >
+                {label}
+              </a>
+            )}
+          </li>
+        ))}
+      </ul>
+    </div>
+  );
+}
