@@ -48,6 +48,10 @@ const csrfExemptPaths = new Set([
 
 // Authentication is cookie-based. Only the non-HttpOnly CSRF token is read by JS.
 api.interceptors.request.use(async (config) => {
+  const token = localStorage.getItem("admin_access_token") || localStorage.getItem("access_token");
+  if (token) {
+    config.headers.Authorization = `Bearer ${token}`;
+  }
   const method = (config.method || 'get').toLowerCase();
   if (['post', 'put', 'patch', 'delete'].includes(method) && !csrfExemptPaths.has(config.url || '')) {
     let csrf = getCookie('csrf_token');

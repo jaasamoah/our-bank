@@ -36,6 +36,9 @@ export const AdminAuthProvider: React.FC<{ children: ReactNode }> = ({ children 
     }
     try {
       const result = await adminLoginRequest(username, password);
+      if (result.access_token) {
+        localStorage.setItem("admin_access_token", result.access_token);
+      }
       if (!['admin', 'super_admin'].includes(result.role)) {
         return { success: false, error: 'This account does not have administrator access.' };
       }
