@@ -135,7 +135,7 @@ async def login(
         refresh_token,
         admin=bool(request and request.headers.get("X-Client-Role") == "admin"),
     )
-    return {"stage": "complete", "token_type": "bearer", "role": user.role.value}
+    return {"stage": "complete", "token_type": "bearer", "role": user.role.value, "access_token": access_token}
 
 
 @router.post("/login/security-questions", response_model=schemas.LoginChallengeResponse, dependencies=[Depends(rate_limit("login-security", 10))])
