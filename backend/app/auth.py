@@ -1,6 +1,6 @@
 from datetime import datetime, timedelta, timezone
 from hashlib import sha256
-from typing import Optional
+from typing import Annotated, Any, Optional
 import os
 import secrets
 
@@ -14,9 +14,11 @@ from dotenv import load_dotenv
 
 load_dotenv()
 
-SECRET_KEY = os.getenv("SESSION_SECRET") or os.getenv("SECRET_KEY")
-if not SECRET_KEY or len(SECRET_KEY) < 32:
+_raw_secret = os.getenv("SESSION_SECRET") or os.getenv("SECRET_KEY")
+if not _raw_secret or len(_raw_secret) < 32:
     raise RuntimeError("SESSION_SECRET must be configured with at least 32 characters")
+
+SECRET_KEY: str = _raw_secret
 ALGORITHM = "HS256"
 ACCESS_TOKEN_EXPIRE_MINUTES = 10
 REFRESH_TOKEN_EXPIRE_DAYS = 7
@@ -29,18 +31,21 @@ COOKIE_SECURE = os.getenv("COOKIE_SECURE", "true" if os.getenv("APP_ENV") == "pr
 
 pwd_context = CryptContext(schemes=["bcrypt"], bcrypt__rounds=12, deprecated="auto")
 
-def verify_password(plain_password, hashed_password):
-    return pwd_context.verify(plain_password, hashed_password)
 
-def get_password_hash(password):
-    return pwd_context.hash(password)
+def verify_password(plain_password: str, hashed_password: str) -> bool:
+    return bool(pwd_context.verify(plain_password, hashed_password))
 
-def create_access_token(data: dict, expires_delta: Optional[timedelta] = None):
+
+def get_password_hash(password: str) -> str:
+    return str(pwd_context.hash(password))
+
+
+def create_access_token(data: dict[str, Any], expires_delta: Optional[timedelta] = None) -> str:
     to_encode = data.copy()
-    expire = datetime.now(timezone.utc) + (expires_delta or timedelta(minutes=ACCESS_TOKEN_EXPIRE_MINUTES))
-    to_encode.update({"exp": expire, "iat": datetime.now(timezone.utc), "jti": secrets.token_hex(16), "type": "access"})
-    encoded_jwt = jwt.encode(to_encode, SECRET_KEY, algorithm=ALGORITHM)
-    return encoded_jwt
+    now = datetime.now(timezone.utc)
+    expire = now + (expires_delta or timedelta(minutes=ACCESS_TOKEN_EXPIRE_MINUTES))
+    to_encode.update({"exp": expire, "iat": now, "jti": secrets.token_hex(16), "type": "access"})
+    return str(jwt.encode(to_encode, SECRET_KEY, algorithm=ALGORITHM))
 
 
 def hash_refresh_token(token: str) -> str:
@@ -59,8 +64,7 @@ def create_refresh_token(db: Session, user: User) -> str:
     return raw_token
 
 
-def set_auth_cookies(response, access_token: str, refresh_token, admin: bool = False):
-    import os
+def set_auth_cookies(response: Response, access_token: str, refresh_token: Any, admin: bool = False) -> None:
     app_env = os.getenv("APP_ENV", "").lower()
     is_prod = app_env == "production" or os.getenv("COOKIE_SECURE", "false").lower() == "true"
     
@@ -90,14 +94,17 @@ def set_auth_cookies(response, access_token: str, refresh_token, admin: bool = F
     )
 
 
-def get_current_user(request: Request, db: Session = Depends(get_db)) -> User:
+def get_current_user(
+    request: Request, 
+    db: Annotated[Session, Depends(get_db)]
+) -> User:
     credentials_exception = HTTPException(
         status_code=status.HTTP_401_UNAUTHORIZED,
         detail="Could not validate credentials",
         headers={"WWW-Authenticate": "Bearer"},
     )
     auth_header = request.headers.get("Authorization")
-    token = None
+    token: Optional[str] = None
     if auth_header and auth_header.startswith("Bearer "):
         token = auth_header.split(" ", 1)[1].strip()
     if not token:
@@ -109,18 +116,25 @@ def get_current_user(request: Request, db: Session = Depends(get_db)) -> User:
         payload = jwt.decode(token, SECRET_KEY, algorithms=[ALGORITHM])
         if payload.get("type") != "access":
             raise credentials_exception
-        username: str = payload.get("sub")
-        if username is None:
+        username = payload.get("sub")
+        if not username or not isinstance(username, str):
             raise credentials_exception
     except JWTError:
         raise credentials_exception
+
     user = db.query(User).filter(User.username == username).first()
-    if user is None or not user.is_active:
+    if user is None or not bool(user.is_active):
         raise credentials_exception
     return user
 
 
-async def get_current_admin(current_user: User = Depends(get_current_user)):
-    if current_user.role.value not in {"admin", "super_admin"}:
-        raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Administrator access required")
+async def get_current_admin(
+    current_user: Annotated[User, Depends(get_current_user)]
+) -> User:
+    role_val = current_user.role.value if hasattr(current_user.role, "value") else str(current_user.role)
+    if role_val.strip().lower() not in {"admin", "super_admin"}:
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN, 
+            detail="Administrator access required"
+        )
     return current_user
