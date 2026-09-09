@@ -1,3 +1,4 @@
+from contextlib import asynccontextmanager
 from datetime import datetime
 import os
 import secrets
@@ -14,49 +15,51 @@ from .database import Base, SessionLocal, engine
 from .models import Account, Beneficiary, Card, Investment, Loan, Payee, Transaction, User, UserRole
 from .routers import accounts, admin, auth, beneficiaries, cards, investments, loans, payees, support, transactions, users
 
-# Create tables
-Base.metadata.create_all(bind=engine)
+APP_ENV = os.getenv("APP_ENV", "").lower()
+SEED_DEMO_DATA = os.getenv("SEED_DEMO_DATA", "false").lower() == "true"
 
 
 def ensure_legacy_columns():
     """Add fields introduced after the initial imported schema was created."""
-    card_columns = {column["name"] for column in inspect(engine).get_columns("cards")}
-    missing = {
-        "card_number": "VARCHAR",
-        "cvc": "VARCHAR",
-    }
-    payee_columns = {column["name"] for column in inspect(engine).get_columns("payees")}
-    missing_payee = {
-        "iban": "VARCHAR",
-        "swift_code": "VARCHAR",
-    }
-    user_columns = {column["name"] for column in inspect(engine).get_columns("users")}
-    missing_user = {
-        "address": "VARCHAR",
-    }
-    account_columns = {column["name"] for column in inspect(engine).get_columns("accounts")}
-    missing_account = {
-        "status": "VARCHAR NOT NULL DEFAULT 'Active'",
-    }
-    with engine.begin() as connection:
-        for name, column_type in missing.items():
-            if name not in card_columns:
-                connection.execute(text(f"ALTER TABLE cards ADD COLUMN {name} {column_type}"))
-        for name, column_type in missing_payee.items():
-            if name not in payee_columns:
-                connection.execute(text(f"ALTER TABLE payees ADD COLUMN {name} {column_type}"))
-        for name, column_type in missing_user.items():
-            if name not in user_columns:
-                connection.execute(text(f"ALTER TABLE users ADD COLUMN {name} {column_type}"))
-        for name, column_type in missing_account.items():
-            if name not in account_columns:
-                connection.execute(text(f"ALTER TABLE accounts ADD COLUMN {name} {column_type}"))
+    try:
+        inspector = inspect(engine)
+        existing_tables = inspector.get_table_names()
+        if "cards" not in existing_tables:
+            return
 
-
-ensure_legacy_columns()
-
-APP_ENV = os.getenv("APP_ENV", "").lower()
-SEED_DEMO_DATA = os.getenv("SEED_DEMO_DATA", "true" if APP_ENV == "development" else "false").lower() == "true"
+        card_columns = {column["name"] for column in inspector.get_columns("cards")}
+        missing = {
+            "card_number": "VARCHAR",
+            "cvc": "VARCHAR",
+        }
+        payee_columns = {column["name"] for column in inspector.get_columns("payees")}
+        missing_payee = {
+            "iban": "VARCHAR",
+            "swift_code": "VARCHAR",
+        }
+        user_columns = {column["name"] for column in inspector.get_columns("users")}
+        missing_user = {
+            "address": "VARCHAR",
+        }
+        account_columns = {column["name"] for column in inspector.get_columns("accounts")}
+        missing_account = {
+            "status": "VARCHAR NOT NULL DEFAULT 'Active'",
+        }
+        with engine.begin() as connection:
+            for name, column_type in missing.items():
+                if name not in card_columns:
+                    connection.execute(text(f"ALTER TABLE cards ADD COLUMN {name} {column_type}"))
+            for name, column_type in missing_payee.items():
+                if name not in payee_columns:
+                    connection.execute(text(f"ALTER TABLE payees ADD COLUMN {name} {column_type}"))
+            for name, column_type in missing_user.items():
+                if name not in user_columns:
+                    connection.execute(text(f"ALTER TABLE users ADD COLUMN {name} {column_type}"))
+            for name, column_type in missing_account.items():
+                if name not in account_columns:
+                    connection.execute(text(f"ALTER TABLE accounts ADD COLUMN {name} {column_type}"))
+    except Exception as e:
+        print(f"Warning during ensure_legacy_columns: {e}")
 
 
 def seed_demo_data():
@@ -255,15 +258,24 @@ def seed_demo_data():
             )
 
         db.commit()
-    except Exception:
+    except Exception as e:
         db.rollback()
-        raise
+        print(f"Warning during seed_demo_data: {e}")
     finally:
         db.close()
 
 
-if SEED_DEMO_DATA:
-    seed_demo_data()
+@asynccontextmanager
+async def lifespan(app: FastAPI):
+    try:
+        Base.metadata.create_all(bind=engine)
+        ensure_legacy_columns()
+        if SEED_DEMO_DATA:
+            seed_demo_data()
+    except Exception as e:
+        print(f"Database initialization warning on startup: {e}")
+    yield
+
 
 ENABLE_API_DOCS = os.getenv("ENABLE_API_DOCS", "false").lower() == "true"
 CSRF_COOKIE = "csrf_token"
@@ -284,6 +296,7 @@ app = FastAPI(
     docs_url="/docs" if ENABLE_API_DOCS else None,
     redoc_url="/redoc" if ENABLE_API_DOCS else None,
     openapi_url="/openapi.json" if ENABLE_API_DOCS else None,
+    lifespan=lifespan,
 )
 
 # CORS configuration
@@ -315,12 +328,12 @@ app.add_middleware(
 @app.middleware("http")
 async def security_headers_and_csrf(request: Request, call_next):
     origin = request.headers.get("origin")
-    
-    # Allow CORS preflight requests to reach CORSMiddleware
+
+    # Let browser CORS preflight proceed directly to CORSMiddleware
     if request.method == "OPTIONS":
         return await call_next(request)
 
-    # Bearer tokens are not susceptible to CSRF
+    # Authorization Bearer requests are not susceptible to CSRF
     auth_header = request.headers.get("Authorization")
     is_bearer = auth_header is not None and auth_header.startswith("Bearer ")
 
@@ -334,7 +347,6 @@ async def security_headers_and_csrf(request: Request, call_next):
         csrf_header = request.headers.get("X-CSRF-Token")
         if not csrf_cookie or not csrf_header or not secrets.compare_digest(csrf_cookie, csrf_header):
             error_response = JSONResponse(status_code=403, content={"detail": "CSRF validation failed"})
-            # Preserve CORS headers on early rejection so the browser does not drop the response
             if origin in configured_origins:
                 error_response.headers["Access-Control-Allow-Origin"] = origin
                 error_response.headers["Access-Control-Allow-Credentials"] = "true"
@@ -387,6 +399,7 @@ async def unexpected_error_handler(request: Request, exc: Exception):
         res.headers["Access-Control-Allow-Credentials"] = "true"
     return res
 
+
 # Include routers
 app.include_router(auth.router, prefix="/api/auth", tags=["Authentication"])
 app.include_router(users.router, prefix="/api/users", tags=["Users"])
@@ -400,9 +413,11 @@ app.include_router(payees.router, prefix="/api/payees", tags=["Payees"])
 app.include_router(support.router, prefix="/api/support", tags=["Support"])
 app.include_router(admin.router, prefix="/api/admin", tags=["Administration"])
 
+
 @app.get("/")
 async def root():
     return {"message": "telosbank API"}
+
 
 @app.get("/health")
 async def health_check():
