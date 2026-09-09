@@ -96,8 +96,13 @@ def get_current_user(request: Request, db: Session = Depends(get_db)) -> User:
         detail="Could not validate credentials",
         headers={"WWW-Authenticate": "Bearer"},
     )
-    access_cookie = ADMIN_ACCESS_COOKIE if request.url.path.startswith("/api/admin") else ACCESS_COOKIE
-    token = request.cookies.get(access_cookie)
+    auth_header = request.headers.get("Authorization")
+    token = None
+    if auth_header and auth_header.startswith("Bearer "):
+        token = auth_header.split(" ", 1)[1].strip()
+    if not token:
+        access_cookie = ADMIN_ACCESS_COOKIE if request.url.path.startswith("/api/admin") else ACCESS_COOKIE
+        token = request.cookies.get(access_cookie)
     if not token:
         raise credentials_exception
     try:
