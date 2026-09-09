@@ -286,7 +286,7 @@ app = FastAPI(
     openapi_url="/openapi.json" if ENABLE_API_DOCS else None,
 )
 
-# CORS middleware configuration
+# CORS configuration
 default_origins = [
     "http://localhost:5173",
     "http://localhost:3000",
@@ -314,15 +314,31 @@ app.add_middleware(
 
 @app.middleware("http")
 async def security_headers_and_csrf(request: Request, call_next):
+    origin = request.headers.get("origin")
+    
+    # Allow CORS preflight requests to reach CORSMiddleware
+    if request.method == "OPTIONS":
+        return await call_next(request)
+
+    # Bearer tokens are not susceptible to CSRF
+    auth_header = request.headers.get("Authorization")
+    is_bearer = auth_header is not None and auth_header.startswith("Bearer ")
+
     if (
         request.method not in {"GET", "HEAD", "OPTIONS"}
         and request.url.path.startswith("/api/")
         and request.url.path not in CSRF_EXEMPT_PATHS
+        and not is_bearer
     ):
         csrf_cookie = request.cookies.get(CSRF_COOKIE)
         csrf_header = request.headers.get("X-CSRF-Token")
         if not csrf_cookie or not csrf_header or not secrets.compare_digest(csrf_cookie, csrf_header):
-            return JSONResponse(status_code=403, content={"detail": "CSRF validation failed"})
+            error_response = JSONResponse(status_code=403, content={"detail": "CSRF validation failed"})
+            # Preserve CORS headers on early rejection so the browser does not drop the response
+            if origin in configured_origins:
+                error_response.headers["Access-Control-Allow-Origin"] = origin
+                error_response.headers["Access-Control-Allow-Credentials"] = "true"
+            return error_response
 
     response = await call_next(request)
     if not request.cookies.get(CSRF_COOKIE):
@@ -354,12 +370,22 @@ async def security_headers_and_csrf(request: Request, call_next):
 
 @app.exception_handler(SQLAlchemyError)
 async def database_error_handler(request: Request, exc: SQLAlchemyError):
-    return JSONResponse(status_code=500, content={"detail": "A database error occurred."})
+    origin = request.headers.get("origin")
+    res = JSONResponse(status_code=500, content={"detail": "A database error occurred."})
+    if origin in configured_origins:
+        res.headers["Access-Control-Allow-Origin"] = origin
+        res.headers["Access-Control-Allow-Credentials"] = "true"
+    return res
 
 
 @app.exception_handler(Exception)
 async def unexpected_error_handler(request: Request, exc: Exception):
-    return JSONResponse(status_code=500, content={"detail": "An unexpected server error occurred."})
+    origin = request.headers.get("origin")
+    res = JSONResponse(status_code=500, content={"detail": "An unexpected server error occurred."})
+    if origin in configured_origins:
+        res.headers["Access-Control-Allow-Origin"] = origin
+        res.headers["Access-Control-Allow-Credentials"] = "true"
+    return res
 
 # Include routers
 app.include_router(auth.router, prefix="/api/auth", tags=["Authentication"])
