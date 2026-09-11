@@ -1,390 +1,3 @@
-import axios from 'axios';
-
-const API_BASE_URL = import.meta.env.VITE_API_URL || '';
-
-const api = axios.create({
-  baseURL: API_BASE_URL,
-  withCredentials: true,
-  headers: {
-    'Content-Type': 'application/json',
-  },
-});
-
-export function getApiValidationErrors(error: unknown): { form: string; fields: Record<string, string> } {
-  const fields: Record<string, string> = {};
-  let form = '';
-  if (axios.isAxiosError(error)) {
-    const detail = error.response?.data?.detail;
-    if (Array.isArray(detail)) {
-      detail.forEach((item: { loc?: Array<string | number>; msg?: string }) => {
-        const field = item.loc?.filter((part) => part !== 'body').at(-1);
-        if (field) fields[String(field)] = item.msg || 'This value is invalid.';
-      });
-    } else if (typeof detail === 'string') {
-      form = detail;
-    }
-  }
-  return { form, fields };
-}
-
-function getCookie(name: string): string | null {
-  const match = document.cookie
-    .split('; ')
-    .find((cookie) => cookie.startsWith(`${name}=`));
-  return match ? decodeURIComponent(match.split('=')[1]) : null;
-}
-
-async function fetchCsrfToken(): Promise<string | null> {
-  try {
-    const res = await fetch(`${API_BASE_URL}/api/security/csrf`, {
-      method: 'GET',
-      credentials: 'include',
-    });
-    if (res.ok) {
-      const data = await res.json().catch(() => null);
-      if (data?.csrf_token) {
-        return data.csrf_token;
-      }
-    }
-  } catch {
-    // Ignore network failure; fallback to reading document.cookie
-  }
-  return getCookie('csrf_token');
-}
-
-const csrfExemptPaths = new Set([
-  '/api/auth/login',
-  '/api/auth/login/security-questions',
-  '/api/auth/login/otp',
-  '/api/auth/refresh',
-  '/api/auth/logout',
-  '/api/auth/password-reset/request',
-  '/api/auth/password-reset/confirm',
-  '/api/security/csrf',
-]);
-
-api.interceptors.request.use(async (config) => {
-  const token = localStorage.getItem('admin_access_token') || localStorage.getItem('access_token');
-  if (token && config.headers) {
-    config.headers.Authorization = `Bearer ${token}`;
-  }
-
-  const method = (config.method || 'get').toLowerCase();
-  const url = config.url || '';
-
-  if (['post', 'put', 'patch', 'delete'].includes(method) && !csrfExemptPaths.has(url)) {
-    let csrf = getCookie('csrf_token');
-    if (!csrf) {
-      csrf = await fetchCsrfToken();
-    }
-    if (csrf && config.headers) {
-      config.headers['X-CSRF-Token'] = csrf;
-    }
-  }
-
-  return config;
-});
-
-let refreshPromise: Promise<void> | null = null;
-api.interceptors.response.use(
-  (response) => response,
-  async (error) => {
-    const original = error.config;
-    const url = original?.url || '';
-    if (
-      error.response?.status === 401 &&
-      original &&
-      !original._retry &&
-      !url.includes('/api/auth/login') &&
-      !url.includes('/api/auth/refresh') &&
-      !url.includes('/api/auth/logout')
-    ) {
-      original._retry = true;
-      refreshPromise ??= api
-        .post('/api/auth/refresh', undefined, {
-          headers: url.startsWith('/api/admin') ? { 'X-Client-Role': 'admin' } : undefined,
-        })
-        .then(() => undefined)
-        .finally(() => {
-          refreshPromise = null;
-        });
-      await refreshPromise;
-      return api(original);
-    }
-    return Promise.reject(error);
-  },
-);
-
-export default api;
-
-export interface ApiUser {
-  id: number;
-  email: string;
-  username: string;
-  full_name: string;
-  address?: string | null;
-  role: string;
-  is_active: boolean;
-  created_at: string;
-}
-
-export interface ApiSecurityQuestion {
-  id: number;
-  question: string;
-}
-
-export interface ApiAccount {
-  id: number;
-  account_number: string;
-  account_type: string;
-  balance: number;
-  currency: string;
-  created_at: string;
-}
-
-export interface ApiTransaction {
-  id: number;
-  account_id: number;
-  amount: number;
-  transaction_type: string;
-  status: string;
-  description: string;
-  reference: string;
-  created_at: string;
-}
-
-export interface ApiAdminTransaction extends ApiTransaction {
-  user_id: number;
-  user_name: string;
-  account_number: string;
-}
-
-export interface InvestmentHolding {
-  id: number;
-  symbol: string;
-  name: string;
-  asset_class: string;
-  units: number;
-  average_cost: number;
-  current_price: number;
-  market_value: number;
-  cost_basis: number;
-  daily_change: number;
-  total_return: number;
-  allocation_percentage: number;
-  currency: string;
-  created_at: string;
-}
-
-export interface InvestmentPortfolio {
-  summary: {
-    total_value: number;
-    total_cost: number;
-    total_gain: number;
-    gain_percentage: number;
-    daily_change: number;
-    currency: string;
-  };
-  holdings: InvestmentHolding[];
-}
-
-export interface ApiCard {
-  id: number;
-  account_id: number;
-  holder_name: string;
-  last_four: string;
-  card_number?: string | null;
-  expiry: string;
-  cvc?: string | null;
-  network: string;
-  frozen: boolean;
-  created_at: string;
-}
-
-export interface ApiPayee {
-  id: number;
-  name: string;
-  bank: string;
-  account_number: string;
-  iban?: string | null;
-  swift_code?: string | null;
-  created_at: string;
-}
-
-export interface ApiComplaint {
-  id: number;
-  subject: string;
-  message: string;
-  status: string;
-  created_at: string;
-  updated_at?: string;
-}
-
-export interface ApiSupportRequest extends ApiComplaint {
-  user_id?: number | null;
-  contact_name?: string | null;
-  contact_email?: string | null;
-}
-
-export interface ApiAdminAccount {
-  id: number;
-  user_id: number;
-  user_name: string;
-  account_number: string;
-  account_type: string;
-  balance: number;
-  currency: string;
-  status: string;
-}
-
-export interface ApiAdminInvestment extends InvestmentHolding {
-  user_id: number;
-  user_name: string;
-}
-
-export interface ApiAdminDashboard {
-  total_users: number;
-  active_users: number;
-  total_accounts: number;
-  active_accounts: number;
-  total_cards: number;
-  active_cards: number;
-  active_loans: number;
-  total_assets: number;
-  total_account_balances: number;
-  total_investment_value: number;
-  pending_transactions: number;
-  failed_transactions: number;
-  recent_transactions: ApiAdminTransaction[];
-}
-
-export interface ApiLoan {
-  id: number;
-  amount: number;
-  outstanding: number;
-  interest_rate: number;
-  term: string;
-  status: string;
-  disbursed_date?: string | null;
-  description?: string | null;
-  created_at: string;
-}
-
-export interface ApiAdminLoan extends ApiLoan {
-  user_id: number;
-  user_name: string;
-}
-
-export interface ApiBeneficiary {
-  id: number;
-  user_id: number;
-  name: string;
-  relationship?: string | null;
-  bank?: string | null;
-  account_number?: string | null;
-  notes?: string | null;
-  created_at: string;
-}
-
-export interface LoginResponse {
-  stage: 'complete' | 'security_questions' | 'otp';
-  challenge_token?: string;
-  questions?: ApiSecurityQuestion[];
-  message?: string;
-  access_token?: string;
-  token_type: string;
-  role: string;
-}
-
-export async function loginRequest(email: string, password: string) {
-  const form = new URLSearchParams();
-  form.set('username', email);
-  form.set('password', password);
-  const response = await api.post<LoginResponse>('/api/auth/login', form, {
-    headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
-  });
-  return response.data;
-}
-
-export async function verifySecurityQuestions(
-  challengeToken: string,
-  answers: Array<{ question_id: number; answer: string }>,
-) {
-  const response = await api.post<LoginResponse>('/api/auth/login/security-questions', {
-    challenge_token: challengeToken,
-    answers,
-  });
-  return response.data;
-}
-
-export async function verifyLoginOtp(challengeToken: string, otp: string) {
-  const response = await api.post<LoginResponse>('/api/auth/login/otp', {
-    challenge_token: challengeToken,
-    otp,
-  });
-  return response.data;
-}
-
-export async function adminLoginRequest(username: string, password: string) {
-  const form = new URLSearchParams();
-  form.set('username', username);
-  form.set('password', password);
-  const response = await api.post<LoginResponse>('/api/auth/login', form, {
-    headers: {
-      'Content-Type': 'application/x-www-form-urlencoded',
-      'X-Client-Role': 'admin',
-    },
-  });
-  return response.data;
-}
-
-export async function logoutRequest() {
-  await api.post('/api/auth/logout');
-}
-
-export async function getCurrentUser() {
-  const response = await api.get<ApiUser>('/api/users/me');
-  return response.data;
-}
-
-export async function getAccounts() {
-  const response = await api.get<ApiAccount[]>('/api/accounts/');
-  return response.data;
-}
-
-export async function getTransactions() {
-  const response = await api.get<ApiTransaction[]>('/api/transactions/');
-  return response.data;
-}
-
-export async function getInvestmentPortfolio() {
-  const response = await api.get<InvestmentPortfolio>('/api/investments/portfolio');
-  return response.data;
-}
-
-export async function getCards() {
-  const response = await api.get<ApiCard[]>('/api/cards/');
-  return response.data;
-}
-
-export async function updateCardFreeze(cardId: number, frozen: boolean) {
-  const response = await api.patch<ApiCard>(`/api/cards/${cardId}/freeze`, null, {
-    params: { frozen },
-  });
-  return response.data;
-}
-
-export async function sendTransfer(payload: {
-  from_account_id: number;
-  to_account_id?: number;
-  payee_idHere is the revised `api.ts`. Key bug fixes and hardening applied:
-
-*   **Fixed Infinite Recursion on CSRF Fetch:** Calling `api.get('/api/security/csrf')` directly would re-enter the interceptor chain; it is now bypassed to fetch the cookie safely.
-*   **Token Refresh Queue & Sync:** When refreshing tokens on a `401`, new tokens received in the payload (if present) are synchronized to `localStorage`, and retried requests receive updated headers.
-*   **Dual Token Disambiguation:** Differentiates whether an admin or standard user token should be attached based on route context (`/api/admin`).
-*   **TypeScript Internal Extension:** Extended `InternalAxiosRequestConfig` to formally type `_retry` without compiler errors.
-
-```typescript
 import axios, { AxiosError, InternalAxiosRequestConfig } from 'axios';
 
 declare module 'axios' {
@@ -430,21 +43,10 @@ function getCookie(name: string): string | undefined {
     .join('=');
 }
 
-const csrfExemptPaths = new Set([
-  '/api/auth/login',
-  '/api/auth/login/security-questions',
-  '/api/auth/login/otp',
-  '/api/auth/refresh',
-  '/api/auth/logout',
-  '/api/auth/password-reset/request',
-  '/api/auth/password-reset/confirm',
-  '/api/security/csrf',
-]);
-
 api.interceptors.request.use(async (config: InternalAxiosRequestConfig) => {
   const url = config.url || '';
-  const isAdminRoute = url.startsWith('/api/admin');
-  const token = isAdminRoute
+  const isAdmin = url.startsWith('/api/admin');
+  const token = isAdmin
     ? localStorage.getItem('admin_access_token') || localStorage.getItem('access_token')
     : localStorage.getItem('access_token');
 
@@ -452,17 +54,9 @@ api.interceptors.request.use(async (config: InternalAxiosRequestConfig) => {
     config.headers.Authorization = `Bearer ${token}`;
   }
 
-  const method = (config.method || 'get').toLowerCase();
-  if (['post', 'put', 'patch', 'delete'].includes(method) && !csrfExemptPaths.has(url)) {
-    let csrf = getCookie('csrf_token');
-    if (!csrf) {
-      // Use standard axios to avoid circular interceptor execution
-      await axios.get(`${API_BASE_URL}/api/security/csrf`, { withCredentials: true });
-      csrf = getCookie('csrf_token');
-    }
-    if (csrf) {
-      config.headers['X-CSRF-Token'] = csrf;
-    }
+  const csrf = getCookie('csrf_token');
+  if (csrf) {
+    config.headers['X-CSRF-Token'] = csrf;
   }
   return config;
 });
@@ -484,7 +78,6 @@ api.interceptors.response.use(
       !url.includes('/api/auth/logout')
     ) {
       original._retry = true;
-
       const isAdmin = url.startsWith('/api/admin');
       const tokenKey = isAdmin ? 'admin_access_token' : 'access_token';
 
@@ -797,13 +390,7 @@ export async function sendTransfer(payload: {
   note?: string;
 }) {
   const response = await api.post('/api/transactions/transfer', payload);
-  return response.data as {
-    message: string;
-    amount: number;
-    from_account_id: number;
-    to_account_id?: number;
-    transaction_ids: number[];
-  };
+  return response.data;
 }
 
 export async function getPayees() {
@@ -864,7 +451,7 @@ export async function getAdminUser() {
 }
 
 export async function getAdminUsers() {
-  const response = await api.get<Array<ApiUser & number total_balance: { }>>('/api/admin/users');
+  const response = await api.get<Array<ApiUser & { total_balance: number }>>('/api/admin/users');
   return response.data;
 }
 
@@ -875,7 +462,7 @@ export async function createAdminUser(payload: {
   address?: string;
   password: string;
 }) {
-  const response = await api.post<ApiUser & number total_balance: { }>('/api/admin/users', payload);
+  const response = await api.post<ApiUser & { total_balance: number }>('/api/admin/users', payload);
   return response.data;
 }
 
@@ -887,7 +474,7 @@ export async function updateAdminUser(userId: number, payload: {
   is_active?: boolean;
   created_at?: string;
 }) {
-  const response = await api.patch<ApiUser & number total_balance: { }>(`/api/admin/users/${userId}`, payload);
+  const response = await api.patch<ApiUser & { total_balance: number }>(`/api/admin/users/${userId}`, payload);
   return response.data;
 }
 
@@ -990,12 +577,12 @@ export async function deleteAdminAccount(accountId: number) {
 }
 
 export async function getAdminCards() {
-  const response = await api.get<Array<ApiCard & account_type: number; string string; user_id: user_name: { }>>('/api/admin/cards');
+  const response = await api.get<Array<ApiCard & { user_id: number; user_name: string; account_type: string }>>('/api/admin/cards');
   return response.data;
 }
 
 export async function updateAdminCardFreeze(cardId: number, frozen: boolean) {
-  const response = await api.patch<ApiCard & account_type: number; string string; user_id: user_name: { }>(`/api/admin/cards/${cardId}/freeze`, null, {
+  const response = await api.patch<ApiCard & { user_id: number; user_name: string; account_type: string }>(`/api/admin/cards/${cardId}/freeze`, null, {
     params: { frozen },
   });
   return response.data;
@@ -1011,7 +598,7 @@ export async function createAdminCard(payload: {
   network: string;
   frozen: boolean;
 }) {
-  const response = await api.post<ApiCard & account_type: number; string string; user_id: user_name: { }>('/api/admin/cards', payload);
+  const response = await api.post<ApiCard & { user_id: number; user_name: string; account_type: string }>('/api/admin/cards', payload);
   return response.data;
 }
 
@@ -1024,7 +611,7 @@ export async function updateAdminCard(cardId: number, payload: {
   network?: string;
   frozen?: boolean;
 }) {
-  const response = await api.patch<ApiCard & account_type: number; string string; user_id: user_name: { }>(`/api/admin/cards/${cardId}`, payload);
+  const response = await api.patch<ApiCard & { user_id: number; user_name: string; account_type: string }>(`/api/admin/cards/${cardId}`, payload);
   return response.data;
 }
 
@@ -1056,7 +643,7 @@ export async function createAdminInvestment(payload: {
   return response.data;
 }
 
-export async function updateAdminInvestment(investmentId: number, payload: Partial<Omit<ApiAdminInvestment, 'created_at' 'id' 'user_name' |>>) {
+export async function updateAdminInvestment(investmentId: number, payload: Partial<Omit<ApiAdminInvestment, 'id' | 'user_name' | 'created_at'>>) {
   const response = await api.patch<ApiAdminInvestment>(`/api/admin/investments/${investmentId}`, payload);
   return response.data;
 }
@@ -1103,7 +690,7 @@ export async function createAdminLoan(payload: {
   disbursed_date?: string;
   description?: string;
 }) {
-  const response = await api.post<ApiAdminLoan>('/api/admin/loans', payload);
+  const response = await api.post<ApiAdminLoan>(`/api/admin/loans`, payload);
   return response.data;
 }
 

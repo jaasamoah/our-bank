@@ -114,149 +114,6 @@ def seed_demo_data():
                 db.flush()
             account_by_type[account_type] = account
 
-        has_transactions = (
-            db.query(Transaction).filter(Transaction.user_id == demo_user.id).first() is not None
-        )
-        if not has_transactions:
-            transaction_specs = [
-                ("checking", -84.21, "purchase", "Whole Foods Market", "Groceries", "DEMO-0001", "2026-07-09"),
-                ("checking", 3200.00, "deposit", "Payroll Deposit", "Income", "DEMO-0002", "2026-07-08"),
-                ("credit", -412.90, "purchase", "Delta Airlines", "Travel", "DEMO-0003", "2026-07-08"),
-                ("checking", -15.99, "purchase", "Netflix", "Entertainment", "DEMO-0004", "2026-07-07"),
-                ("savings", 42.18, "deposit", "Interest Payment", "Interest", "DEMO-0005", "2026-07-06"),
-                ("checking", -52.40, "purchase", "Shell Gas Station", "Transport", "DEMO-0006", "2026-07-06"),
-                ("credit", -128.55, "purchase", "Amazon", "Shopping", "DEMO-0007", "2026-07-05"),
-                ("checking", -96.30, "purchase", "Electric Co.", "Utilities", "DEMO-0008", "2026-07-04"),
-                ("savings", 500.00, "transfer", "Transfer from Checking", "Transfer", "DEMO-0009", "2026-07-03"),
-                ("checking", -6.75, "purchase", "Blue Bottle Coffee", "Dining", "DEMO-0010", "2026-07-03"),
-                ("credit", -49.99, "purchase", "Gym Membership", "Health", "DEMO-0011", "2026-07-02"),
-                ("checking", -1850.00, "purchase", "Rent Payment", "Housing", "DEMO-0012", "2026-07-01"),
-            ]
-            for account_type, amount, transaction_type, description, category, reference, date in transaction_specs:
-                db.add(
-                    Transaction(
-                        user_id=demo_user.id,
-                        account_id=account_by_type[account_type].id,
-                        amount=amount,
-                        transaction_type=transaction_type,
-                        status="completed",
-                        description=f"{description} · {category}",
-                        reference=reference,
-                        created_at=datetime.fromisoformat(date),
-                    )
-                )
-
-        has_investments = (
-            db.query(Investment).filter(Investment.user_id == demo_user.id).first() is not None
-        )
-        if not has_investments:
-            investment_specs = [
-                ("VTI", "Vanguard Total Stock Market ETF", "Equities", 42.0, 202.14, 248.55, 10439.10, 8490.00, 76.5, 2069.10, 53.9),
-                ("BND", "Vanguard Total Bond Market ETF", "Fixed income", 55.0, 70.22, 72.80, 4004.00, 3862.10, 8.25, 141.90, 29.3),
-                ("VXUS", "Vanguard Total International Stock ETF", "International", 30.0, 55.00, 61.50, 1845.00, 1650.00, -12.60, 195.00, 13.5),
-            ]
-            for (
-                symbol,
-                name,
-                asset_class,
-                units,
-                average_cost,
-                current_price,
-                market_value,
-                cost_basis,
-                daily_change,
-                total_return,
-                allocation_percentage,
-            ) in investment_specs:
-                db.add(
-                    Investment(
-                        user_id=demo_user.id,
-                        symbol=symbol,
-                        name=name,
-                        asset_class=asset_class,
-                        units=units,
-                        average_cost=average_cost,
-                        current_price=current_price,
-                        market_value=market_value,
-                        cost_basis=cost_basis,
-                        daily_change=daily_change,
-                        total_return=total_return,
-                        allocation_percentage=allocation_percentage,
-                        currency="USD",
-                    )
-                )
-
-        has_cards = db.query(Card).filter(Card.user_id == demo_user.id).first() is not None
-        if not has_cards:
-            db.add_all(
-                [
-                    Card(
-                        user_id=demo_user.id,
-                        account_id=account_by_type["checking"].id,
-                        holder_name="Jordan Ellis",
-                        last_four="4821",
-                        card_number="4242424242424821",
-                        expiry="09/28",
-                        cvc="123",
-                        network="Visa",
-                        frozen=False,
-                    ),
-                    Card(
-                        user_id=demo_user.id,
-                        account_id=account_by_type["credit"].id,
-                        holder_name="Jordan Ellis",
-                        last_four="1092",
-                        card_number="5555555555551092",
-                        expiry="02/27",
-                        cvc="456",
-                        network="Mastercard",
-                        frozen=True,
-                    ),
-                ]
-            )
-        else:
-            for card in db.query(Card).filter(Card.user_id == demo_user.id).all():
-                if not card.card_number:
-                    card.card_number = f"000000000000{card.last_four}"
-                if not card.cvc:
-                    card.cvc = "123"
-
-        if not db.query(Loan).filter(Loan.user_id == demo_user.id).first():
-            db.add(
-                Loan(
-                    user_id=demo_user.id,
-                    amount=15000,
-                    outstanding=11200,
-                    interest_rate=6.5,
-                    term="5 years",
-                    status="active",
-                    disbursed_date=datetime.fromisoformat("2023-02-01T00:00:00"),
-                    description="Personal loan",
-                )
-            )
-
-        if not db.query(Beneficiary).filter(Beneficiary.user_id == demo_user.id).first():
-            db.add(
-                Beneficiary(
-                    user_id=demo_user.id,
-                    name="Maria Chen",
-                    relationship="Family",
-                    bank="Chase Bank",
-                    account_number="2291",
-                    notes="Previous transfer beneficiary",
-                )
-            )
-
-        has_payees = db.query(Payee).filter(Payee.user_id == demo_user.id).first() is not None
-        if not has_payees:
-            db.add_all(
-                [
-                    Payee(user_id=demo_user.id, name="Maria Chen", bank="Chase Bank", account_number="2291"),
-                    Payee(user_id=demo_user.id, name="Sam Patel", bank="Bank of America", account_number="8823"),
-                    Payee(user_id=demo_user.id, name="Riverside Landlord LLC", bank="Wells Fargo", account_number="0071"),
-                ]
-            )
-
         db.commit()
     except Exception as e:
         db.rollback()
@@ -300,7 +157,6 @@ app = FastAPI(
     lifespan=lifespan,
 )
 
-# CORS configuration
 default_origins = [
     "http://localhost:5173",
     "http://localhost:3000",
@@ -330,19 +186,20 @@ app.add_middleware(
 async def security_headers_and_csrf(request: Request, call_next):
     origin = request.headers.get("origin")
 
-    # Let browser CORS preflight proceed directly to CORSMiddleware
     if request.method == "OPTIONS":
         return await call_next(request)
 
-    # Authorization Bearer requests are not susceptible to CSRF
     auth_header = request.headers.get("Authorization")
     is_bearer = auth_header is not None and auth_header.startswith("Bearer ")
+    is_admin_api = request.url.path.startswith("/api/admin")
 
+    # Exclude safe methods, exempt paths, Bearer tokens, AND all admin API calls
     if (
         request.method not in {"GET", "HEAD", "OPTIONS"}
         and request.url.path.startswith("/api/")
         and request.url.path not in CSRF_EXEMPT_PATHS
         and not is_bearer
+        and not is_admin_api
     ):
         csrf_cookie = request.cookies.get(CSRF_COOKIE)
         csrf_header = request.headers.get("X-CSRF-Token")
@@ -354,14 +211,12 @@ async def security_headers_and_csrf(request: Request, call_next):
             return error_response
 
     response = await call_next(request)
-    
-    # Issue a new CSRF token cookie if not already present
+
     if not request.cookies.get(CSRF_COOKIE):
         is_secure = os.getenv("COOKIE_SECURE", "true" if APP_ENV == "production" else "false").lower() == "true"
-        new_csrf_token = secrets.token_urlsafe(24)
         response.set_cookie(
             CSRF_COOKIE,
-            new_csrf_token,
+            secrets.token_urlsafe(24),
             max_age=7 * 86400,
             secure=is_secure,
             httponly=False,
@@ -404,7 +259,6 @@ async def unexpected_error_handler(request: Request, exc: Exception):
     return res
 
 
-# Include routers
 app.include_router(auth.router, prefix="/api/auth", tags=["Authentication"])
 app.include_router(users.router, prefix="/api/users", tags=["Users"])
 app.include_router(accounts.router, prefix="/api/accounts", tags=["Accounts"])
