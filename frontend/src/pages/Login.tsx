@@ -6,6 +6,15 @@ import type { ApiSecurityQuestion } from '../services/api';
 import Brand from '../components/Brand';
 import LoadingSpinner from '../components/LoadingSpinner';
 
+const clearClientAuthStorage = () => {
+  try {
+    localStorage.clear();
+    sessionStorage.clear();
+  } catch {
+    // Gracefully handle environments where storage access is restricted
+  }
+};
+
 const Login: React.FC = () => {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
@@ -22,6 +31,7 @@ const Login: React.FC = () => {
   const handleCredentials = async (event: React.FormEvent) => {
     event.preventDefault();
     setError('');
+    clearClientAuthStorage();
     setLoading(true);
     const result = await login(email, password);
     setLoading(false);
@@ -73,6 +83,7 @@ const Login: React.FC = () => {
   };
 
   const restart = () => {
+    clearClientAuthStorage();
     setStep('credentials');
     setChallengeToken('');
     setQuestions([]);
