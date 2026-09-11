@@ -287,6 +287,7 @@ CSRF_EXEMPT_PATHS = {
     "/api/auth/logout",
     "/api/auth/password-reset/request",
     "/api/auth/password-reset/confirm",
+    "/api/security/csrf",
 }
 
 app = FastAPI(
@@ -353,11 +354,14 @@ async def security_headers_and_csrf(request: Request, call_next):
             return error_response
 
     response = await call_next(request)
+    
+    # Issue a new CSRF token cookie if not already present
     if not request.cookies.get(CSRF_COOKIE):
         is_secure = os.getenv("COOKIE_SECURE", "true" if APP_ENV == "production" else "false").lower() == "true"
+        new_csrf_token = secrets.token_urlsafe(24)
         response.set_cookie(
             CSRF_COOKIE,
-            secrets.token_urlsafe(24),
+            new_csrf_token,
             max_age=7 * 86400,
             secure=is_secure,
             httponly=False,
@@ -425,8 +429,20 @@ async def health_check():
 
 
 @app.get("/api/security/csrf", include_in_schema=False)
-async def csrf_bootstrap():
-    return {"status": "ok"}
+async def csrf_bootstrap(request: Request):
+    token = request.cookies.get(CSRF_COOKIE) or secrets.token_urlsafe(24)
+    response = JSONResponse(content={"status": "ok", "csrf_token": token})
+    is_secure = os.getenv("COOKIE_SECURE", "true" if APP_ENV == "production" else "false").lower() == "true"
+    response.set_cookie(
+        CSRF_COOKIE,
+        token,
+        max_age=7 * 86400,
+        secure=is_secure,
+        httponly=False,
+        samesite="none" if is_secure else "lax",
+        path="/",
+    )
+    return response
 
 
 if ENABLE_API_DOCS:
