@@ -17,9 +17,17 @@ const Transfer = () => {
   const [accounts, setAccounts] = useState<ReturnType<typeof mapAccount>[]>([]);
   const [loading, setLoading] = useState(true);
   const [submitting, setSubmitting] = useState(false);
+  const [savingPayee, setSavingPayee] = useState(false);
   const [payees, setPayees] = useState<ApiPayee[]>([]);
   const [showPayeeForm, setShowPayeeForm] = useState(false);
-  const [newPayee, setNewPayee] = useState({ name: '', bank: '', account_number: '', iban: '', swift_code: '', password: '' });
+  const [newPayee, setNewPayee] = useState({
+    name: '',
+    bank: '',
+    account_number: '',
+    iban: '',
+    swift_code: '',
+    password: '',
+  });
   const [payeeToRemove, setPayeeToRemove] = useState<ApiPayee | null>(null);
   const [payeePassword, setPayeePassword] = useState('');
   const [removingPayee, setRemovingPayee] = useState(false);
@@ -86,8 +94,9 @@ const Transfer = () => {
       setNote('');
       const accountData = await getAccounts();
       setAccounts(accountData.map(mapAccount));
-    } catch {
-      setError('We could not complete that transfer. Please check the amount and try again.');
+    } catch (err: any) {
+      const detail = err?.response?.data?.detail;
+      setError(typeof detail === 'string' ? detail : 'We could not complete that transfer. Please check the amount and try again.');
     } finally {
       setSubmitting(false);
     }
@@ -95,22 +104,37 @@ const Transfer = () => {
 
   const handleAddPayee = async () => {
     setError(null);
+    if (!newPayee.name.trim() || !newPayee.bank.trim() || !newPayee.account_number.trim()) {
+      setError('Enter the recipient name, bank name, and account number.');
+      return;
+    }
     if (!newPayee.iban.trim() || !newPayee.swift_code.trim()) {
-      setError('Enter the IBAN and SWIFT code to save this payee.');
+      setError('Enter both the IBAN and SWIFT code to save this payee.');
       return;
     }
     if (!newPayee.password) {
-      setError('Enter your password to save this payee.');
+      setError('Enter your current password to confirm and save this payee.');
       return;
     }
+
+    setSavingPayee(true);
     try {
       const created = await createPayee(newPayee);
       setPayees((current) => [...current, created].sort((a, b) => a.name.localeCompare(b.name)));
       setPayeeId(created.id);
       setNewPayee({ name: '', bank: '', account_number: '', iban: '', swift_code: '', password: '' });
       setShowPayeeForm(false);
-    } catch {
-      setError('We could not save that payee. Check the details and try again.');
+    } catch (err: any) {
+      const detail = err?.response?.data?.detail;
+      if (Array.isArray(detail)) {
+        setError(detail[0]?.msg || 'Validation failed. Please check the fields.');
+      } else if (typeof detail === 'string') {
+        setError(detail);
+      } else {
+        setError('We could not save that payee. Check the details and try again.');
+      }
+    } finally {
+      setSavingPayee(false);
     }
   };
 
@@ -133,8 +157,9 @@ const Transfer = () => {
       if (payeeId === payeeToRemove.id) setPayeeId(remaining[0]?.id ?? '');
       setPayeeToRemove(null);
       setPayeePassword('');
-    } catch {
-      setError('We could not remove that payee. Check your password and try again.');
+    } catch (err: any) {
+      const detail = err?.response?.data?.detail;
+      setError(typeof detail === 'string' ? detail : 'We could not remove that payee. Check your password and try again.');
     } finally {
       setRemovingPayee(false);
     }
@@ -201,7 +226,7 @@ const Transfer = () => {
             ) : (
               <select
                 value={payeeId}
-                onChange={(e) => setPayeeId(e.target.value)}
+                onChange={(e) => setPayeeId(Number(e.target.value) || '')}
                 className="block w-full rounded-xl border border-slate-200 px-4 py-2.5 outline-none focus:border-brand-500 focus:ring-2 focus:ring-brand-100"
               >
                 {payees.map((p) => (
@@ -211,30 +236,73 @@ const Transfer = () => {
                 ))}
               </select>
             )}
-            <button type="button" onClick={() => setShowPayeeForm((open) => !open)} className="mt-3 text-sm font-semibold text-brand-700 hover:text-brand-800">
+
+            <button
+              type="button"
+              onClick={() => setShowPayeeForm((open) => !open)}
+              className="mt-3 text-sm font-semibold text-brand-700 hover:text-brand-800"
+            >
               {showPayeeForm ? 'Cancel adding payee' : '+ Add a new saved payee'}
             </button>
+
             {showPayeeForm && (
               <div className="mt-3 space-y-3 rounded-xl bg-slate-50 p-4">
-                <input value={newPayee.name} onChange={(e) => setNewPayee({ ...newPayee, name: e.target.value })} placeholder="Payee name" required className="w-full rounded-xl border border-slate-200 px-3 py-2.5 text-sm outline-none focus:border-brand-500" />
-                <input value={newPayee.bank} onChange={(e) => setNewPayee({ ...newPayee, bank: e.target.value })} placeholder="Bank name" required className="w-full rounded-xl border border-slate-200 px-3 py-2.5 text-sm outline-none focus:border-brand-500" />
-                <input value={newPayee.account_number} onChange={(e) => setNewPayee({ ...newPayee, account_number: e.target.value })} placeholder="Account number" required className="w-full rounded-xl border border-slate-200 px-3 py-2.5 text-sm outline-none focus:border-brand-500" />
+                <input
+                  value={newPayee.name}
+                  onChange={(e) => setNewPayee({ ...newPayee, name: e.target.value })}
+                  placeholder="Payee name"
+                  required
+                  className="w-full rounded-xl border border-slate-200 px-3 py-2.5 text-sm outline-none focus:border-brand-500"
+                />
+                <input
+                  value={newPayee.bank}
+                  onChange={(e) => setNewPayee({ ...newPayee, bank: e.target.value })}
+                  placeholder="Bank name"
+                  required
+                  className="w-full rounded-xl border border-slate-200 px-3 py-2.5 text-sm outline-none focus:border-brand-500"
+                />
+                <input
+                  value={newPayee.account_number}
+                  onChange={(e) => setNewPayee({ ...newPayee, account_number: e.target.value })}
+                  placeholder="Account number"
+                  required
+                  className="w-full rounded-xl border border-slate-200 px-3 py-2.5 text-sm outline-none focus:border-brand-500"
+                />
                 <div className="grid grid-cols-1 gap-2 sm:grid-cols-2">
-                  <input value={newPayee.iban} onChange={(e) => setNewPayee({ ...newPayee, iban: e.target.value })} placeholder="IBAN number" required className="min-w-0 rounded-xl border border-slate-200 px-3 py-2.5 text-sm outline-none focus:border-brand-500" />
-                  <input value={newPayee.swift_code} onChange={(e) => setNewPayee({ ...newPayee, swift_code: e.target.value })} placeholder="SWIFT code" required className="min-w-0 rounded-xl border border-slate-200 px-3 py-2.5 text-sm uppercase outline-none focus:border-brand-500" />
+                  <input
+                    value={newPayee.iban}
+                    onChange={(e) => setNewPayee({ ...newPayee, iban: e.target.value })}
+                    placeholder="IBAN number"
+                    required
+                    className="min-w-0 rounded-xl border border-slate-200 px-3 py-2.5 text-sm outline-none focus:border-brand-500"
+                  />
+                  <input
+                    value={newPayee.swift_code}
+                    onChange={(e) => setNewPayee({ ...newPayee, swift_code: e.target.value })}
+                    placeholder="SWIFT code"
+                    required
+                    className="min-w-0 rounded-xl border border-slate-200 px-3 py-2.5 text-sm uppercase outline-none focus:border-brand-500"
+                  />
                 </div>
+                <input
+                  type="password"
+                  autoComplete="current-password"
+                  value={newPayee.password}
+                  onChange={(e) => setNewPayee({ ...newPayee, password: e.target.value })}
+                  placeholder="Confirm with your login password"
+                  required
+                  className="w-full rounded-xl border border-slate-200 px-3 py-2.5 text-sm outline-none focus:border-brand-500"
+                />
                 <div className="flex justify-end">
-                    <button type="button" onClick={handleAddPayee} className="rounded-xl bg-brand-700 px-4 py-2 text-sm font-semibold text-white hover:bg-brand-800">Save</button>
+                  <button
+                    type="button"
+                    onClick={handleAddPayee}
+                    disabled={savingPayee}
+                    className="rounded-xl bg-brand-700 px-4 py-2 text-sm font-semibold text-white hover:bg-brand-800 disabled:opacity-60"
+                  >
+                    {savingPayee ? 'Saving…' : 'Save Payee'}
+                  </button>
                 </div>
-                 <input
-                   type="password"
-                   autoComplete="current-password"
-                   value={newPayee.password}
-                   onChange={(e) => setNewPayee({ ...newPayee, password: e.target.value })}
-                   placeholder="Confirm with your password"
-                   required
-                   className="w-full rounded-xl border border-slate-200 px-3 py-2.5 text-sm outline-none focus:border-brand-500"
-                 />
               </div>
             )}
           </div>
@@ -268,12 +336,12 @@ const Transfer = () => {
           {error && <div className="rounded-xl bg-red-50 px-4 py-2.5 text-sm text-red-600">{error}</div>}
           {success && <div className="rounded-xl bg-emerald-50 px-4 py-2.5 text-sm text-emerald-700">{success}</div>}
 
-            <button
+          <button
             type="submit"
-              disabled={loading || submitting}
-              className="w-full rounded-xl bg-brand-700 px-4 py-2.5 text-sm font-semibold text-white transition-colors hover:bg-brand-800 disabled:cursor-not-allowed disabled:opacity-60"
+            disabled={loading || submitting}
+            className="w-full rounded-xl bg-brand-700 px-4 py-2.5 text-sm font-semibold text-white transition-colors hover:bg-brand-800 disabled:cursor-not-allowed disabled:opacity-60"
           >
-             {submitting ? 'Sending…' : 'Review & send'}
+            {submitting ? 'Sending…' : 'Review & send'}
           </button>
         </form>
 
@@ -289,12 +357,14 @@ const Transfer = () => {
                   <div className="min-w-0 flex-1">
                     <p className="truncate text-sm font-medium text-slate-900">{p.name}</p>
                     <p className="truncate text-xs text-slate-500">
-                       {p.bank} ···· {p.account_number.slice(-4)}
-                       {p.iban && ` · IBAN ${p.iban}`}
-                       {p.swift_code && ` · SWIFT ${p.swift_code}`}
+                      {p.bank} ···· {p.account_number.slice(-4)}
+                      {p.iban && ` · IBAN ${p.iban}`}
+                      {p.swift_code && ` · SWIFT ${p.swift_code}`}
                     </p>
                   </div>
-                   <button type="button" onClick={() => handleDeletePayee(p)} className="text-xs font-medium text-slate-400 hover:text-red-600">Remove</button>
+                  <button type="button" onClick={() => handleDeletePayee(p)} className="text-xs font-medium text-slate-400 hover:text-red-600">
+                    Remove
+                  </button>
                 </div>
               ))}
               {payees.length === 0 && <p className="text-sm text-slate-500">No saved payees yet.</p>}

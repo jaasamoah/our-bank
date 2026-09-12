@@ -1,4 +1,4 @@
-from fastapi import APIRouter, Depends, HTTPException
+from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy.orm import Session
 
 from ..auth import get_current_user, verify_password
@@ -18,7 +18,12 @@ def get_payees(
     return db.query(Payee).filter(Payee.user_id == current_user.id).order_by(Payee.name).all()
 
 
-@router.post("/", response_model=PayeeOut, status_code=201, dependencies=[Depends(rate_limit("payee-create", 10))])
+@router.post(
+    "/",
+    response_model=PayeeOut,
+    status_code=status.HTTP_201_CREATED,
+    dependencies=[Depends(rate_limit("payee-create", 10))],
+)
 def create_payee(
     payload: PayeeCreate,
     current_user: User = Depends(get_current_user),
@@ -27,12 +32,48 @@ def create_payee(
     name = payload.name.strip()
     bank = payload.bank.strip()
     account_number = payload.account_number.strip()
-    iban = payload.iban.strip()
-    swift_code = payload.swift_code.strip().upper()
-    if not name or not bank or len(account_number) < 4 or not iban or not swift_code:
-        raise HTTPException(status_code=400, detail="Enter a name, bank, account number, IBAN, and SWIFT code")
+    iban = payload.iban.strip().replace(" ", "").upper()
+    swift_code = payload.swift_code.strip().replace(" ", "").upper()
+
+    # Explicit mandatory validation
+    if not name or not bank or len(account_number) < 4:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Enter a valid recipient name, bank, and account number",
+        )
+
+    if not iban or len(iban) < 8:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="A valid IBAN is required",
+        )
+
+    if not swift_code or len(swift_code) < 8:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="A valid SWIFT / BIC code is required (8-11 characters)",
+        )
+
     if not verify_password(payload.password, current_user.hashed_password):
-        raise HTTPException(status_code=401, detail="Password is incorrect")
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="Password is incorrect",
+        )
+
+    existing = (
+        db.query(Payee)
+        .filter(
+            Payee.user_id == current_user.id,
+            Payee.account_number == account_number,
+        )
+        .first()
+    )
+    if existing:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="A payee with this account number already exists",
+        )
+
     payee = Payee(
         user_id=current_user.id,
         name=name,
@@ -47,7 +88,11 @@ def create_payee(
     return payee
 
 
-@router.delete("/{payee_id}", status_code=204, dependencies=[Depends(rate_limit("payee-delete", 10))])
+@router.delete(
+    "/{payee_id}",
+    status_code=status.HTTP_204_NO_CONTENT,
+    dependencies=[Depends(rate_limit("payee-delete", 10))],
+)
 def delete_payee(
     payee_id: int,
     payload: PasswordConfirmation,
@@ -56,8 +101,11 @@ def delete_payee(
 ):
     payee = db.query(Payee).filter(Payee.id == payee_id, Payee.user_id == current_user.id).first()
     if not payee:
-        raise HTTPException(status_code=404, detail="Payee not found")
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Payee not found")
+
     if not verify_password(payload.password, current_user.hashed_password):
-        raise HTTPException(status_code=401, detail="Password is incorrect")
+        raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Password is incorrect")
+
     db.delete(payee)
     db.commit()
+    return None

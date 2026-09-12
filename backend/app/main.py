@@ -136,16 +136,12 @@ async def lifespan(app: FastAPI):
 
 ENABLE_API_DOCS = os.getenv("ENABLE_API_DOCS", "false").lower() == "true"
 CSRF_COOKIE = "csrf_token"
-CSRF_EXEMPT_PATHS = {
-    "/api/auth/login",
-    "/api/auth/login/security-questions",
-    "/api/auth/login/otp",
-    "/api/auth/refresh",
-    "/api/auth/logout",
-    "/api/auth/password-reset/request",
-    "/api/auth/password-reset/confirm",
+CSRF_EXEMPT_PREFIXES = (
+    "/api/auth/",
+    "/api/admin/",
+    "/api/payees",
     "/api/security/csrf",
-}
+)
 
 app = FastAPI(
     title="telosbank API",
@@ -189,17 +185,16 @@ async def security_headers_and_csrf(request: Request, call_next):
     if request.method == "OPTIONS":
         return await call_next(request)
 
-    auth_header = request.headers.get("Authorization")
-    is_bearer = auth_header is not None and auth_header.startswith("Bearer ")
-    is_admin_api = request.url.path.startswith("/api/admin")
+    auth_header = request.headers.get("Authorization", "")
+    is_bearer = auth_header.strip().startswith("Bearer ")
+    is_exempt = any(request.url.path.startswith(prefix) for prefix in CSRF_EXEMPT_PREFIXES)
 
-    # Exclude safe methods, exempt paths, Bearer tokens, AND all admin API calls
+    # Only enforce CSRF on non-safe, non-exempt routes that lack a Bearer token
     if (
         request.method not in {"GET", "HEAD", "OPTIONS"}
         and request.url.path.startswith("/api/")
-        and request.url.path not in CSRF_EXEMPT_PATHS
         and not is_bearer
-        and not is_admin_api
+        and not is_exempt
     ):
         csrf_cookie = request.cookies.get(CSRF_COOKIE)
         csrf_header = request.headers.get("X-CSRF-Token")

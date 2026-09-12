@@ -43,6 +43,35 @@ function getCookie(name: string): string | undefined {
     .join('=');
 }
 
+let csrfPromise: Promise<string | undefined> | null = null;
+
+async function getOrFetchCsrfToken(): Promise<string | undefined> {
+  const cookieVal = getCookie('csrf_token');
+  if (cookieVal) return cookieVal;
+
+  const cached = sessionStorage.getItem('csrf_token');
+  if (cached) return cached;
+
+  if (!csrfPromise) {
+    csrfPromise = axios
+      .get<{ csrf_token?: string }>(`${API_BASE_URL}/api/security/csrf`, {
+        withCredentials: true,
+      })
+      .then((res) => {
+        const token = res.data?.csrf_token;
+        if (token) {
+          sessionStorage.setItem('csrf_token', token);
+        }
+        return token;
+      })
+      .catch(() => undefined)
+      .finally(() => {
+        csrfPromise = null;
+      });
+  }
+  return csrfPromise;
+}
+
 api.interceptors.request.use(async (config: InternalAxiosRequestConfig) => {
   const url = config.url || '';
   const isAdmin = url.startsWith('/api/admin');
@@ -50,14 +79,18 @@ api.interceptors.request.use(async (config: InternalAxiosRequestConfig) => {
     ? localStorage.getItem('admin_access_token') || localStorage.getItem('access_token')
     : localStorage.getItem('access_token');
 
+  config.headers = config.headers || {};
+
   if (token) {
     config.headers.Authorization = `Bearer ${token}`;
   }
 
-  const csrf = getCookie('csrf_token');
+  // Inject CSRF token if present via cookie, sessionStorage, or bootstrap
+  const csrf = await getOrFetchCsrfToken();
   if (csrf) {
     config.headers['X-CSRF-Token'] = csrf;
   }
+
   return config;
 });
 
@@ -111,6 +144,7 @@ api.interceptors.response.use(
         const refreshedToken = await refreshPromise;
         const activeToken = refreshedToken || localStorage.getItem(tokenKey);
         if (activeToken) {
+          original.headers = original.headers || {};
           original.headers.Authorization = `Bearer ${activeToken}`;
         }
         return api(original);
@@ -213,8 +247,8 @@ export interface ApiPayee {
   name: string;
   bank: string;
   account_number: string;
-  iban?: string | null;
-  swift_code?: string | null;
+  iban: string;
+  swift_code: string;
   created_at: string;
 }
 
@@ -406,7 +440,14 @@ export async function createPayee(payload: {
   swift_code: string;
   password: string;
 }) {
-  const response = await api.post<ApiPayee>('/api/payees/', payload);
+  const response = await api.post<ApiPayee>('/api/payees/', {
+    name: payload.name.trim(),
+    bank: payload.bank.trim(),
+    account_number: payload.account_number.trim(),
+    iban: payload.iban.trim().replace(/\s+/g, '').toUpperCase(),
+    swift_code: payload.swift_code.trim().replace(/\s+/g, '').toUpperCase(),
+    password: payload.password,
+  });
   return response.data;
 }
 
