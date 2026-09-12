@@ -8,8 +8,9 @@ import LoadingSpinner from '../components/LoadingSpinner';
 
 const clearClientAuthStorage = () => {
   try {
-    localStorage.clear();
-    sessionStorage.clear();
+    localStorage.removeItem('access_token');
+    localStorage.removeItem('admin_access_token');
+    sessionStorage.removeItem('access_token');
   } catch {
     // Gracefully handle environments where storage access is restricted
   }
@@ -33,16 +34,24 @@ const Login: React.FC = () => {
     setError('');
     clearClientAuthStorage();
     setLoading(true);
-    const result = await login(email, password);
-    setLoading(false);
-    if (result.success) {
-      navigate('/dashboard');
-    } else if (result.stage && result.challengeToken) {
-      setChallengeToken(result.challengeToken);
-      setQuestions(result.questions ?? []);
-      setStep(result.stage);
-    } else {
-      setError(result.error ?? 'Something went wrong.');
+
+    try {
+      const result = await login(email, password);
+      if (result.success) {
+        window.location.assign('/dashboard');
+        return;
+      }
+      if (result.stage && result.challengeToken) {
+        setChallengeToken(result.challengeToken);
+        setQuestions(result.questions ?? []);
+        setStep(result.stage);
+      } else {
+        setError(result.error ?? 'Invalid email or password.');
+      }
+    } catch (err: any) {
+      setError(err?.message || 'Unable to connect to the authentication service.');
+    } finally {
+      setLoading(false);
     }
   };
 
@@ -50,22 +59,28 @@ const Login: React.FC = () => {
     event.preventDefault();
     setError('');
     setLoading(true);
-    const result = await verifySecurityQuestions(
-      challengeToken,
-      questions.map((question) => ({
-        question_id: question.id,
-        answer: answers[question.id] ?? '',
-      })),
-    );
-    setLoading(false);
-    if (result.success) {
-      setStep('otp');
-    } else if (result.error && result.error.toLowerCase().includes('already been verified')) {
-      // If questions were already verified, proceed directly to OTP
-      setError('');
-      setStep('otp');
-    } else {
-      setError(result.error ?? 'The security answers are incorrect.');
+
+    try {
+      const result = await verifySecurityQuestions(
+        challengeToken,
+        questions.map((question) => ({
+          question_id: question.id,
+          answer: answers[question.id] ?? '',
+        })),
+      );
+
+      if (result.success) {
+        setStep('otp');
+      } else if (result.error && result.error.toLowerCase().includes('already been verified')) {
+        setError('');
+        setStep('otp');
+      } else {
+        setError(result.error ?? 'The security answers are incorrect.');
+      }
+    } catch (err: any) {
+      setError(err?.message || 'Unable to verify security questions.');
+    } finally {
+      setLoading(false);
     }
   };
 
@@ -73,12 +88,20 @@ const Login: React.FC = () => {
     event.preventDefault();
     setError('');
     setLoading(true);
-    const result = await verifyLoginOtp(challengeToken, otp);
-    setLoading(false);
-    if (result.success) {
-      navigate('/dashboard');
-    } else {
+
+    try {
+      const result = await verifyLoginOtp(challengeToken, otp);
+
+      if (result.success) {
+        // Hard redirect guarantees the token stored in localStorage is loaded by the app shell on iOS
+        window.location.assign('/dashboard');
+        return;
+      }
       setError(result.error ?? 'The verification code is incorrect.');
+    } catch (err: any) {
+      setError(err?.message || 'Failed to verify OTP code.');
+    } finally {
+      setLoading(false);
     }
   };
 

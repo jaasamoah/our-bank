@@ -89,6 +89,7 @@ def _get_active_challenge(db: Session, raw_token: str) -> LoginChallenge:
         raise HTTPException(status_code=401, detail="This login challenge is invalid or has expired")
     return challenge
 
+
 @router.post("/login", dependencies=[Depends(rate_limit("login", 10))])
 async def login(
     request: Request,
@@ -133,9 +134,14 @@ async def login(
         response,
         access_token,
         refresh_token,
-        admin=bool(request and request.headers.get("X-Client-Role") == "admin"),
+        admin=True,
     )
-    return {"stage": "complete", "token_type": "bearer", "role": user.role.value, "access_token": access_token}
+    return {
+        "stage": "complete",
+        "token_type": "bearer",
+        "role": user.role.value if hasattr(user.role, "value") else str(user.role),
+        "access_token": access_token,
+    }
 
 
 @router.post("/login/security-questions", response_model=schemas.LoginChallengeResponse, dependencies=[Depends(rate_limit("login-security", 10))])
@@ -208,8 +214,17 @@ def verify_login_otp(
     access_token = auth.create_access_token(data={"sub": challenge.user.username})
     refresh_token = auth.create_refresh_token(db, challenge.user)
     db.commit()
-    auth.set_auth_cookies(response, access_token, refresh_token, admin=False)
-    return {"stage": "complete", "token_type": "bearer", "role": challenge.user.role.value}
+
+    is_admin = challenge.user.role in {UserRole.ADMIN, UserRole.SUPER_ADMIN}
+    auth.set_auth_cookies(response, access_token, refresh_token, admin=is_admin)
+
+    # Returns access_token directly so iOS and cross-origin fetch clients can store it in localStorage
+    return {
+        "stage": "complete",
+        "token_type": "bearer",
+        "role": challenge.user.role.value if hasattr(challenge.user.role, "value") else str(challenge.user.role),
+        "access_token": access_token,
+    }
 
 
 @router.post("/refresh", dependencies=[Depends(rate_limit("refresh", 20))])
@@ -242,7 +257,11 @@ def refresh_session(
     new_access = auth.create_access_token(data={"sub": stored.user.username})
     db.commit()
     auth.set_auth_cookies(response, new_access, new_refresh, admin=is_admin_session)
-    return {"token_type": "bearer", "role": stored.user.role.value}
+    return {
+        "token_type": "bearer",
+        "role": stored.user.role.value if hasattr(stored.user.role, "value") else str(stored.user.role),
+        "access_token": new_access,
+    }
 
 
 @router.post("/logout")
@@ -253,7 +272,16 @@ def logout(request: Request, response: Response, db: Session = Depends(get_db)):
         if stored and stored.revoked_at is None:
             stored.revoked_at = datetime.now(timezone.utc)
             db.commit()
-    auth.clear_auth_cookies(response)
+
+    # Clear both user and admin auth cookies
+    for cookie_name in [
+        auth.ACCESS_COOKIE,
+        auth.ADMIN_ACCESS_COOKIE,
+        auth.REFRESH_COOKIE,
+        auth.ADMIN_REFRESH_COOKIE,
+    ]:
+        response.delete_cookie(key=cookie_name, path="/")
+
     return {"message": "Signed out"}
 
 

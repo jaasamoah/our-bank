@@ -53,9 +53,19 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
   const [isLoading, setIsLoading] = useState(true);
 
   useEffect(() => {
+    const token = localStorage.getItem('access_token');
+    if (!token) {
+      setUser(null);
+      setIsLoading(false);
+      return;
+    }
+
     getCurrentUser()
       .then((apiUser) => setUser(mapUser(apiUser)))
-      .catch(() => setUser(null))
+      .catch(() => {
+        localStorage.removeItem('access_token');
+        setUser(null);
+      })
       .finally(() => setIsLoading(false));
   }, []);
 
@@ -75,6 +85,14 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
           error: result.message,
         };
       }
+
+      if (result.access_token) {
+        localStorage.setItem('access_token', result.access_token);
+        if (result.role === 'admin' || result.role === 'super_admin') {
+          localStorage.setItem('admin_access_token', result.access_token);
+        }
+      }
+
       const apiUser = await getCurrentUser();
       setUser(mapUser(apiUser));
       return { success: true };
@@ -106,8 +124,17 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
 
   const completeOtp = async (challengeToken: string, otp: string) => {
     try {
-      await verifyLoginOtp(challengeToken, otp);
-      return completeLogin();
+      const result = await verifyLoginOtp(challengeToken, otp);
+
+      // Store the token immediately so subsequent requests and redirects stay authenticated on iOS Safari
+      if (result.access_token) {
+        localStorage.setItem('access_token', result.access_token);
+        if (result.role === 'admin' || result.role === 'super_admin') {
+          localStorage.setItem('admin_access_token', result.access_token);
+        }
+      }
+
+      return await completeLogin();
     } catch (error) {
       return {
         success: false,
@@ -117,6 +144,8 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
   };
 
   const logout = () => {
+    localStorage.removeItem('access_token');
+    localStorage.removeItem('admin_access_token');
     void logoutRequest();
     setUser(null);
   };
