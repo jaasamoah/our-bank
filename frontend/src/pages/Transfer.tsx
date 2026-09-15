@@ -4,15 +4,17 @@ import { formatCurrency } from '../mock/data';
 import { createPayee, deletePayee, getAccounts, getPayees, sendTransfer } from '../services/api';
 import { mapAccount } from '../services/adapters';
 import type { ApiPayee } from '../services/api';
+import { useToast } from '../context/ToastContext';
 
 const Transfer = () => {
+  const { showToast } = useToast();
+
   const [fromId, setFromId] = useState('');
   const [toType, setToType] = useState<'own' | 'payee'>('own');
   const [toId, setToId] = useState('');
   const [payeeId, setPayeeId] = useState<number | ''>('');
   const [amount, setAmount] = useState('');
   const [note, setNote] = useState('');
-  const [success, setSuccess] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [accounts, setAccounts] = useState<ReturnType<typeof mapAccount>[]>([]);
   const [loading, setLoading] = useState(true);
@@ -48,9 +50,11 @@ const Transfer = () => {
         setPayees(payeeData);
         setPayeeId(payeeData[0]?.id ?? '');
       })
-      .catch(() => setError('We could not load your accounts. Please refresh and try again.'))
+      .catch(() => {
+        showToast('Could not load accounts. Please refresh.', 'error');
+      })
       .finally(() => setLoading(false));
-  }, []);
+  }, [showToast]);
 
   const selectedSourceAccount = accounts.find((account) => account.id === fromId);
   const selectedDestAccount = accounts.find((a) => a.id === toId);
@@ -64,7 +68,6 @@ const Transfer = () => {
   const handleOpenReview = (e: React.FormEvent) => {
     e.preventDefault();
     setError(null);
-    setSuccess(null);
 
     const numericAmount = parseFloat(amount);
     if (!numericAmount || numericAmount <= 0) {
@@ -107,7 +110,7 @@ const Transfer = () => {
     const numericAmount = parseFloat(amount);
 
     try {
-      const result = await sendTransfer({
+      await sendTransfer({
         from_account_id: Number(fromId),
         to_account_id: toType === 'own' ? Number(toId) : undefined,
         payee_id: toType === 'payee' ? Number(payeeId) : undefined,
@@ -117,7 +120,7 @@ const Transfer = () => {
         password: transferPassword,
       });
 
-      setSuccess(`${result.message || 'Transfer completed'}. ${formatCurrency(numericAmount)} has been processed.`);
+      showToast(`Sent ${formatCurrency(numericAmount)} to ${destinationName}`, 'success');
       setAmount('');
       setNote('');
       setShowConfirmModal(false);
@@ -164,6 +167,7 @@ const Transfer = () => {
       setPayeeId(created.id);
       setNewPayee({ name: '', bank: '', account_number: '', iban: '', swift_code: '', password: '' });
       setShowPayeeForm(false);
+      showToast(`Added payee ${created.name}`, 'success');
     } catch (err: any) {
       const detail = err?.response?.data?.detail;
       if (Array.isArray(detail)) {
@@ -195,6 +199,7 @@ const Transfer = () => {
       const remaining = payees.filter((payee) => payee.id !== payeeToRemove.id);
       setPayees(remaining);
       if (payeeId === payeeToRemove.id) setPayeeId(remaining[0]?.id ?? '');
+      showToast(`Removed payee ${payeeToRemove.name}`, 'success');
       setPayeeToRemove(null);
       setPayeePassword('');
     } catch (err: any) {
@@ -374,7 +379,6 @@ const Transfer = () => {
           </div>
 
           {error && <div className="rounded-xl bg-red-50 px-4 py-3 text-sm font-medium text-red-600">{error}</div>}
-          {success && <div className="rounded-xl bg-emerald-50 px-4 py-3 text-sm font-medium text-emerald-700">{success}</div>}
 
           <button
             type="submit"

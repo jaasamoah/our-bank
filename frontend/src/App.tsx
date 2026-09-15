@@ -15,6 +15,7 @@ import Profile from './pages/Profile'
 import Landing from './pages/Landing'
 import ProtectedRoute from './components/ProtectedRoute'
 import { AuthProvider } from './context/AuthContext'
+import { ToastProvider } from './context/ToastContext'
 
 import AdminLogin from './admin/pages/AdminLogin'
 import AdminDashboard from './admin/pages/AdminDashboard'
@@ -89,7 +90,9 @@ function App() {
       <Router>
         <AuthProvider>
           <AdminAuthProvider>
-            <AnimatedAppRoutes />
+            <ToastProvider>
+              <AnimatedAppRoutes />
+            </ToastProvider>
           </AdminAuthProvider>
         </AuthProvider>
       </Router>
