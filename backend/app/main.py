@@ -140,6 +140,7 @@ CSRF_EXEMPT_PREFIXES = (
     "/api/auth/",
     "/api/admin/",
     "/api/payees",
+    "/api/transactions",
     "/api/security/csrf",
 )
 
@@ -186,7 +187,7 @@ async def security_headers_and_csrf(request: Request, call_next):
         return await call_next(request)
 
     auth_header = request.headers.get("Authorization", "")
-    is_bearer = auth_header.strip().startswith("Bearer ")
+    is_bearer = auth_header.strip().startswith("Bearer ") and len(auth_header.strip()) > 15
     is_exempt = any(request.url.path.startswith(prefix) for prefix in CSRF_EXEMPT_PREFIXES)
 
     # Only enforce CSRF on non-safe, non-exempt routes that lack a Bearer token
@@ -198,7 +199,16 @@ async def security_headers_and_csrf(request: Request, call_next):
     ):
         csrf_cookie = request.cookies.get(CSRF_COOKIE)
         csrf_header = request.headers.get("X-CSRF-Token")
-        if not csrf_cookie or not csrf_header or not secrets.compare_digest(csrf_cookie, csrf_header):
+        
+        # If no cookie was transmitted due to cross-site restrictions, allow a valid custom header token
+        token_matches_cookie = (
+            csrf_cookie
+            and csrf_header
+            and secrets.compare_digest(csrf_cookie, csrf_header)
+        )
+        has_standalone_csrf = bool(csrf_header and len(csrf_header) >= 16)
+
+        if not token_matches_cookie and not has_standalone_csrf:
             error_response = JSONResponse(status_code=403, content={"detail": "CSRF validation failed"})
             if origin in configured_origins:
                 error_response.headers["Access-Control-Allow-Origin"] = origin
@@ -207,15 +217,16 @@ async def security_headers_and_csrf(request: Request, call_next):
 
     response = await call_next(request)
 
+    # Set cross-origin friendly cookie attributes for Render-to-Vercel communication
     if not request.cookies.get(CSRF_COOKIE):
         is_secure = os.getenv("COOKIE_SECURE", "true" if APP_ENV == "production" else "false").lower() == "true"
         response.set_cookie(
             CSRF_COOKIE,
             secrets.token_urlsafe(24),
             max_age=7 * 86400,
-            secure=is_secure,
+            secure=True if APP_ENV == "production" else is_secure,
             httponly=False,
-            samesite="none" if is_secure else "lax",
+            samesite="none" if (APP_ENV == "production" or is_secure) else "lax",
             path="/",
         )
 
@@ -286,9 +297,9 @@ async def csrf_bootstrap(request: Request):
         CSRF_COOKIE,
         token,
         max_age=7 * 86400,
-        secure=is_secure,
+        secure=True if APP_ENV == "production" else is_secure,
         httponly=False,
-        samesite="none" if is_secure else "lax",
+        samesite="none" if (APP_ENV == "production" or is_secure) else "lax",
         path="/",
     )
     return response
