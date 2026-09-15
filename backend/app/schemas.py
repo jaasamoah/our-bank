@@ -93,6 +93,7 @@ class TransferRequest(StrictModel):
     payee_name: Optional[str] = None
     amount: float = Field(gt=0, le=1_000_000)
     note: Optional[str] = Field(default=None, max_length=500)
+    password: str = Field(min_length=1, max_length=128)
 
 
 class TransferOut(BaseModel):

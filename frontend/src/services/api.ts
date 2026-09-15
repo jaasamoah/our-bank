@@ -1,4 +1,5 @@
-import axios, { AxiosError, InternalAxiosRequestConfig } from 'axios';
+import axios, { AxiosError } from 'axios';
+import type { InternalAxiosRequestConfig } from 'axios';
 
 declare module 'axios' {
   export interface InternalAxiosRequestConfig {
@@ -85,7 +86,6 @@ api.interceptors.request.use(async (config: InternalAxiosRequestConfig) => {
     config.headers.Authorization = `Bearer ${token}`;
   }
 
-  // Inject CSRF token if present via cookie, sessionStorage, or bootstrap
   const csrf = await getOrFetchCsrfToken();
   if (csrf) {
     config.headers['X-CSRF-Token'] = csrf;
@@ -422,6 +422,7 @@ export async function sendTransfer(payload: {
   payee_name?: string;
   amount: number;
   note?: string;
+  password?: string;
 }) {
   const response = await api.post('/api/transactions/transfer', payload);
   return response.data;

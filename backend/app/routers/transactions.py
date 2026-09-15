@@ -1,35 +1,55 @@
 from uuid import uuid4
 
-from fastapi import APIRouter, Depends, HTTPException
+from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy.orm import Session
 from ..database import get_db
-from ..auth import get_current_user
+from ..auth import get_current_user, verify_password
 from ..models import Account, Payee, User, Transaction
 from ..schemas import TransferOut, TransferRequest
 from ..rate_limit import rate_limit
 
 router = APIRouter()
 
+
 @router.get("/")
 def get_transactions(
     current_user: User = Depends(get_current_user),
-    db: Session = Depends(get_db)
+    db: Session = Depends(get_db),
 ):
     return db.query(Transaction).filter(Transaction.user_id == current_user.id).all()
 
 
-@router.post("/transfer", response_model=TransferOut, dependencies=[Depends(rate_limit("transfer", 20))])
+@router.post(
+    "/transfer",
+    response_model=TransferOut,
+    dependencies=[Depends(rate_limit("transfer", 20))],
+)
 def create_transfer(
     transfer: TransferRequest,
     current_user: User = Depends(get_current_user),
     db: Session = Depends(get_db),
 ):
+    if not verify_password(transfer.password, current_user.hashed_password):
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="Password is incorrect",
+        )
+
     if transfer.amount <= 0:
-        raise HTTPException(status_code=400, detail="Transfer amount must be greater than zero")
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Transfer amount must be greater than zero",
+        )
     if not transfer.to_account_id and not transfer.payee_id and not transfer.payee_name:
-        raise HTTPException(status_code=400, detail="Choose a destination account or payee")
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Choose a destination account or payee",
+        )
     if transfer.to_account_id and transfer.to_account_id == transfer.from_account_id:
-        raise HTTPException(status_code=400, detail="Choose a different destination account")
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Choose a different destination account",
+        )
 
     from_account = (
         db.query(Account)
@@ -37,9 +57,12 @@ def create_transfer(
         .first()
     )
     if not from_account:
-        raise HTTPException(status_code=404, detail="Source account not found")
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Source account not found")
     if from_account.account_type != "credit" and from_account.balance < transfer.amount:
-        raise HTTPException(status_code=400, detail="Amount exceeds available balance")
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Amount exceeds available balance",
+        )
 
     to_account = None
     if transfer.to_account_id:
@@ -49,13 +72,14 @@ def create_transfer(
             .first()
         )
         if not to_account:
-            raise HTTPException(status_code=404, detail="Destination account not found")
+            raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Destination account not found")
 
     payee = None
     if transfer.payee_id:
         payee = db.query(Payee).filter(Payee.id == transfer.payee_id, Payee.user_id == current_user.id).first()
         if not payee:
-            raise HTTPException(status_code=404, detail="Payee not found")
+            raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Payee not found")
+
     destination = to_account.account_type.title() if to_account else (payee.name if payee else transfer.payee_name)
     from_account.balance -= transfer.amount
     transfer_reference = f"TRF-{current_user.id}-{from_account.id}-{uuid4().hex[:10].upper()}"
