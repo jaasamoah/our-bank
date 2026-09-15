@@ -102,10 +102,16 @@ api.interceptors.response.use(
     const original = error.config as InternalAxiosRequestConfig | undefined;
     const url = original?.url || '';
 
+    // Bypass automatic token refresh if the 401 is due to inline password verification
+    const isPasswordGuardedAction =
+      url.includes('/api/transactions/transfer') ||
+      url.includes('/api/payees');
+
     if (
       error.response?.status === 401 &&
       original &&
       !original._retry &&
+      !isPasswordGuardedAction &&
       !url.includes('/api/auth/login') &&
       !url.includes('/api/auth/refresh') &&
       !url.includes('/api/auth/logout')

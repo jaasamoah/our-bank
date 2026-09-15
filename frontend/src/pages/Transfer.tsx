@@ -115,7 +115,7 @@ const Transfer = () => {
         amount: numericAmount,
         note: note.trim() || undefined,
         password: transferPassword,
-      } as any);
+      });
 
       setSuccess(`${result.message || 'Transfer completed'}. ${formatCurrency(numericAmount)} has been processed.`);
       setAmount('');
@@ -125,8 +125,18 @@ const Transfer = () => {
       const accountData = await getAccounts();
       setAccounts(accountData.map(mapAccount));
     } catch (err: any) {
+      const status = err?.response?.status;
       const detail = err?.response?.data?.detail;
-      setModalError(typeof detail === 'string' ? detail : 'We could not complete that transfer. Check your password and try again.');
+
+      if (status === 401) {
+        setModalError(typeof detail === 'string' ? detail : 'Password is incorrect. Please try again.');
+      } else if (typeof detail === 'string') {
+        setModalError(detail);
+      } else if (Array.isArray(detail)) {
+        setModalError(detail[0]?.msg || 'Validation failed. Please check your password.');
+      } else {
+        setModalError('We could not authorize that transfer. Please check your password.');
+      }
     } finally {
       setSubmitting(false);
     }
@@ -485,7 +495,10 @@ const Transfer = () => {
                     autoComplete="current-password"
                     autoFocus
                     value={transferPassword}
-                    onChange={(e) => setTransferPassword(e.target.value)}
+                    onChange={(e) => {
+                      setTransferPassword(e.target.value);
+                      if (modalError) setModalError(null);
+                    }}
                     placeholder="Enter your password"
                     required
                     className="w-full rounded-xl border border-slate-200 px-3.5 py-2.5 text-sm outline-none transition focus:border-brand-500 focus:ring-2 focus:ring-brand-100"
