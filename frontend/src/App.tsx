@@ -1,5 +1,5 @@
 import React from 'react'
-import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom'
+import { BrowserRouter as Router, Routes, Route, Navigate, useLocation } from 'react-router-dom'
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
 
 import Login from './pages/Login'
@@ -36,44 +36,60 @@ import './index.css'
 
 const queryClient = new QueryClient()
 
+const PUBLIC_ANIMATED_PATHS = new Set(['/', '/login', '/reset-password', '/admin/login'])
+
+function AnimatedAppRoutes() {
+  const location = useLocation()
+  const isPublicPage = PUBLIC_ANIMATED_PATHS.has(location.pathname)
+
+  return (
+    <div
+      key={isPublicPage ? location.pathname : 'app-portal'}
+      className={`min-h-screen w-full ${isPublicPage ? 'animate-page-enter' : ''}`}
+    >
+      <Routes location={location}>
+        {/* Customer routes */}
+        <Route path="/login" element={<Login />} />
+        <Route path="/reset-password" element={<ResetPassword />} />
+        <Route path="/dashboard" element={<ProtectedRoute><Dashboard /></ProtectedRoute>} />
+        <Route path="/accounts" element={<ProtectedRoute><Accounts /></ProtectedRoute>} />
+        <Route path="/investments" element={<ProtectedRoute><Investments /></ProtectedRoute>} />
+        <Route path="/transactions" element={<ProtectedRoute><Transactions /></ProtectedRoute>} />
+        <Route path="/transfer" element={<ProtectedRoute><Transfer /></ProtectedRoute>} />
+        <Route path="/cards" element={<ProtectedRoute><Cards /></ProtectedRoute>} />
+        <Route path="/loans" element={<ProtectedRoute><Loans /></ProtectedRoute>} />
+        <Route path="/profile" element={<ProtectedRoute><Profile /></ProtectedRoute>} />
+        <Route path="/" element={<Landing />} />
+
+        {/* Admin routes */}
+        <Route path="/admin/login" element={<AdminLogin />} />
+        <Route path="/admin/dashboard" element={<AdminProtectedRoute><AdminDashboard /></AdminProtectedRoute>} />
+        <Route path="/admin/users" element={<AdminProtectedRoute><AdminUsers /></AdminProtectedRoute>} />
+        <Route path="/admin/accounts" element={<AdminProtectedRoute><AdminAccounts /></AdminProtectedRoute>} />
+        <Route path="/admin/transactions" element={<AdminProtectedRoute><AdminTransactions /></AdminProtectedRoute>} />
+        <Route path="/admin/cards" element={<AdminProtectedRoute><AdminCards /></AdminProtectedRoute>} />
+        <Route path="/admin/investments" element={<AdminProtectedRoute><AdminInvestments /></AdminProtectedRoute>} />
+        <Route path="/admin/loans" element={<AdminProtectedRoute><AdminLoans /></AdminProtectedRoute>} />
+        <Route path="/admin/kyc" element={<AdminProtectedRoute><AdminKYC /></AdminProtectedRoute>} />
+        <Route path="/admin/notifications" element={<AdminProtectedRoute><AdminNotifications /></AdminProtectedRoute>} />
+        <Route path="/admin/fx-rates" element={<AdminProtectedRoute><AdminFXRates /></AdminProtectedRoute>} />
+        <Route path="/admin/audit-logs" element={<AdminProtectedRoute><AdminAuditLogs /></AdminProtectedRoute>} />
+        <Route path="/admin/support" element={<AdminProtectedRoute><AdminSupport /></AdminProtectedRoute>} />
+        <Route path="/admin" element={<Navigate to="/admin/login" replace />} />
+
+        <Route path="*" element={<Navigate to="/dashboard" replace />} />
+      </Routes>
+    </div>
+  )
+}
+
 function App() {
   return (
     <QueryClientProvider client={queryClient}>
       <Router>
         <AuthProvider>
           <AdminAuthProvider>
-            <Routes>
-              {/* Customer routes */}
-              <Route path="/login" element={<Login />} />
-              <Route path="/reset-password" element={<ResetPassword />} />
-              <Route path="/dashboard" element={<ProtectedRoute><Dashboard /></ProtectedRoute>} />
-              <Route path="/accounts" element={<ProtectedRoute><Accounts /></ProtectedRoute>} />
-              <Route path="/investments" element={<ProtectedRoute><Investments /></ProtectedRoute>} />
-              <Route path="/transactions" element={<ProtectedRoute><Transactions /></ProtectedRoute>} />
-              <Route path="/transfer" element={<ProtectedRoute><Transfer /></ProtectedRoute>} />
-              <Route path="/cards" element={<ProtectedRoute><Cards /></ProtectedRoute>} />
-              <Route path="/loans" element={<ProtectedRoute><Loans /></ProtectedRoute>} />
-              <Route path="/profile" element={<ProtectedRoute><Profile /></ProtectedRoute>} />
-              <Route path="/" element={<Landing />} />
-
-              {/* Admin routes */}
-              <Route path="/admin/login" element={<AdminLogin />} />
-              <Route path="/admin/dashboard" element={<AdminProtectedRoute><AdminDashboard /></AdminProtectedRoute>} />
-              <Route path="/admin/users" element={<AdminProtectedRoute><AdminUsers /></AdminProtectedRoute>} />
-              <Route path="/admin/accounts" element={<AdminProtectedRoute><AdminAccounts /></AdminProtectedRoute>} />
-              <Route path="/admin/transactions" element={<AdminProtectedRoute><AdminTransactions /></AdminProtectedRoute>} />
-              <Route path="/admin/cards" element={<AdminProtectedRoute><AdminCards /></AdminProtectedRoute>} />
-              <Route path="/admin/investments" element={<AdminProtectedRoute><AdminInvestments /></AdminProtectedRoute>} />
-              <Route path="/admin/loans" element={<AdminProtectedRoute><AdminLoans /></AdminProtectedRoute>} />
-              <Route path="/admin/kyc" element={<AdminProtectedRoute><AdminKYC /></AdminProtectedRoute>} />
-              <Route path="/admin/notifications" element={<AdminProtectedRoute><AdminNotifications /></AdminProtectedRoute>} />
-              <Route path="/admin/fx-rates" element={<AdminProtectedRoute><AdminFXRates /></AdminProtectedRoute>} />
-              <Route path="/admin/audit-logs" element={<AdminProtectedRoute><AdminAuditLogs /></AdminProtectedRoute>} />
-              <Route path="/admin/support" element={<AdminProtectedRoute><AdminSupport /></AdminProtectedRoute>} />
-              <Route path="/admin" element={<Navigate to="/admin/login" replace />} />
-
-              <Route path="*" element={<Navigate to="/dashboard" replace />} />
-            </Routes>
+            <AnimatedAppRoutes />
           </AdminAuthProvider>
         </AuthProvider>
       </Router>

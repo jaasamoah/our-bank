@@ -422,8 +422,8 @@ const Transfer = () => {
 
       {/* Transfer Review & Password Confirmation Modal */}
       {showConfirmModal && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/40 px-4 backdrop-blur-sm">
-          <div className="w-full max-w-md rounded-2xl bg-white p-6 shadow-2xl transition-all">
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/40 px-4 backdrop-blur-sm animate-backdrop-enter">
+          <div className="w-full max-w-md rounded-2xl bg-white p-6 shadow-2xl transition-all animate-modal-enter">
             {confirmStep === 'review' ? (
               <div>
                 <div className="mb-4 flex items-center justify-between">
@@ -532,8 +532,8 @@ const Transfer = () => {
 
       {/* Payee Removal Confirmation Modal */}
       {payeeToRemove && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/40 px-4 backdrop-blur-sm">
-          <div className="w-full max-w-sm rounded-2xl bg-white p-6 shadow-xl">
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/40 px-4 backdrop-blur-sm animate-backdrop-enter">
+          <div className="w-full max-w-sm rounded-2xl bg-white p-6 shadow-xl animate-modal-enter">
             <h2 className="text-lg font-bold text-slate-900">Remove saved payee?</h2>
             <p className="mt-2 text-sm text-slate-500">
               Enter your password to remove {payeeToRemove.name} from your saved payees.

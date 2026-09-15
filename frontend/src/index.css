@@ -25,3 +25,52 @@ body {
 ::-webkit-scrollbar-thumb:hover {
   background: #93c5fd;
 }
+
+/* Entrance and transition animations */
+@keyframes pageFadeSlide {
+  0% {
+    opacity: 0;
+    transform: translateY(8px);
+  }
+  100% {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes backdropFade {
+  0% {
+    opacity: 0;
+  }
+  100% {
+    opacity: 1;
+  }
+}
+
+@keyframes modalScale {
+  0% {
+    opacity: 0;
+    transform: scale(0.96) translateY(10px);
+  }
+  100% {
+    opacity: 1;
+    transform: scale(1) translateY(0);
+  }
+}
+
+@layer utilities {
+  .animate-page-enter {
+    animation: pageFadeSlide 0.25s cubic-bezier(0.16, 1, 0.3, 1) both !important;
+    will-change: transform, opacity;
+  }
+
+  .animate-backdrop-enter {
+    animation: backdropFade 0.2s cubic-bezier(0.16, 1, 0.3, 1) both !important;
+    will-change: opacity;
+  }
+
+  .animate-modal-enter {
+    animation: modalScale 0.25s cubic-bezier(0.16, 1, 0.3, 1) both !important;
+    will-change: transform, opacity;
+  }
+}

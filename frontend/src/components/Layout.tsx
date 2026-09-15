@@ -18,8 +18,11 @@ const Layout: React.FC<{ title: string; subtitle?: string; children: ReactNode }
 
       {mobileOpen && (
         <div className="fixed inset-0 z-40 lg:hidden">
-          <div className="absolute inset-0 bg-slate-900/40" onClick={() => setMobileOpen(false)} />
-          <div className="absolute inset-y-0 left-0 w-64 shadow-xl">
+          <div
+            className="absolute inset-0 bg-slate-900/40 backdrop-blur-sm animate-backdrop-enter"
+            onClick={() => setMobileOpen(false)}
+          />
+          <div className="absolute inset-y-0 left-0 w-64 shadow-xl transition-transform duration-300">
             <Sidebar onNavigate={() => setMobileOpen(false)} />
           </div>
         </div>
@@ -46,7 +49,9 @@ const Layout: React.FC<{ title: string; subtitle?: string; children: ReactNode }
           </div>
         </header>
 
-        <main className="px-4 py-6 sm:px-8 sm:py-8">{children}</main>
+        <main className="px-4 py-6 sm:px-8 sm:py-8">
+          {children}
+        </main>
       </div>
       <SupportWidget />
     </div>
