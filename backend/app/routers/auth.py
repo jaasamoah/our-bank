@@ -29,16 +29,16 @@ def _send_login_otp(user: User, otp: str) -> None:
     # Always print to the terminal so you can test locally even if Resend fails
     print(f"\n{'='*55}\n[DEV OTP] Verification Code for {user.email}: {otp}\n{'='*55}\n", flush=True)
 
-    sender = os.getenv("OTP_FROM_EMAIL", "onboarding@resend.dev")
+    sender = os.getenv("OTP_FROM_EMAIL", "VelmontPrivate Bank <onboarding@resend.dev>")
     helper = Path(__file__).resolve().parents[2] / "email_sender.mjs"
     payload = {
         "from": sender,
         "to": [user.email],
-        "subject": "Your telosbank verification code",
-        "text": f"Your telosbank verification code is {otp}. It expires in {OTP_EXPIRE_MINUTES} minutes. If you did not try to sign in, contact support.",
+        "subject": "Your VelmontPrivate Bank verification code",
+        "text": f"Your VelmontPrivate Bank verification code is {otp}. It expires in {OTP_EXPIRE_MINUTES} minutes. If you did not try to sign in, contact support.",
         "html": (
             "<div style=\"font-family:Arial,sans-serif;line-height:1.5\">"
-            "<h2>telosbank verification code</h2>"
+            "<h2>VelmontPrivate Bank verification code</h2>"
             f"<p>Your one-time verification code is <strong style=\"font-size:24px;letter-spacing:4px\">{otp}</strong>.</p>"
             f"<p>This code expires in {OTP_EXPIRE_MINUTES} minutes. If you did not try to sign in, contact support.</p>"
             "</div>"

@@ -12,6 +12,8 @@ import {
   MagnifyingGlassIcon,
   UsersIcon,
   ChatBubbleLeftRightIcon,
+  ArrowsRightLeftIcon,
+  PresentationChartLineIcon,
 } from '@heroicons/react/24/outline';
 import { useAdminAuth } from '../context/AdminAuthContext';
 
@@ -19,9 +21,9 @@ const navItems = [
   { to: '/admin/dashboard', label: 'Dashboard', icon: ChartBarIcon },
   { to: '/admin/users', label: 'Users', icon: UsersIcon },
   { to: '/admin/accounts', label: 'Accounts', icon: BuildingLibraryIcon },
-  { to: '/admin/transactions', label: 'Transactions', icon: CreditCardIcon },
+  { to: '/admin/transactions', label: 'Transactions', icon: ArrowsRightLeftIcon },
   { to: '/admin/cards', label: 'Cards', icon: CreditCardIcon },
-  { to: '/admin/investments', label: 'Investments', icon: ChartBarIcon },
+  { to: '/admin/investments', label: 'Investments', icon: PresentationChartLineIcon },
   { to: '/admin/loans', label: 'Loans', icon: ClipboardDocumentListIcon },
   { to: '/admin/kyc', label: 'KYC Approvals', icon: MagnifyingGlassIcon },
   { to: '/admin/notifications', label: 'Notifications', icon: BellIcon },

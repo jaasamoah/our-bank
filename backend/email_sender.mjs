@@ -12,6 +12,23 @@ if (!rawInput) {
 
 const email = JSON.parse(rawInput);
 
+// Fallback safety to ensure all outgoing emails reflect the updated brand
+if (email.subject && email.subject.toLowerCase().includes('telosbank')) {
+  email.subject = email.subject.replace(/telosbank/gi, 'VelmontPrivate Bank');
+}
+
+if (email.text && email.text.toLowerCase().includes('telosbank')) {
+  email.text = email.text.replace(/telosbank/gi, 'VelmontPrivate Bank');
+}
+
+if (email.html && email.html.toLowerCase().includes('telosbank')) {
+  email.html = email.html.replace(/telosbank/gi, 'VelmontPrivate Bank');
+}
+
+if (!email.from || email.from.toLowerCase().includes('telosbank')) {
+  email.from = 'VelmontPrivate Bank <onboarding@resend.dev>';
+}
+
 const apiKey = process.env.RESEND_API_KEY;
 if (!apiKey) {
   console.error('RESEND_API_KEY is not set in environment.');

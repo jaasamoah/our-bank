@@ -1,22 +1,23 @@
 import React from 'react';
 import { NavLink } from 'react-router-dom';
 import {
+  HomeIcon,
   ArrowsRightLeftIcon,
   BanknotesIcon,
-  ChartBarIcon,
   CreditCardIcon,
   ClipboardDocumentListIcon,
   PresentationChartLineIcon,
   UserCircleIcon,
+  ClockIcon,
 } from '@heroicons/react/24/outline';
 import { useAuth } from '../context/AuthContext';
 import Brand from './Brand';
 
 const navItems = [
-  { to: '/dashboard', label: 'Dashboard', icon: ChartBarIcon },
+  { to: '/dashboard', label: 'Dashboard', icon: HomeIcon },
   { to: '/accounts', label: 'Accounts', icon: BanknotesIcon },
   { to: '/investments', label: 'Investments', icon: PresentationChartLineIcon },
-  { to: '/transactions', label: 'Transactions', icon: ChartBarIcon },
+  { to: '/transactions', label: 'Transactions', icon: ClockIcon },
   { to: '/transfer', label: 'Transfer', icon: ArrowsRightLeftIcon },
   { to: '/cards', label: 'Cards', icon: CreditCardIcon },
   { to: '/loans', label: 'Loans', icon: ClipboardDocumentListIcon },

@@ -418,7 +418,7 @@ const Transfer = () => {
           <div className="rounded-2xl bg-brand-50 p-6">
             <h3 className="mb-1 text-sm font-semibold text-brand-800">Good to know</h3>
             <p className="text-sm text-brand-700">
-              Transfers between your telosbank accounts update immediately. Every new transfer appears as processing until it is reviewed.
+              Transfers between your VelmontPrivate Bank accounts update immediately. Every new transfer appears as processing until it is reviewed.
             </p>
           </div>
         </div>

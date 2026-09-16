@@ -79,7 +79,7 @@ export const mockAccounts: MockAccount[] = [
   },
   {
     id: 'acc_credit',
-    name: 'telosbank Rewards Card',
+    name: 'VelmontPrivate Bank Rewards Card',
     type: 'Credit',
     number: '**** 1092',
     balance: -1284.5,
