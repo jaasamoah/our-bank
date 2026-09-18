@@ -25,8 +25,8 @@ if (email.html && /velmontprivate\s*bank|telosbank/i.test(email.html)) {
   email.html = email.html.replace(/velmontprivate\s*bank|telosbank/gi, 'Velmont Bank');
 }
 
-if (!email.from || /velmontprivate\s*bank|telosbank/i.test(email.from)) {
-  email.from = 'Velmont Bank <onboarding@resend.dev>';
+if (!email.from || /velmontprivate\s*bank|telosbank|resend\.dev/i.test(email.from)) {
+  email.from = 'Velmont Bank <noreply@velmontbank.com>';
 }
 
 const apiKey = process.env.RESEND_API_KEY;
