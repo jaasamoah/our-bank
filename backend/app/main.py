@@ -81,7 +81,7 @@ def seed_demo_data():
         admin_user = db.query(User).filter(User.username == "admin").first()
         if not admin_user:
             admin_user = User(
-                email="admin@telosbank.com",
+                email="admin@velmontbank.com",
                 username="admin",
                 hashed_password=get_password_hash("admin"),
                 full_name="Alex Rivera",
@@ -93,7 +93,7 @@ def seed_demo_data():
         account_specs = [
             ("Everyday Checking", "checking", "4821", 8542.13),
             ("High-Yield Savings", "savings", "7734", 24310.87),
-            ("telosbank Rewards Card", "credit", "1092", -1284.50),
+            ("Velmont Bank Rewards Card", "credit", "1092", -1284.50),
         ]
         account_by_type = {}
         for name, account_type, last_four, balance in account_specs:
@@ -145,7 +145,7 @@ CSRF_EXEMPT_PREFIXES = (
 )
 
 app = FastAPI(
-    title="telosbank API",
+    title="Velmont Bank API",
     description="Secure banking services for customer and administrator portals",
     version="1.0.0",
     docs_url="/docs" if ENABLE_API_DOCS else None,
@@ -280,7 +280,7 @@ app.include_router(admin.router, prefix="/api/admin", tags=["Administration"])
 
 @app.get("/")
 async def root():
-    return {"message": "telosbank API"}
+    return {"message": "Velmont Bank API"}
 
 
 @app.get("/health")
