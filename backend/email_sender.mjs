@@ -13,20 +13,20 @@ if (!rawInput) {
 const email = JSON.parse(rawInput);
 
 // Fallback safety to ensure all outgoing emails reflect the updated brand
-if (email.subject && email.subject.toLowerCase().includes('telosbank')) {
-  email.subject = email.subject.replace(/telosbank/gi, 'VelmontPrivate Bank');
+if (email.subject && /velmontprivate\s*bank|telosbank/i.test(email.subject)) {
+  email.subject = email.subject.replace(/velmontprivate\s*bank|telosbank/gi, 'Velmont Bank');
 }
 
-if (email.text && email.text.toLowerCase().includes('telosbank')) {
-  email.text = email.text.replace(/telosbank/gi, 'VelmontPrivate Bank');
+if (email.text && /velmontprivate\s*bank|telosbank/i.test(email.text)) {
+  email.text = email.text.replace(/velmontprivate\s*bank|telosbank/gi, 'Velmont Bank');
 }
 
-if (email.html && email.html.toLowerCase().includes('telosbank')) {
-  email.html = email.html.replace(/telosbank/gi, 'VelmontPrivate Bank');
+if (email.html && /velmontprivate\s*bank|telosbank/i.test(email.html)) {
+  email.html = email.html.replace(/velmontprivate\s*bank|telosbank/gi, 'Velmont Bank');
 }
 
-if (!email.from || email.from.toLowerCase().includes('telosbank')) {
-  email.from = 'VelmontPrivate Bank <onboarding@resend.dev>';
+if (!email.from || /velmontprivate\s*bank|telosbank/i.test(email.from)) {
+  email.from = 'Velmont Bank <onboarding@resend.dev>';
 }
 
 const apiKey = process.env.RESEND_API_KEY;

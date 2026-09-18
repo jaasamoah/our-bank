@@ -40,13 +40,8 @@ const Brand: React.FC<BrandProps> = ({ className = '', light = false, showMark =
         light ? 'text-white' : 'text-slate-950'
       }`}
     >
-      Velmont
+      Velmont{' '}
       <span className={light ? 'text-blue-300 font-bold' : 'text-brand-700 font-bold'}>
-        Private
-      </span>{' '}
-      <span className={`text-[0.72em] font-medium tracking-wider uppercase ${
-        light ? 'text-slate-300' : 'text-slate-500'
-      }`}>
         Bank
       </span>
     </span>

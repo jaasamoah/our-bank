@@ -93,7 +93,6 @@ const Login: React.FC = () => {
       const result = await verifyLoginOtp(challengeToken, otp);
 
       if (result.success) {
-        // Hard redirect guarantees the token stored in localStorage is loaded by the app shell on iOS
         window.location.assign('/dashboard');
         return;
       }
@@ -121,7 +120,7 @@ const Login: React.FC = () => {
       <div className="absolute -bottom-40 -right-20 h-96 w-96 rounded-full bg-white blur-3xl" />
       <div className="relative w-full max-w-md">
         <div className="mb-8 text-center">
-          <Link to="/" aria-label="VelmontPrivate Bank home" className="inline-flex">
+          <Link to="/" aria-label="Velmont Bank home" className="inline-flex">
             <Brand className="text-3xl" />
           </Link>
           <p className="mt-3 text-sm text-slate-500">Banking made clear and personal.</p>
@@ -137,7 +136,7 @@ const Login: React.FC = () => {
             </h1>
             <p className="mt-2 text-sm text-slate-500">
               {step === 'credentials'
-                ? 'Sign in to access your VelmontPrivate Bank accounts'
+                ? 'Sign in to access your Velmont Bank accounts'
                 : step === 'security_questions'
                   ? 'Answer your security questions before continuing'
                   : 'We sent a one-time code to your email address'}
@@ -201,7 +200,7 @@ const Login: React.FC = () => {
         </div>
 
         <Link to="/" className="mx-auto mt-6 flex w-fit items-center gap-2 text-sm font-semibold text-slate-500 hover:text-blue-700">
-          <ArrowLeftIcon className="h-4 w-4" /> Back to VelmontPrivate Bank
+          <ArrowLeftIcon className="h-4 w-4" /> Back to Velmont Bank
         </Link>
       </div>
     </div>

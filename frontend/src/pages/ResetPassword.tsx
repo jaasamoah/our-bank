@@ -23,7 +23,9 @@ const ResetPassword: React.FC = () => {
     setLoading(true);
     try {
       const result = await requestPasswordReset(identifier);
-      setMessage(`${result.message || 'If an account exists, a reset link has been dispatched.'} Check your email for instructions from VelmontPrivate Bank.`);
+      setMessage(
+        `${result.message || 'If an account exists, a reset link has been dispatched.'} Check your email for instructions from Velmont Bank.`
+      );
     } catch {
       setError('We could not start the password reset. Check your details and try again.');
     } finally {
@@ -58,7 +60,7 @@ const ResetPassword: React.FC = () => {
     <div className="flex min-h-screen items-center justify-center bg-slate-50 px-4 py-12">
       <div className="w-full max-w-md">
         <div className="mb-8 flex items-center justify-center">
-          <Link to="/" aria-label="VelmontPrivate Bank home">
+          <Link to="/" aria-label="Velmont Bank home">
             <Brand className="text-2xl" />
           </Link>
         </div>
@@ -87,7 +89,7 @@ const ResetPassword: React.FC = () => {
                 </h1>
                 <p className="mt-1 text-sm text-slate-500">
                   {step === 'request'
-                    ? 'Enter your username or email to access your VelmontPrivate Bank account.'
+                    ? 'Enter your username or email to access your Velmont Bank account.'
                     : 'Create a new secure password for your account.'}
                 </p>
               </div>
