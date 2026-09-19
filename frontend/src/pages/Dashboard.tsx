@@ -12,11 +12,11 @@ import LoadingSpinner from '../components/LoadingSpinner';
 import { ArrowDownTrayIcon } from '@heroicons/react/24/outline';
 
 const CARD_PALETTES = [
-  { gradient: 'from-blue-600 to-blue-800', light: 'bg-blue-50 text-blue-700' },
-  { gradient: 'from-emerald-600 to-teal-800', light: 'bg-emerald-50 text-emerald-700' },
-  { gradient: 'from-indigo-600 to-violet-800', light: 'bg-indigo-50 text-indigo-700' },
-  { gradient: 'from-amber-600 to-orange-700', light: 'bg-amber-50 text-amber-700' },
-  { gradient: 'from-slate-700 to-slate-900', light: 'bg-slate-100 text-slate-700' },
+  { gradient: 'from-blue-600 to-blue-800' },
+  { gradient: 'from-emerald-600 to-teal-800' },
+  { gradient: 'from-indigo-600 to-violet-800' },
+  { gradient: 'from-amber-600 to-orange-700' },
+  { gradient: 'from-slate-700 to-slate-900' },
 ];
 
 const DEFAULT_BENCHMARK_CATEGORIES = [
@@ -49,7 +49,7 @@ const Dashboard: React.FC = () => {
         ]);
         setAccounts(accountData.map(mapAccount));
         setTransactions(transactionData.map(mapTransaction));
-        setInvestmentValue(portfolio.summary.total_value);
+        setInvestmentValue(portfolio?.summary?.total_value || 0);
         setError('');
       } catch {
         setError('We could not load your dashboard. Please refresh and try again.');
@@ -65,10 +65,10 @@ const Dashboard: React.FC = () => {
 
   const totalBalance = accounts
     .filter((a) => a.type !== 'Credit')
-    .reduce((sum, a) => sum + a.balance, 0);
+    .reduce((sum, a) => sum + (Number(a.balance) || 0), 0);
 
   const recentTransactions = transactions.slice(0, 6);
-  const accountName = (id: string) => accounts.find((account) => account.id === id)?.name;
+  const accountName = (id: string) => accounts.find((account) => String(account.id) === String(id))?.name;
 
   const spendingByCategory = useMemo(() => {
     const totals = transactions
@@ -86,7 +86,6 @@ const Dashboard: React.FC = () => {
 
     if (activeEntries.length > 0) return activeEntries;
 
-    // Zero-state baseline: ensures graph always displays smoothly
     return DEFAULT_BENCHMARK_CATEGORIES.map((cat) => ({
       category: cat.category,
       amount: 0,
@@ -130,14 +129,16 @@ const Dashboard: React.FC = () => {
                 >
                   View accounts
                 </button>
-                <button
-                  onClick={() => setStatementAccount(accounts[0] || null)}
-                  className="inline-flex items-center justify-center gap-1 rounded-xl border border-slate-200 bg-white px-3 py-2.5 text-xs font-semibold text-slate-700 hover:bg-slate-50"
-                  title="Download Statement"
-                >
-                  <ArrowDownTrayIcon className="h-4 w-4 text-slate-500" />
-                  Statement
-                </button>
+                {accounts.length > 0 && (
+                  <button
+                    onClick={() => setStatementAccount(accounts[0])}
+                    className="inline-flex items-center justify-center gap-1 rounded-xl border border-slate-200 bg-white px-3 py-2.5 text-xs font-semibold text-slate-700 hover:bg-slate-50"
+                    title="Download Statement"
+                  >
+                    <ArrowDownTrayIcon className="h-4 w-4 text-slate-500" />
+                    Statement
+                  </button>
+                )}
               </div>
             </div>
 
@@ -178,6 +179,9 @@ const Dashboard: React.FC = () => {
           <div className="mt-6 grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
             {accounts.map((account, index) => {
               const palette = CARD_PALETTES[index % CARD_PALETTES.length];
+              const rawNum = String((account as any).accountNumber || (account as any).number || account.id || '');
+              const lastFour = rawNum.length >= 4 ? rawNum.slice(-4) : rawNum.padStart(4, '0');
+
               return (
                 <div
                   key={account.id}
@@ -186,10 +190,10 @@ const Dashboard: React.FC = () => {
                 >
                   <div className="flex items-center justify-between">
                     <span className="text-xs font-semibold uppercase tracking-wider text-white/80">
-                      {account.type}
+                      {account.type || 'Checking'}
                     </span>
                     <span className="font-mono text-xs text-white/80">
-                      •••• {account.accountNumber.slice(-4)}
+                      •••• {lastFour}
                     </span>
                   </div>
                   <p className="mt-2 text-base font-semibold text-white">{account.name}</p>
@@ -259,9 +263,9 @@ const Dashboard: React.FC = () => {
       {statementAccount && (
         <StatementDownloadModal
           account={{
-            id: statementAccount.id,
+            id: String(statementAccount.id),
             name: statementAccount.name,
-            accountNumber: statementAccount.accountNumber,
+            accountNumber: String((statementAccount as any).accountNumber || (statementAccount as any).number || statementAccount.id),
             type: statementAccount.type,
             currency: statementAccount.currency,
             balance: statementAccount.balance,

@@ -44,7 +44,7 @@ const AccountDetails: React.FC = () => {
 
         if (!isMounted) return;
 
-        const idx = accList.findIndex((a) => String(a.id) === accountId);
+        const idx = accList.findIndex((a) => String(a.id) === String(accountId));
         if (idx === -1) {
           navigate('/accounts', { replace: true });
           return;
@@ -77,9 +77,11 @@ const AccountDetails: React.FC = () => {
   }
 
   const gradient = CARD_PALETTES[accountIndex % CARD_PALETTES.length];
+  const rawNum = String((account as any).accountNumber || (account as any).number || account.id || '');
+  const lastFour = rawNum.length >= 4 ? rawNum.slice(-4) : rawNum.padStart(4, '0');
 
   return (
-    <Layout title={account.name} subtitle={`Details and transaction activity for •••• ${account.accountNumber.slice(-4)}`}>
+    <Layout title={account.name} subtitle={`Details and transaction activity for •••• ${lastFour}`}>
       <div className="space-y-6">
         <div className="flex items-center justify-between">
           <button
@@ -112,9 +114,9 @@ const AccountDetails: React.FC = () => {
                 {account.type} Account
               </span>
               <p className="mt-3 font-mono text-sm tracking-widest text-white/80">
-                •••• •••• •••• {account.accountNumber.slice(-4)}
+                •••• •••• •••• {lastFour}
               </p>
-              <p className="mt-2 text-xs text-white/70">Full Account Number: <span className="font-mono font-medium text-white">{account.accountNumber}</span></p>
+              <p className="mt-2 text-xs text-white/70">Full Account Number: <span className="font-mono font-medium text-white">{rawNum}</span></p>
             </div>
             <div className="text-left md:text-right">
               <p className="text-xs font-medium text-white/75">Available Balance</p>
@@ -165,9 +167,9 @@ const AccountDetails: React.FC = () => {
       {showStatementModal && (
         <StatementDownloadModal
           account={{
-            id: account.id,
+            id: String(account.id),
             name: account.name,
-            accountNumber: account.accountNumber,
+            accountNumber: rawNum,
             type: account.type,
             currency: account.currency,
             balance: account.balance,
