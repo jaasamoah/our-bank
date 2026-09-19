@@ -1,6 +1,7 @@
+from datetime import datetime
 from uuid import uuid4
 
-from fastapi import APIRouter, Depends, HTTPException, status
+from fastapi import APIRouter, Depends, HTTPException, Query, status
 from sqlalchemy.orm import Session
 from ..database import get_db
 from ..auth import get_current_user, verify_password
@@ -13,10 +14,32 @@ router = APIRouter()
 
 @router.get("/")
 def get_transactions(
+    account_id: int | None = Query(default=None),
+    start_date: str | None = Query(default=None),
+    end_date: str | None = Query(default=None),
     current_user: User = Depends(get_current_user),
     db: Session = Depends(get_db),
 ):
-    return db.query(Transaction).filter(Transaction.user_id == current_user.id).all()
+    query = db.query(Transaction).filter(Transaction.user_id == current_user.id)
+
+    if account_id is not None:
+        query = query.filter(Transaction.account_id == account_id)
+
+    if start_date:
+        try:
+            start_dt = datetime.fromisoformat(start_date.replace("Z", "+00:00")).replace(tzinfo=None)
+            query = query.filter(Transaction.created_at >= start_dt)
+        except ValueError:
+            pass
+
+    if end_date:
+        try:
+            end_dt = datetime.fromisoformat(end_date.replace("Z", "+00:00")).replace(tzinfo=None)
+            query = query.filter(Transaction.created_at <= end_dt)
+        except ValueError:
+            pass
+
+    return query.order_by(Transaction.created_at.desc(), Transaction.id.desc()).all()
 
 
 @router.post(

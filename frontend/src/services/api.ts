@@ -400,8 +400,12 @@ export async function getAccounts() {
   return response.data;
 }
 
-export async function getTransactions() {
-  const response = await api.get<ApiTransaction[]>('/api/transactions/');
+export async function getTransactions(params?: {
+  account_id?: number | string;
+  start_date?: string;
+  end_date?: string;
+}) {
+  const response = await api.get<ApiTransaction[]>('/api/transactions/', { params });
   return response.data;
 }
 

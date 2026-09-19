@@ -6,6 +6,7 @@ import Login from './pages/Login'
 import ResetPassword from './pages/ResetPassword'
 import Dashboard from './pages/Dashboard'
 import Accounts from './pages/Accounts'
+import AccountDetails from './pages/AccountDetails'
 import Investments from './pages/Investments'
 import Transactions from './pages/Transactions'
 import Transfer from './pages/Transfer'
@@ -54,6 +55,7 @@ function AnimatedAppRoutes() {
         <Route path="/reset-password" element={<ResetPassword />} />
         <Route path="/dashboard" element={<ProtectedRoute><Dashboard /></ProtectedRoute>} />
         <Route path="/accounts" element={<ProtectedRoute><Accounts /></ProtectedRoute>} />
+        <Route path="/accounts/:accountId" element={<ProtectedRoute><AccountDetails /></ProtectedRoute>} />
         <Route path="/investments" element={<ProtectedRoute><Investments /></ProtectedRoute>} />
         <Route path="/transactions" element={<ProtectedRoute><Transactions /></ProtectedRoute>} />
         <Route path="/transfer" element={<ProtectedRoute><Transfer /></ProtectedRoute>} />
