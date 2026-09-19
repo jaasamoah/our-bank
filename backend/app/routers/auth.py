@@ -29,7 +29,7 @@ def _send_login_otp(user: User, otp: str) -> None:
     # Always print to the terminal so you can test locally even if Resend fails
     print(f"\n{'='*55}\n[DEV OTP] Verification Code for {user.email}: {otp}\n{'='*55}\n", flush=True)
 
-    sender = os.getenv("OTP_FROM_EMAIL", "Velmont Bank <onboarding@resend.dev>")
+    sender = os.getenv("OTP_FROM_EMAIL", "Velmont Bank <noreply@velmontbank.com>")
     helper = Path(__file__).resolve().parents[2] / "email_sender.mjs"
     payload = {
         "from": sender,
@@ -98,8 +98,17 @@ async def login(
     db: Session = Depends(get_db),
 ):
     is_admin_client = request.headers.get("X-Client-Role") == "admin"
-    identifier_filter = User.username == form_data.username if is_admin_client else User.email == form_data.username
-    user = db.query(User).filter(identifier_filter).first()
+    identifier = form_data.username.strip()
+
+    # Supports signing in by username or email on both client and admin portals
+    user = (
+        db.query(User)
+        .filter(
+            (User.username.ilike(identifier)) | (User.email.ilike(identifier))
+        )
+        .first()
+    )
+
     if not user or not user.is_active or not auth.verify_password(form_data.password, user.hashed_password):
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
@@ -218,7 +227,6 @@ def verify_login_otp(
     is_admin = challenge.user.role in {UserRole.ADMIN, UserRole.SUPER_ADMIN}
     auth.set_auth_cookies(response, access_token, refresh_token, admin=is_admin)
 
-    # Returns access_token directly so iOS and cross-origin fetch clients can store it in localStorage
     return {
         "stage": "complete",
         "token_type": "bearer",
@@ -273,7 +281,6 @@ def logout(request: Request, response: Response, db: Session = Depends(get_db)):
             stored.revoked_at = datetime.now(timezone.utc)
             db.commit()
 
-    # Clear both user and admin auth cookies
     for cookie_name in [
         auth.ACCESS_COOKIE,
         auth.ADMIN_ACCESS_COOKIE,
@@ -297,7 +304,7 @@ def request_password_reset(
     identifier = payload.identifier.strip()
     user = (
         db.query(User)
-        .filter((User.username == identifier) | (User.email == identifier))
+        .filter((User.username.ilike(identifier)) | (User.email.ilike(identifier)))
         .first()
     )
     if not user:

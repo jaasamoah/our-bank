@@ -17,7 +17,7 @@ const clearClientAuthStorage = () => {
 };
 
 const Login: React.FC = () => {
-  const [email, setEmail] = useState('');
+  const [username, setUsername] = useState('');
   const [password, setPassword] = useState('');
   const [step, setStep] = useState<'credentials' | 'security_questions' | 'otp'>('credentials');
   const [challengeToken, setChallengeToken] = useState('');
@@ -36,7 +36,7 @@ const Login: React.FC = () => {
     setLoading(true);
 
     try {
-      const result = await login(email, password);
+      const result = await login(username, password);
       if (result.success) {
         window.location.assign('/dashboard');
         return;
@@ -46,7 +46,7 @@ const Login: React.FC = () => {
         setQuestions(result.questions ?? []);
         setStep(result.stage);
       } else {
-        setError(result.error ?? 'Invalid email or password.');
+        setError(result.error ?? 'Invalid username or password.');
       }
     } catch (err: any) {
       setError(err?.message || 'Unable to connect to the authentication service.');
@@ -146,15 +146,37 @@ const Login: React.FC = () => {
           {step === 'credentials' && (
             <form className="mt-8 space-y-5" onSubmit={handleCredentials}>
               <div>
-                <label htmlFor="email" className="mb-1.5 block text-sm font-semibold text-slate-700">Email</label>
-                <input id="email" type="email" autoComplete="email" value={email} onChange={(event) => setEmail(event.target.value)} className="block w-full rounded-xl border border-slate-200 px-4 py-3 text-slate-900 placeholder-slate-400 outline-none transition focus:border-blue-500 focus:ring-4 focus:ring-blue-50" placeholder="you@example.com" required />
+                <label htmlFor="username" className="mb-1.5 block text-sm font-semibold text-slate-700">Username</label>
+                <input
+                  id="username"
+                  type="text"
+                  autoComplete="username"
+                  value={username}
+                  onChange={(event) => setUsername(event.target.value)}
+                  className="block w-full rounded-xl border border-slate-200 px-4 py-3 text-slate-900 placeholder-slate-400 outline-none transition focus:border-blue-500 focus:ring-4 focus:ring-blue-50"
+                  placeholder="Enter your username"
+                  required
+                />
               </div>
               <div>
                 <label htmlFor="password" className="mb-1.5 block text-sm font-semibold text-slate-700">Password</label>
-                <input id="password" type="password" autoComplete="current-password" value={password} onChange={(event) => setPassword(event.target.value)} className="block w-full rounded-xl border border-slate-200 px-4 py-3 text-slate-900 placeholder-slate-400 outline-none transition focus:border-blue-500 focus:ring-4 focus:ring-blue-50" placeholder="Enter password" required />
+                <input
+                  id="password"
+                  type="password"
+                  autoComplete="current-password"
+                  value={password}
+                  onChange={(event) => setPassword(event.target.value)}
+                  className="block w-full rounded-xl border border-slate-200 px-4 py-3 text-slate-900 placeholder-slate-400 outline-none transition focus:border-blue-500 focus:ring-4 focus:ring-blue-50"
+                  placeholder="Enter password"
+                  required
+                />
               </div>
               {error && <div className="rounded-xl border border-red-100 bg-red-50 px-4 py-3 text-sm text-red-700">{error}</div>}
-              <button type="submit" disabled={loading} className="flex w-full items-center justify-center rounded-xl bg-blue-700 px-4 py-3 text-sm font-semibold text-white transition hover:bg-blue-800 disabled:cursor-not-allowed disabled:opacity-70">
+              <button
+                type="submit"
+                disabled={loading}
+                className="flex w-full items-center justify-center rounded-xl bg-blue-700 px-4 py-3 text-sm font-semibold text-white transition hover:bg-blue-800 disabled:cursor-not-allowed disabled:opacity-70"
+              >
                 {loading ? <LoadingSpinner label="Checking credentials" size="sm" tone="light" /> : 'Continue'}
               </button>
               <div className="text-center">
@@ -168,11 +190,24 @@ const Login: React.FC = () => {
               {questions.map((question) => (
                 <div key={question.id}>
                   <label htmlFor={`security-question-${question.id}`} className="mb-1.5 block text-sm font-semibold text-slate-700">{question.question}</label>
-                  <input id={`security-question-${question.id}`} type="password" autoComplete="off" value={answers[question.id] ?? ''} onChange={(event) => setAnswers((current) => ({ ...current, [question.id]: event.target.value }))} className="block w-full rounded-xl border border-slate-200 px-4 py-3 text-slate-900 placeholder-slate-400 outline-none transition focus:border-blue-500 focus:ring-4 focus:ring-blue-50" placeholder="Your answer" required />
+                  <input
+                    id={`security-question-${question.id}`}
+                    type="password"
+                    autoComplete="off"
+                    value={answers[question.id] ?? ''}
+                    onChange={(event) => setAnswers((current) => ({ ...current, [question.id]: event.target.value }))}
+                    className="block w-full rounded-xl border border-slate-200 px-4 py-3 text-slate-900 placeholder-slate-400 outline-none transition focus:border-blue-500 focus:ring-4 focus:ring-blue-50"
+                    placeholder="Your answer"
+                    required
+                  />
                 </div>
               ))}
               {error && <div className="rounded-xl border border-red-100 bg-red-50 px-4 py-3 text-sm text-red-700">{error}</div>}
-              <button type="submit" disabled={loading} className="flex w-full items-center justify-center rounded-xl bg-blue-700 px-4 py-3 text-sm font-semibold text-white transition hover:bg-blue-800 disabled:cursor-not-allowed disabled:opacity-70">
+              <button
+                type="submit"
+                disabled={loading}
+                className="flex w-full items-center justify-center rounded-xl bg-blue-700 px-4 py-3 text-sm font-semibold text-white transition hover:bg-blue-800 disabled:cursor-not-allowed disabled:opacity-70"
+              >
                 {loading ? <LoadingSpinner label="Checking answers" size="sm" tone="light" /> : 'Continue'}
               </button>
               <button type="button" onClick={restart} className="w-full text-sm font-semibold text-slate-500 hover:text-slate-700">Use a different account</button>
@@ -183,10 +218,24 @@ const Login: React.FC = () => {
             <form className="mt-8 space-y-5" onSubmit={handleOtp}>
               <div>
                 <label htmlFor="otp" className="mb-1.5 block text-sm font-semibold text-slate-700">6-digit code</label>
-                <input id="otp" inputMode="numeric" autoComplete="one-time-code" maxLength={6} value={otp} onChange={(event) => setOtp(event.target.value.replace(/\D/g, '').slice(0, 6))} className="block w-full rounded-xl border border-slate-200 px-4 py-3 text-center text-2xl tracking-[.35em] text-slate-900 placeholder-slate-400 outline-none transition focus:border-blue-500 focus:ring-4 focus:ring-blue-50" placeholder="000000" required />
+                <input
+                  id="otp"
+                  inputMode="numeric"
+                  autoComplete="one-time-code"
+                  maxLength={6}
+                  value={otp}
+                  onChange={(event) => setOtp(event.target.value.replace(/\D/g, '').slice(0, 6))}
+                  className="block w-full rounded-xl border border-slate-200 px-4 py-3 text-center text-2xl tracking-[.35em] text-slate-900 placeholder-slate-400 outline-none transition focus:border-blue-500 focus:ring-4 focus:ring-blue-50"
+                  placeholder="000000"
+                  required
+                />
               </div>
               {error && <div className="rounded-xl border border-red-100 bg-red-50 px-4 py-3 text-sm text-red-700">{error}</div>}
-              <button type="submit" disabled={loading || otp.length !== 6} className="flex w-full items-center justify-center rounded-xl bg-blue-700 px-4 py-3 text-sm font-semibold text-white transition hover:bg-blue-800 disabled:cursor-not-allowed disabled:opacity-70">
+              <button
+                type="submit"
+                disabled={loading || otp.length !== 6}
+                className="flex w-full items-center justify-center rounded-xl bg-blue-700 px-4 py-3 text-sm font-semibold text-white transition hover:bg-blue-800 disabled:cursor-not-allowed disabled:opacity-70"
+              >
                 {loading ? <LoadingSpinner label="Verifying code" size="sm" tone="light" /> : 'Verify and sign in'}
               </button>
               <button type="button" onClick={restart} className="w-full text-sm font-semibold text-slate-500 hover:text-slate-700">Use a different account</button>
