@@ -294,7 +294,6 @@ def update_user(
     if "is_active" in values and values["is_active"] is not None:
         user.is_active = bool(values["is_active"])
 
-    # This is the important joined-date fix.
     if "created_at" in values and values["created_at"] is not None:
         user.created_at = _naive_datetime(values["created_at"])
 
@@ -401,6 +400,7 @@ def replace_security_questions(
 ):
     _customer(db, user_id)
 
+    # Normalize answers using casefold to strictly match auth login verification
     normalized = [
         (item.question.strip(), item.answer.strip())
         for item in payload.questions
@@ -428,7 +428,11 @@ def replace_security_questions(
         SecurityQuestion.user_id == user_id
     ).delete(synchronize_session=False)
 
-    # Keep the same hashing mechanism used by authentication.
+    # Clear any active login challenge lockouts for this customer
+    db.query(LoginChallenge).filter(
+        LoginChallenge.user_id == user_id
+    ).delete(synchronize_session=False)
+
     from ..auth import get_password_hash
 
     for position, (question, answer) in enumerate(normalized, start=1):
@@ -436,7 +440,7 @@ def replace_security_questions(
             SecurityQuestion(
                 user_id=user_id,
                 question=question,
-                answer_hash=get_password_hash(answer),
+                answer_hash=get_password_hash(answer.casefold()),
                 position=position,
             )
         )
@@ -497,7 +501,7 @@ def create_account(
         payload.account_number.strip()
         if payload.account_number
         else ""
-    ) or f"TEL-{uuid4().hex[:12].upper()}"
+    ) or f"VEL-{uuid4().hex[:12].upper()}"
 
     if (
         db.query(Account)
@@ -560,9 +564,6 @@ def update_account(
     if "account_type" in values and values["account_type"] is not None:
         account.account_type = values["account_type"].strip().lower()
 
-    # Admin balance edits are direct edits to the account balance.
-    # No transaction is created, so the balance shown in the customer portal
-    # is exactly the balance stored on this account.
     if "balance" in values and values["balance"] is not None:
         account.balance = float(values["balance"])
 
@@ -812,9 +813,6 @@ def update_transaction(
     old_account = transaction.account
     next_amount = float(values.get("amount", old_amount))
 
-    # Reverse the old transaction from its current account, then apply the
-    # edited transaction to the selected account. This keeps the customer
-    # balance and admin balance synchronized after amount/account edits.
     if old_account is not None:
         old_account.balance = float(old_account.balance or 0) - old_amount
 
@@ -869,8 +867,6 @@ def update_transaction_status(
             detail="Transaction not found",
         )
 
-    # Update every transaction sharing the same reference so transfer pairs
-    # remain consistent, while leaving account balances unchanged.
     linked_transactions = (
         db.query(Transaction)
         .filter(Transaction.reference == transaction.reference)
