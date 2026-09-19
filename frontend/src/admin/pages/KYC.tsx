@@ -6,9 +6,16 @@ import {
   XMarkIcon,
 } from '@heroicons/react/24/outline';
 import AdminLayout from '../components/AdminLayout';
-import { kycRecords } from '../mock/adminData';
-import type { KYCRecord } from '../mock/adminData';
-import { getAdminUsers } from '../../services/api';
+import { getAdminUsers, updateAdminUser } from '../../services/api';
+
+interface KycViewItem {
+  id: number;
+  userName: string;
+  email: string;
+  documentType: string;
+  submittedDate: string;
+  status: 'Verified' | 'Pending' | 'Rejected';
+}
 
 const statusColors: Record<string, string> = {
   Verified: 'bg-emerald-50 text-emerald-700',
@@ -17,75 +24,59 @@ const statusColors: Record<string, string> = {
 };
 
 const AdminKYC: React.FC = () => {
-  const [records, setRecords] = useState<KYCRecord[]>([]);
+  const [records, setRecords] = useState<KycViewItem[]>([]);
   const [filter, setFilter] = useState('All');
   const [loading, setLoading] = useState(true);
+  const [actionLoadingId, setActionLoadingId] = useState<number | null>(null);
 
-  useEffect(() => {
-    let mounted = true;
-
+  const loadData = () => {
     getAdminUsers()
       .then((users) => {
-        if (!mounted) return;
+        const items: KycViewItem[] = users.map((user) => {
+          let status: KycViewItem['status'] = 'Pending';
+          const current = (user.kyc_status || '').toLowerCase();
+          if (current === 'verified') status = 'Verified';
+          else if (current === 'rejected') status = 'Rejected';
 
-        // Build a lookup of existing mock records by email
-        const mockByEmail = new Map(
-          kycRecords.map((item) => [item.email.toLowerCase(), item])
-        );
-
-        // Map real system users to KYC records
-        const combined: KYCRecord[] = users.map((user, index) => {
-          const userEmail = (user.email || '').toLowerCase();
-          const existing = mockByEmail.get(userEmail);
-
-          if (existing) {
-            return {
-              ...existing,
-              userName: user.full_name || existing.userName || user.username,
-              email: user.email,
-            };
-          }
-
-          // Generate a record for users that do not have a mock entry yet
-          const fallbackStatuses: KYCRecord['status'][] = ['Pending', 'Verified', 'Pending'];
           return {
-            id: `kyc-usr-${user.id || index}`,
-            userName: user.full_name || user.username || 'Bank Customer',
+            id: user.id,
+            userName: user.full_name || user.username,
             email: user.email,
             documentType: 'Passport / National ID',
-            submittedDate: user.created_at ? new Date(user.created_at).toISOString() : new Date().toISOString(),
-            status: fallbackStatuses[index % fallbackStatuses.length],
+            submittedDate: user.created_at,
+            status,
           };
         });
-
-        // If the database has no customers yet, fallback to default mock records
-        setRecords(combined.length > 0 ? combined : kycRecords);
+        setRecords(items);
       })
-      .catch(() => {
-        if (!mounted) return;
-        setRecords(kycRecords);
-      })
-      .finally(() => {
-        if (mounted) setLoading(false);
-      });
+      .catch(() => {})
+      .finally(() => setLoading(false));
+  };
 
-    return () => {
-      mounted = false;
-    };
+  useEffect(() => {
+    loadData();
   }, []);
+
+  const handleSetStatus = async (userId: number, status: KycViewItem['status']) => {
+    setActionLoadingId(userId);
+    try {
+      await updateAdminUser(userId, { kyc_status: status });
+      setRecords((prev) =>
+        prev.map((item) => (item.id === userId ? { ...item, status } : item))
+      );
+    } catch {
+      alert('Failed to update KYC status. Please try again.');
+    } finally {
+      setActionLoadingId(null);
+    }
+  };
 
   const filtered = records.filter((k) => {
     if (filter === 'All') return true;
-    return (k.status || '').toLowerCase() === filter.toLowerCase();
+    return k.status === filter;
   });
 
-  const setStatus = (id: string, status: KYCRecord['status']) => {
-    setRecords((prev) =>
-      prev.map((k) => (k.id === id ? { ...k, status } : k))
-    );
-  };
-
-  const pending = records.filter((k) => (k.status || '').toLowerCase() === 'pending').length;
+  const pending = records.filter((k) => k.status === 'Pending').length;
 
   return (
     <AdminLayout title="KYC Approvals" subtitle="Review and approve customer identity verification">
@@ -159,7 +150,7 @@ const AdminKYC: React.FC = () => {
                         <p className="text-xs text-slate-400 truncate">{k.email}</p>
                       </div>
                     </div>
-                    <span className={`px-2.5 py-1 rounded-full text-xs font-medium shrink-0 ${statusColors[k.status] || 'bg-slate-100 text-slate-700'}`}>
+                    <span className={`px-2.5 py-1 rounded-full text-xs font-medium shrink-0 ${statusColors[k.status]}`}>
                       {k.status}
                     </span>
                   </div>
@@ -167,7 +158,7 @@ const AdminKYC: React.FC = () => {
                   <div className="grid grid-cols-2 gap-3 text-sm mb-5">
                     <div>
                       <p className="text-xs text-slate-400 mb-0.5">Document Type</p>
-                      <p className="font-medium text-slate-800">{k.documentType || 'Identity Document'}</p>
+                      <p className="font-medium text-slate-800">{k.documentType}</p>
                     </div>
                     <div>
                       <p className="text-xs text-slate-400 mb-0.5">Submitted</p>
@@ -178,14 +169,16 @@ const AdminKYC: React.FC = () => {
                   {k.status === 'Pending' && (
                     <div className="flex gap-2">
                       <button
-                        onClick={() => setStatus(k.id, 'Verified')}
-                        className="flex-1 rounded-xl py-2 text-xs font-semibold text-emerald-700 bg-emerald-50 hover:bg-emerald-100 transition"
+                        onClick={() => handleSetStatus(k.id, 'Verified')}
+                        disabled={actionLoadingId === k.id}
+                        className="flex-1 rounded-xl py-2 text-xs font-semibold text-emerald-700 bg-emerald-50 hover:bg-emerald-100 transition disabled:opacity-50"
                       >
                         <CheckIcon className="mr-1 inline h-4 w-4" aria-hidden="true" /> Approve
                       </button>
                       <button
-                        onClick={() => setStatus(k.id, 'Rejected')}
-                        className="flex-1 rounded-xl py-2 text-xs font-semibold text-red-700 bg-red-50 hover:bg-red-100 transition"
+                        onClick={() => handleSetStatus(k.id, 'Rejected')}
+                        disabled={actionLoadingId === k.id}
+                        className="flex-1 rounded-xl py-2 text-xs font-semibold text-red-700 bg-red-50 hover:bg-red-100 transition disabled:opacity-50"
                       >
                         <XMarkIcon className="mr-1 inline h-4 w-4" aria-hidden="true" /> Reject
                       </button>
@@ -194,16 +187,23 @@ const AdminKYC: React.FC = () => {
 
                   {k.status === 'Rejected' && (
                     <button
-                      onClick={() => setStatus(k.id, 'Pending')}
-                      className="w-full rounded-xl py-2 text-xs font-medium text-amber-700 bg-amber-50 hover:bg-amber-100 transition"
+                      onClick={() => handleSetStatus(k.id, 'Pending')}
+                      disabled={actionLoadingId === k.id}
+                      className="w-full rounded-xl py-2 text-xs font-medium text-amber-700 bg-amber-50 hover:bg-amber-100 transition disabled:opacity-50"
                     >
                       Reopen for Review
                     </button>
                   )}
 
                   {k.status === 'Verified' && (
-                    <div className="rounded-xl bg-emerald-50 py-2 text-center text-xs font-medium text-emerald-700">
-                      <CheckIcon className="mr-1 inline h-4 w-4" aria-hidden="true" /> Identity Verified
+                    <div className="flex items-center justify-between rounded-xl bg-emerald-50 px-4 py-2 text-xs font-medium text-emerald-700">
+                      <span><CheckIcon className="mr-1 inline h-4 w-4" aria-hidden="true" /> Identity Verified</span>
+                      <button
+                        onClick={() => handleSetStatus(k.id, 'Pending')}
+                        className="text-xs text-slate-500 hover:text-slate-700 underline"
+                      >
+                        Revert
+                      </button>
                     </div>
                   )}
                 </div>

@@ -22,6 +22,7 @@ class UserCreate(UserBase):
 class UserOut(UserBase):
     id: int
     is_active: bool
+    kyc_status: str = "Pending"
     created_at: datetime
 
     class Config:
@@ -214,6 +215,7 @@ class AdminUserCreate(StrictModel):
     full_name: str = Field(min_length=1, max_length=120)
     address: Optional[str] = Field(default=None, max_length=500)
     password: str = Field(min_length=12, max_length=128)
+    kyc_status: Optional[str] = Field(default="Pending", max_length=32)
 
 
 class AdminUserUpdate(StrictModel):
@@ -222,6 +224,7 @@ class AdminUserUpdate(StrictModel):
     full_name: Optional[str] = None
     address: Optional[str] = Field(default=None, max_length=500)
     is_active: Optional[bool] = None
+    kyc_status: Optional[str] = Field(default=None, max_length=32)
     created_at: Optional[Union[datetime, str]] = None
 
 
@@ -233,6 +236,7 @@ class AdminUserOut(BaseModel):
     address: Optional[str] = None
     role: UserRole
     is_active: bool
+    kyc_status: str
     created_at: datetime
     total_balance: float
 

@@ -172,6 +172,7 @@ export interface ApiUser {
   address?: string | null;
   role: string;
   is_active: boolean;
+  kyc_status: string;
   created_at: string;
 }
 
@@ -509,6 +510,7 @@ export async function createAdminUser(payload: {
   full_name: string;
   address?: string;
   password: string;
+  kyc_status?: string;
 }) {
   const response = await api.post<ApiUser & { total_balance: number }>('/api/admin/users', payload);
   return response.data;
@@ -520,6 +522,7 @@ export async function updateAdminUser(userId: number, payload: {
   full_name?: string;
   address?: string;
   is_active?: boolean;
+  kyc_status?: string;
   created_at?: string;
 }) {
   const response = await api.patch<ApiUser & { total_balance: number }>(`/api/admin/users/${userId}`, payload);
@@ -545,7 +548,7 @@ export async function deleteAdminUser(userId: number) {
 
 export async function getAdminAccounts(userId?: number | string) {
   const response = await api.get<ApiAdminAccount[]>('/api/admin/accounts', {
-    params: userId !== undefined && userId !== '' ? { user_id: userId } : undefined,
+    params: userId !== undefined && userId !== '' && userId !== 'all' ? { user_id: userId } : undefined,
   });
   return response.data;
 }
@@ -564,7 +567,7 @@ export async function createAdminAccount(payload: {
 
 export async function getAdminTransactions(userId?: number | string) {
   const response = await api.get<ApiAdminTransaction[]>('/api/admin/transactions', {
-    params: userId !== undefined && userId !== '' ? { user_id: userId } : undefined,
+    params: userId !== undefined && userId !== '' && userId !== 'all' ? { user_id: userId } : undefined,
   });
   return response.data;
 }
@@ -630,7 +633,7 @@ export async function deleteAdminAccount(accountId: number) {
 
 export async function getAdminCards(userId?: number | string) {
   const response = await api.get<Array<ApiCard & { user_id: number; user_name: string; account_type: string }>>('/api/admin/cards', {
-    params: userId !== undefined && userId !== '' ? { user_id: userId } : undefined,
+    params: userId !== undefined && userId !== '' && userId !== 'all' ? { user_id: userId } : undefined,
   });
   return response.data;
 }
@@ -675,7 +678,7 @@ export async function deleteAdminCard(cardId: number) {
 
 export async function getAdminInvestments(userId?: number | string) {
   const response = await api.get<ApiAdminInvestment[]>('/api/admin/investments', {
-    params: userId !== undefined && userId !== '' ? { user_id: userId } : undefined,
+    params: userId !== undefined && userId !== '' && userId !== 'all' ? { user_id: userId } : undefined,
   });
   return response.data;
 }
@@ -720,7 +723,7 @@ export async function getLoans() {
 
 export async function getAdminLoans(userId?: number | string) {
   const response = await api.get<ApiAdminLoan[]>('/api/admin/loans', {
-    params: userId !== undefined && userId !== '' ? { user_id: userId } : undefined,
+    params: userId !== undefined && userId !== '' && userId !== 'all' ? { user_id: userId } : undefined,
   });
   return response.data;
 }

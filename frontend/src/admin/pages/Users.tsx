@@ -35,7 +35,7 @@ const kycColors: Record<string, string> = {
 
 const emptyUser: Omit<ManagedUser, 'id'> = {
   fullName: '', email: '', username: '', address: '', status: 'Pending',
-  kycStatus: 'Not Started', joinedDate: new Date().toISOString().slice(0, 10), totalBalance: 0,
+  kycStatus: 'Pending', joinedDate: new Date().toISOString().slice(0, 10), totalBalance: 0,
 };
 
 const AdminUsers: React.FC = () => {
@@ -64,7 +64,7 @@ const AdminUsers: React.FC = () => {
     username: user.username,
     address: user.address ?? '',
     status: user.is_active ? 'Active' : 'Suspended',
-    kycStatus: 'Not Started',
+    kycStatus: (user.kyc_status as ManagedUser['kycStatus']) || 'Pending',
     joinedDate: user.created_at,
     totalBalance: user.total_balance,
   });
@@ -115,17 +115,18 @@ const AdminUsers: React.FC = () => {
     try {
       const updated = editUser
         ? await updateAdminUser(Number(editUser.id), {
-            full_name: form.fullName,
-            email: form.email,
-            username: form.username,
+            full_name: form.fullName.trim(),
+            email: form.email.trim(),
+            username: form.username.trim(),
             address: form.address.trim(),
             is_active: form.status === 'Active',
-            created_at: new Date(`${form.joinedDate}T00:00:00`).toISOString(),
+            kyc_status: form.kycStatus,
+            created_at: new Date(`${form.joinedDate.slice(0, 10)}T00:00:00`).toISOString(),
           })
         : await createAdminUser({
-            full_name: form.fullName,
-            email: form.email,
-            username: form.username,
+            full_name: form.fullName.trim(),
+            email: form.email.trim(),
+            username: form.username.trim(),
             address: form.address.trim(),
             password,
           });
@@ -242,7 +243,7 @@ const AdminUsers: React.FC = () => {
         ? current.map((item) => item.id === savedBeneficiary.id ? savedBeneficiary : item)
         : [savedBeneficiary, ...current]);
       setEditingBeneficiary(null);
-       setBeneficiaryForm({ name: '', relationship: '', bank: '', account_number: '', notes: '', created_at: new Date().toISOString().slice(0, 10) });
+      setBeneficiaryForm({ name: '', relationship: '', bank: '', account_number: '', notes: '', created_at: new Date().toISOString().slice(0, 10) });
     } catch {
       setError('We could not save this beneficiary.');
     } finally {
@@ -270,11 +271,11 @@ const AdminUsers: React.FC = () => {
             onChange={(e) => setSearch(e.target.value)}
             className="rounded-xl border border-slate-200 px-4 py-2.5 text-sm outline-none focus:border-brand-500 focus:ring-2 focus:ring-brand-100 w-full sm:w-72"
           />
-           <button
+          <button
             onClick={openCreate}
             className="rounded-xl bg-brand-700 px-4 py-2.5 text-sm font-semibold text-white hover:bg-brand-800 transition"
           >
-             New customer
+            New customer
           </button>
         </div>
 
@@ -315,7 +316,7 @@ const AdminUsers: React.FC = () => {
                       <span className={`px-2.5 py-1 rounded-full text-xs font-medium ${statusColors[u.status]}`}>{u.status}</span>
                     </td>
                     <td className="px-6 py-4">
-                      <span className={`px-2.5 py-1 rounded-full text-xs font-medium ${kycColors[u.kycStatus]}`}>{u.kycStatus}</span>
+                      <span className={`px-2.5 py-1 rounded-full text-xs font-medium ${kycColors[u.kycStatus] || kycColors.Pending}`}>{u.kycStatus}</span>
                     </td>
                     <td className="px-6 py-4 font-semibold text-slate-900">{formatCurrency(u.totalBalance)}</td>
                     <td className="px-6 py-4 text-slate-500 text-xs">{new Date(u.joinedDate).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}</td>
@@ -353,27 +354,27 @@ const AdminUsers: React.FC = () => {
                 <input value={form.fullName} onChange={e => setForm(f => ({ ...f, fullName: e.target.value }))} className="w-full rounded-xl border border-slate-200 px-3 py-2.5 text-sm outline-none focus:border-brand-500 focus:ring-2 focus:ring-brand-100" />
                 {fieldErrors.full_name && <p className="mt-1 text-xs text-red-600">{fieldErrors.full_name}</p>}
               </div>
-               {!editUser && (
-                 <div>
-                   <label className="block text-xs font-medium text-slate-600 mb-1">Temporary password</label>
-                    <input type="password" value={password} onChange={e => setPassword(e.target.value)} minLength={12} placeholder="At least 12 characters" className="w-full rounded-xl border border-slate-200 px-3 py-2.5 text-sm outline-none focus:border-brand-500 focus:ring-2 focus:ring-brand-100" />
-                    {fieldErrors.password && <p className="mt-1 text-xs text-red-600">{fieldErrors.password}</p>}
-                 </div>
-               )}
+              {!editUser && (
+                <div>
+                  <label className="block text-xs font-medium text-slate-600 mb-1">Temporary password</label>
+                  <input type="password" value={password} onChange={e => setPassword(e.target.value)} minLength={12} placeholder="At least 12 characters" className="w-full rounded-xl border border-slate-200 px-3 py-2.5 text-sm outline-none focus:border-brand-500 focus:ring-2 focus:ring-brand-100" />
+                  {fieldErrors.password && <p className="mt-1 text-xs text-red-600">{fieldErrors.password}</p>}
+                </div>
+              )}
               <div>
                 <label className="block text-xs font-medium text-slate-600 mb-1">Email</label>
                 <input value={form.email} onChange={e => setForm(f => ({ ...f, email: e.target.value }))} className="w-full rounded-xl border border-slate-200 px-3 py-2.5 text-sm outline-none focus:border-brand-500 focus:ring-2 focus:ring-brand-100" />
-                 {fieldErrors.email && <p className="mt-1 text-xs text-red-600">{fieldErrors.email}</p>}
+                {fieldErrors.email && <p className="mt-1 text-xs text-red-600">{fieldErrors.email}</p>}
               </div>
               <div>
                 <label className="block text-xs font-medium text-slate-600 mb-1">Username</label>
                 <input value={form.username} onChange={e => setForm(f => ({ ...f, username: e.target.value }))} className="w-full rounded-xl border border-slate-200 px-3 py-2.5 text-sm outline-none focus:border-brand-500 focus:ring-2 focus:ring-brand-100" />
-                 {fieldErrors.username && <p className="mt-1 text-xs text-red-600">{fieldErrors.username}</p>}
+                {fieldErrors.username && <p className="mt-1 text-xs text-red-600">{fieldErrors.username}</p>}
               </div>
-               <div>
-                 <label className="block text-xs font-medium text-slate-600 mb-1">Address</label>
-                 <textarea value={form.address} onChange={e => setForm(f => ({ ...f, address: e.target.value }))} rows={3} placeholder="Street, city, region, postal code" className="w-full resize-none rounded-xl border border-slate-200 px-3 py-2.5 text-sm outline-none focus:border-brand-500 focus:ring-2 focus:ring-brand-100" />
-               </div>
+              <div>
+                <label className="block text-xs font-medium text-slate-600 mb-1">Address</label>
+                <textarea value={form.address} onChange={e => setForm(f => ({ ...f, address: e.target.value }))} rows={3} placeholder="Street, city, region, postal code" className="w-full resize-none rounded-xl border border-slate-200 px-3 py-2.5 text-sm outline-none focus:border-brand-500 focus:ring-2 focus:ring-brand-100" />
+              </div>
               <div>
                 <label className="block text-xs font-medium text-slate-600 mb-1">Date joined</label>
                 <input type="date" value={form.joinedDate.slice(0, 10)} onChange={e => setForm(f => ({ ...f, joinedDate: e.target.value }))} className="w-full rounded-xl border border-slate-200 px-3 py-2.5 text-sm outline-none focus:border-brand-500 focus:ring-2 focus:ring-brand-100" />
@@ -480,7 +481,7 @@ const AdminUsers: React.FC = () => {
                 <label className="text-xs font-medium text-slate-600">Date added
                   <input type="date" value={beneficiaryForm.created_at} onChange={(event) => setBeneficiaryForm((current) => ({ ...current, created_at: event.target.value }))} className="mt-1 block w-full rounded-xl border border-slate-200 px-3 py-2.5 text-sm outline-none focus:border-brand-500" />
                 </label>
-                 {editingBeneficiary && <button type="button" onClick={() => { setEditingBeneficiary(null); setBeneficiaryForm({ name: '', relationship: '', bank: '', account_number: '', notes: '', created_at: new Date().toISOString().slice(0, 10) }); }} className="rounded-xl border border-slate-200 px-4 py-2.5 text-sm font-medium text-slate-600">Cancel edit</button>}
+                {editingBeneficiary && <button type="button" onClick={() => { setEditingBeneficiary(null); setBeneficiaryForm({ name: '', relationship: '', bank: '', account_number: '', notes: '', created_at: new Date().toISOString().slice(0, 10) }); }} className="rounded-xl border border-slate-200 px-4 py-2.5 text-sm font-medium text-slate-600">Cancel edit</button>}
                 <button type="button" onClick={() => void saveBeneficiary()} disabled={beneficiarySaving} className="rounded-xl bg-brand-700 px-4 py-2.5 text-sm font-semibold text-white disabled:opacity-60">{beneficiarySaving ? 'Saving…' : editingBeneficiary ? 'Save beneficiary' : 'Add beneficiary'}</button>
               </div>
             </div>

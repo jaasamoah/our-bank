@@ -2,6 +2,7 @@ from datetime import datetime
 from uuid import uuid4
 
 from fastapi import APIRouter, Depends, HTTPException
+from sqlalchemy import func
 from sqlalchemy.orm import Session
 
 from ..auth import get_current_admin
@@ -82,6 +83,7 @@ def serialize_user(user: User) -> dict:
         "address": user.address,
         "role": user.role,
         "is_active": user.is_active,
+        "kyc_status": getattr(user, "kyc_status", "Pending") or "Pending",
         "created_at": user.created_at,
         "total_balance": sum(account.balance or 0 for account in user.accounts),
     }
@@ -225,7 +227,10 @@ def create_user(
 
     if (
         db.query(User)
-        .filter((User.email == email) | (User.username == username))
+        .filter(
+            (func.lower(User.email) == email) |
+            (func.lower(User.username) == username.lower())
+        )
         .first()
     ):
         raise HTTPException(
@@ -240,6 +245,7 @@ def create_user(
         address=payload.address.strip() if payload.address else None,
         hashed_password=get_password_hash(payload.password),
         role=UserRole.CUSTOMER,
+        kyc_status=payload.kyc_status or "Pending",
     )
     db.add(user)
     db.commit()
@@ -261,7 +267,7 @@ def update_user(
         email = str(values["email"]).strip().lower()
         if (
             db.query(User)
-            .filter(User.email == email, User.id != user_id)
+            .filter(func.lower(User.email) == email, User.id != user_id)
             .first()
         ):
             raise HTTPException(status_code=400, detail="Email is already in use")
@@ -271,7 +277,7 @@ def update_user(
         username = values["username"].strip()
         if (
             db.query(User)
-            .filter(User.username == username, User.id != user_id)
+            .filter(func.lower(User.username) == username.lower(), User.id != user_id)
             .first()
         ):
             raise HTTPException(
@@ -293,6 +299,9 @@ def update_user(
 
     if "is_active" in values and values["is_active"] is not None:
         user.is_active = bool(values["is_active"])
+
+    if "kyc_status" in values and values["kyc_status"] is not None:
+        user.kyc_status = values["kyc_status"].strip().title()
 
     if "created_at" in values and values["created_at"] is not None:
         user.created_at = _naive_datetime(values["created_at"])
@@ -400,7 +409,6 @@ def replace_security_questions(
 ):
     _customer(db, user_id)
 
-    # Normalize answers using casefold to strictly match auth login verification
     normalized = [
         (item.question.strip(), item.answer.strip())
         for item in payload.questions
@@ -428,7 +436,6 @@ def replace_security_questions(
         SecurityQuestion.user_id == user_id
     ).delete(synchronize_session=False)
 
-    # Clear any active login challenge lockouts for this customer
     db.query(LoginChallenge).filter(
         LoginChallenge.user_id == user_id
     ).delete(synchronize_session=False)

@@ -20,6 +20,7 @@ class User(Base):
     address = Column(String, nullable=True)
     role = Column(Enum(UserRole), default=UserRole.CUSTOMER)
     is_active = Column(Boolean, default=True)
+    kyc_status = Column(String, default="Pending", nullable=False)
     created_at = Column(DateTime(timezone=True), server_default=func.now())
     
     accounts = orm_relationship("Account", back_populates="user")
