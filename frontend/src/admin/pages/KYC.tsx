@@ -32,7 +32,12 @@ const AdminKYC: React.FC = () => {
   const loadData = () => {
     getAdminUsers()
       .then((users) => {
-        const items: KycViewItem[] = users.map((user) => {
+        // Exclude administrators so only customer accounts undergo KYC verification
+        const customerUsers = users.filter(
+          (u) => (u.role || 'customer').toLowerCase() === 'customer'
+        );
+
+        const items: KycViewItem[] = customerUsers.map((user) => {
           let status: KycViewItem['status'] = 'Pending';
           const current = (user.kyc_status || '').toLowerCase();
           if (current === 'verified') status = 'Verified';
@@ -139,7 +144,10 @@ const AdminKYC: React.FC = () => {
                 : 'Recently';
 
               return (
-                <div key={k.id} className="rounded-2xl bg-white border border-slate-100 shadow-sm p-5 transition hover:border-slate-200">
+                <div
+                  key={k.id}
+                  className="rounded-2xl bg-white border border-slate-100 shadow-sm p-5 transition hover:border-slate-200"
+                >
                   <div className="flex items-start justify-between mb-4">
                     <div className="flex items-center gap-3">
                       <div className="h-11 w-11 rounded-full bg-brand-100 flex items-center justify-center text-base font-bold text-brand-700 shrink-0">
@@ -197,10 +205,13 @@ const AdminKYC: React.FC = () => {
 
                   {k.status === 'Verified' && (
                     <div className="flex items-center justify-between rounded-xl bg-emerald-50 px-4 py-2 text-xs font-medium text-emerald-700">
-                      <span><CheckIcon className="mr-1 inline h-4 w-4" aria-hidden="true" /> Identity Verified</span>
+                      <span>
+                        <CheckIcon className="mr-1 inline h-4 w-4" aria-hidden="true" /> Identity Verified
+                      </span>
                       <button
                         onClick={() => handleSetStatus(k.id, 'Pending')}
-                        className="text-xs text-slate-500 hover:text-slate-700 underline"
+                        disabled={actionLoadingId === k.id}
+                        className="text-xs text-slate-500 hover:text-slate-700 underline disabled:opacity-50"
                       >
                         Revert
                       </button>
