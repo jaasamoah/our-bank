@@ -467,15 +467,14 @@ def replace_security_questions(
 
 @router.get("/accounts", response_model=list[AdminAccountOut])
 def list_accounts(
+    user_id: int | None = None,
     _: User = Depends(get_current_admin),
     db: Session = Depends(get_db),
 ):
-    accounts = (
-        db.query(Account)
-        .join(User)
-        .order_by(Account.id.desc())
-        .all()
-    )
+    query = db.query(Account).join(User)
+    if user_id is not None:
+        query = query.filter(Account.user_id == user_id)
+    accounts = query.order_by(Account.id.desc()).all()
     return [serialize_account(account) for account in accounts]
 
 
@@ -610,16 +609,18 @@ def delete_account(
 
 @router.get("/transactions", response_model=list[AdminTransactionOut])
 def list_transactions(
+    user_id: int | None = None,
     _: User = Depends(get_current_admin),
     db: Session = Depends(get_db),
 ):
-    transactions = (
+    query = (
         db.query(Transaction)
         .join(User, Transaction.user_id == User.id)
         .join(Account, Transaction.account_id == Account.id)
-        .order_by(Transaction.created_at.desc(), Transaction.id.desc())
-        .all()
     )
+    if user_id is not None:
+        query = query.filter(Transaction.user_id == user_id)
+    transactions = query.order_by(Transaction.created_at.desc(), Transaction.id.desc()).all()
     return [
         serialize_transaction(transaction)
         for transaction in transactions
@@ -921,16 +922,14 @@ def delete_transaction(
 
 @router.get("/cards", response_model=list[AdminCardOut])
 def list_cards(
+    user_id: int | None = None,
     _: User = Depends(get_current_admin),
     db: Session = Depends(get_db),
 ):
-    cards = (
-        db.query(Card)
-        .join(Account)
-        .join(User)
-        .order_by(Card.id.desc())
-        .all()
-    )
+    query = db.query(Card).join(Account).join(User)
+    if user_id is not None:
+        query = query.filter(Card.user_id == user_id)
+    cards = query.order_by(Card.id.desc()).all()
     return [serialize_card(card) for card in cards]
 
 
@@ -1101,15 +1100,14 @@ def delete_card(
 
 @router.get("/investments", response_model=list[AdminInvestmentOut])
 def list_investments(
+    user_id: int | None = None,
     _: User = Depends(get_current_admin),
     db: Session = Depends(get_db),
 ):
-    investments = (
-        db.query(Investment)
-        .join(User)
-        .order_by(Investment.created_at.desc(), Investment.id.desc())
-        .all()
-    )
+    query = db.query(Investment).join(User)
+    if user_id is not None:
+        query = query.filter(Investment.user_id == user_id)
+    investments = query.order_by(Investment.created_at.desc(), Investment.id.desc()).all()
     return [
         serialize_investment(investment)
         for investment in investments
@@ -1287,15 +1285,14 @@ def get_dashboard(
 
 @router.get("/loans", response_model=list[AdminLoanOut])
 def list_loans(
+    user_id: int | None = None,
     _: User = Depends(get_current_admin),
     db: Session = Depends(get_db),
 ):
-    loans = (
-        db.query(Loan)
-        .join(User)
-        .order_by(Loan.disbursed_date.desc(), Loan.id.desc())
-        .all()
-    )
+    query = db.query(Loan).join(User)
+    if user_id is not None:
+        query = query.filter(Loan.user_id == user_id)
+    loans = query.order_by(Loan.disbursed_date.desc(), Loan.id.desc()).all()
     return [serialize_loan(loan) for loan in loans]
 
 

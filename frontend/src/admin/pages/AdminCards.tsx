@@ -34,6 +34,7 @@ const AdminCards: React.FC = () => {
   const [cards, setCards] = useState<AdminCardView[]>([]);
   const [customers, setCustomers] = useState<Array<ApiUser & { total_balance: number }>>([]);
   const [accounts, setAccounts] = useState<ApiAdminAccount[]>([]);
+  const [selectedUser, setSelectedUser] = useState<string>('all');
   const [search, setSearch] = useState('');
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
@@ -60,15 +61,30 @@ const AdminCards: React.FC = () => {
   });
 
   useEffect(() => {
-    Promise.all([getAdminCards(), getAdminAccounts(), getAdminUsers()])
-      .then(([cardData, accountData, customerData]) => {
-        setCards(cardData.map(mapCard));
+    Promise.all([getAdminAccounts(), getAdminUsers()])
+      .then(([accountData, customerData]) => {
         setAccounts(accountData);
         setCustomers(customerData);
       })
-      .catch(() => setError('We could not load cards. Please refresh and try again.'))
-      .finally(() => setLoading(false));
+      .catch(() => {});
   }, []);
+
+  const loadCards = async (userIdFilter: string) => {
+    setLoading(true);
+    try {
+      const data = await getAdminCards(userIdFilter === 'all' ? undefined : userIdFilter);
+      setCards(data.map(mapCard));
+      setError('');
+    } catch {
+      setError('We could not load cards. Please refresh and try again.');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    void loadCards(selectedUser);
+  }, [selectedUser]);
 
   const filtered = cards.filter((c) =>
     c.userName.toLowerCase().includes(search.toLowerCase()) ||
@@ -179,7 +195,21 @@ const AdminCards: React.FC = () => {
         {error && !editingCard && !showCreate && <div className="rounded-xl bg-red-50 px-4 py-3 text-sm text-red-700">{error}</div>}
         <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
           <input type="search" placeholder="Search cards…" value={search} onChange={(e) => setSearch(e.target.value)} className="w-full rounded-xl border border-slate-200 px-4 py-2.5 text-sm outline-none focus:border-brand-500 focus:ring-2 focus:ring-brand-100 sm:w-72" />
-          <button type="button" onClick={openCreate} className="rounded-xl bg-brand-700 px-4 py-2.5 text-sm font-semibold text-white hover:bg-brand-800">New card</button>
+          <div className="flex flex-wrap items-center gap-3">
+            <select
+              value={selectedUser}
+              onChange={(e) => setSelectedUser(e.target.value)}
+              className="rounded-xl border border-slate-200 bg-white px-3 py-2.5 text-sm text-slate-700 outline-none focus:border-brand-500"
+            >
+              <option value="all">All customers</option>
+              {customers.map((c) => (
+                <option key={c.id} value={c.id}>
+                  {c.full_name || c.username} ({c.email})
+                </option>
+              ))}
+            </select>
+            <button type="button" onClick={openCreate} className="rounded-xl bg-brand-700 px-4 py-2.5 text-sm font-semibold text-white hover:bg-brand-800">New card</button>
+          </div>
         </div>
 
         {loading ? <div className="rounded-2xl bg-white p-10"><LoadingSpinner label="Loading cards" /></div> : <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-3">
@@ -189,7 +219,7 @@ const AdminCards: React.FC = () => {
                 c.type === 'Credit' ? 'from-slate-700 to-slate-900' : 'from-brand-600 to-brand-800'
               } text-white`}>
                 <div className="flex items-center justify-between mb-6">
-                  <span className="text-xs font-medium opacity-70">telosbank</span>
+                  <span className="text-xs font-medium opacity-70">velmontbank</span>
                   <span className="text-xs font-medium opacity-70">{c.network}</span>
                 </div>
                 <p className="font-mono text-sm tracking-widest mb-2">{c.number}</p>
@@ -230,6 +260,7 @@ const AdminCards: React.FC = () => {
               </div>
             </div>
           ))}
+          {filtered.length === 0 && <p className="col-span-full p-10 text-center text-sm text-slate-500">No cards found.</p>}
         </div>}
       </div>
 

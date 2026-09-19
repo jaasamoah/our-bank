@@ -31,6 +31,7 @@ const AdminLoans: React.FC = () => {
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState('');
   const [customers, setCustomers] = useState<Array<ApiUser & { total_balance: number }>>([]);
+  const [selectedUser, setSelectedUser] = useState<string>('all');
   const [showCreate, setShowCreate] = useState(false);
   const [newLoan, setNewLoan] = useState({
     userId: '',
@@ -57,15 +58,27 @@ const AdminLoans: React.FC = () => {
   });
 
   useEffect(() => {
-    Promise.all([getAdminLoans(), getAdminUsers()])
-      .then(([loanData, customerData]) => {
-        setLoans(loanData.map(mapLoan));
+    getAdminUsers()
+      .then((customerData) => {
         setCustomers(customerData);
         setNewLoan((current) => ({ ...current, userId: current.userId || String(customerData[0]?.id ?? '') }));
       })
-      .catch(() => setError('We could not load loans. Please refresh and try again.'))
-      .catch(() => setError('We could not load loans. Please refresh and try again.'));
+      .catch(() => {});
   }, []);
+
+  const loadLoans = async (userIdFilter: string) => {
+    try {
+      const data = await getAdminLoans(userIdFilter === 'all' ? undefined : userIdFilter);
+      setLoans(data.map(mapLoan));
+      setError('');
+    } catch {
+      setError('We could not load loans. Please refresh and try again.');
+    }
+  };
+
+  useEffect(() => {
+    void loadLoans(selectedUser);
+  }, [selectedUser]);
 
   const openEdit = (l: ManagedLoan) => {
     setEditLoan(l);
@@ -181,7 +194,21 @@ const AdminLoans: React.FC = () => {
           </div>
         </div>
 
-        <div className="flex justify-end">
+        <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+          <div className="flex items-center gap-3">
+            <select
+              value={selectedUser}
+              onChange={(e) => setSelectedUser(e.target.value)}
+              className="rounded-xl border border-slate-200 bg-white px-3 py-2.5 text-sm text-slate-700 outline-none focus:border-brand-500"
+            >
+              <option value="all">All customers</option>
+              {customers.map((c) => (
+                <option key={c.id} value={c.id}>
+                  {c.full_name || c.username} ({c.email})
+                </option>
+              ))}
+            </select>
+          </div>
           <button type="button" onClick={() => setShowCreate(true)} className="rounded-xl bg-brand-700 px-4 py-2.5 text-sm font-semibold text-white hover:bg-brand-800">New loan</button>
         </div>
         <div className="rounded-2xl bg-white border border-slate-100 shadow-sm overflow-hidden">
@@ -200,7 +227,7 @@ const AdminLoans: React.FC = () => {
                 </tr>
               </thead>
               <tbody className="divide-y divide-slate-50">
-        {loans.map((l) => (
+                {loans.map((l) => (
                   <tr key={l.id} className="hover:bg-slate-50 transition-colors">
                     <td className="px-6 py-4 font-medium text-slate-900">{l.userName}</td>
                     <td className="px-6 py-4 text-slate-700">{formatCurrency(l.amount)}</td>
@@ -221,6 +248,7 @@ const AdminLoans: React.FC = () => {
                 ))}
               </tbody>
             </table>
+            {loans.length === 0 && <p className="p-10 text-center text-sm text-slate-500">No loans found.</p>}
           </div>
        </div>
       </div>

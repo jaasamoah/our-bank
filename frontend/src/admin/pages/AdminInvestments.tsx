@@ -59,6 +59,7 @@ const numberFields: Array<keyof InvestmentForm> = [
 const AdminInvestments: React.FC = () => {
   const [investments, setInvestments] = useState<ApiAdminInvestment[]>([]);
   const [customers, setCustomers] = useState<Array<ApiUser & { total_balance: number }>>([]);
+  const [selectedUser, setSelectedUser] = useState<string>('all');
   const [form, setForm] = useState<InvestmentForm>(emptyForm);
   const [editing, setEditing] = useState<ApiAdminInvestment | null>(null);
   const [showModal, setShowModal] = useState(false);
@@ -69,15 +70,30 @@ const AdminInvestments: React.FC = () => {
   const [fieldErrors, setFieldErrors] = useState<Record<string, string>>({});
 
   useEffect(() => {
-    Promise.all([getAdminInvestments(), getAdminUsers()])
-      .then(([investmentData, customerData]) => {
-        setInvestments(investmentData);
+    getAdminUsers()
+      .then((customerData) => {
         setCustomers(customerData);
         setForm((current) => ({ ...current, userId: current.userId || String(customerData[0]?.id ?? '') }));
       })
-      .catch(() => setError('We could not load investments. Please refresh and try again.'))
-      .finally(() => setLoading(false));
+      .catch(() => {});
   }, []);
+
+  const loadInvestments = async (userIdFilter: string) => {
+    setLoading(true);
+    try {
+      const data = await getAdminInvestments(userIdFilter === 'all' ? undefined : userIdFilter);
+      setInvestments(data);
+      setError('');
+    } catch {
+      setError('We could not load investments. Please refresh and try again.');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    void loadInvestments(selectedUser);
+  }, [selectedUser]);
 
   const filtered = useMemo(() => {
     const query = search.trim().toLowerCase();
@@ -195,7 +211,21 @@ const AdminInvestments: React.FC = () => {
         {error && !showModal && <div className="rounded-xl bg-red-50 px-4 py-3 text-sm text-red-700">{error}</div>}
         <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
           <input type="search" placeholder="Search customer, symbol, or investment" value={search} onChange={(event) => setSearch(event.target.value)} className="w-full rounded-xl border border-slate-200 px-4 py-2.5 text-sm outline-none focus:border-brand-500 sm:w-80" />
-          <button type="button" onClick={openCreate} className="rounded-xl bg-brand-700 px-4 py-2.5 text-sm font-semibold text-white hover:bg-brand-800">New investment</button>
+          <div className="flex flex-wrap items-center gap-3">
+            <select
+              value={selectedUser}
+              onChange={(e) => setSelectedUser(e.target.value)}
+              className="rounded-xl border border-slate-200 bg-white px-3 py-2.5 text-sm text-slate-700 outline-none focus:border-brand-500"
+            >
+              <option value="all">All customers</option>
+              {customers.map((c) => (
+                <option key={c.id} value={c.id}>
+                  {c.full_name || c.username} ({c.email})
+                </option>
+              ))}
+            </select>
+            <button type="button" onClick={openCreate} className="rounded-xl bg-brand-700 px-4 py-2.5 text-sm font-semibold text-white hover:bg-brand-800">New investment</button>
+          </div>
         </div>
         <div className="overflow-hidden rounded-2xl border border-slate-100 bg-white shadow-sm">
           {loading ? <div className="p-10"><LoadingSpinner label="Loading investments" /></div> : (

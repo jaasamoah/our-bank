@@ -81,6 +81,7 @@ const AdminTransactions: React.FC = () => {
   const [transactions, setTransactions] = useState<ApiAdminTransaction[]>([]);
   const [customers, setCustomers] = useState<Array<ApiUser & { total_balance: number }>>([]);
   const [accounts, setAccounts] = useState<ApiAdminAccount[]>([]);
+  const [selectedUser, setSelectedUser] = useState<string>('all');
   const [search, setSearch] = useState('');
   const [statusFilter, setStatusFilter] = useState('all');
   const [loading, setLoading] = useState(true);
@@ -95,7 +96,8 @@ const AdminTransactions: React.FC = () => {
   const loadTransactions = async (showLoading = false) => {
     if (showLoading) setLoading(true);
     try {
-      setTransactions(await getAdminTransactions());
+      const data = await getAdminTransactions(selectedUser === 'all' ? undefined : selectedUser);
+      setTransactions(data);
       setError('');
     } catch {
       setError('We could not load transactions. Please refresh and try again.');
@@ -106,9 +108,9 @@ const AdminTransactions: React.FC = () => {
 
   useEffect(() => {
     void loadTransactions(true);
-    const refresh = window.setInterval(() => void loadTransactions(), 10000);
+    const refresh = window.setInterval(() => void loadTransactions(false), 10000);
     return () => window.clearInterval(refresh);
-  }, []);
+  }, [selectedUser]);
 
   useEffect(() => {
     Promise.all([getAdminUsers(), getAdminAccounts()])
@@ -258,8 +260,24 @@ const AdminTransactions: React.FC = () => {
       <div className="space-y-6">
         <div className="flex flex-col gap-3 rounded-2xl bg-white p-4 shadow-sm sm:flex-row sm:items-center sm:justify-between">
           <input type="search" placeholder="Search description, customer, or reference" value={search} onChange={(event) => setSearch(event.target.value)} className="w-full rounded-xl border border-slate-200 px-4 py-2.5 text-sm outline-none focus:border-brand-500 focus:ring-2 focus:ring-brand-100 sm:max-w-md" />
-          <div className="flex w-full gap-3 sm:w-auto">
-            <select value={statusFilter} onChange={(event) => setStatusFilter(event.target.value)} className="min-w-0 flex-1 rounded-xl border border-slate-200 px-4 py-2.5 text-sm outline-none focus:border-brand-500 sm:w-48">
+          <div className="flex w-full flex-wrap gap-3 sm:w-auto">
+            <select
+              value={selectedUser}
+              onChange={(event) => setSelectedUser(event.target.value)}
+              className="min-w-0 flex-1 rounded-xl border border-slate-200 bg-white px-4 py-2.5 text-sm text-slate-700 outline-none focus:border-brand-500 sm:w-48"
+            >
+              <option value="all">All customers</option>
+              {customers.map((customer) => (
+                <option key={customer.id} value={customer.id}>
+                  {customer.full_name || customer.username}
+                </option>
+              ))}
+            </select>
+            <select
+              value={statusFilter}
+              onChange={(event) => setStatusFilter(event.target.value)}
+              className="min-w-0 flex-1 rounded-xl border border-slate-200 bg-white px-4 py-2.5 text-sm text-slate-700 outline-none focus:border-brand-500 sm:w-44"
+            >
               <option value="all">All statuses</option>
               {statusOptions.map((status) => <option key={status} value={status}>{statusLabels[status]}</option>)}
             </select>

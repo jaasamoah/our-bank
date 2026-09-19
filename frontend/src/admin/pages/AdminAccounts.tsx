@@ -25,6 +25,7 @@ const emptyForm: AccountForm = { userId: '', accountNumber: '', accountType: 'ch
 const AdminAccounts: React.FC = () => {
   const [accounts, setAccounts] = useState<ApiAdminAccount[]>([]);
   const [customers, setCustomers] = useState<Array<ApiUser & { total_balance: number }>>([]);
+  const [selectedUser, setSelectedUser] = useState<string>('all');
   const [search, setSearch] = useState('');
   const [editAccount, setEditAccount] = useState<ApiAdminAccount | null>(null);
   const [showCreate, setShowCreate] = useState(false);
@@ -35,15 +36,30 @@ const AdminAccounts: React.FC = () => {
   const [saving, setSaving] = useState(false);
 
   useEffect(() => {
-    Promise.all([getAdminAccounts(), getAdminUsers()])
-      .then(([accountData, customerData]) => {
-        setAccounts(accountData);
+    getAdminUsers()
+      .then((customerData) => {
         setCustomers(customerData);
         setForm((current) => ({ ...current, userId: current.userId || String(customerData[0]?.id ?? '') }));
       })
-      .catch(() => setError('We could not load accounts. Please refresh and try again.'))
-      .finally(() => setLoading(false));
+      .catch(() => {});
   }, []);
+
+  const loadAccounts = async (userIdFilter: string) => {
+    setLoading(true);
+    try {
+      const data = await getAdminAccounts(userIdFilter === 'all' ? undefined : userIdFilter);
+      setAccounts(data);
+      setError('');
+    } catch {
+      setError('We could not load accounts. Please refresh and try again.');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    void loadAccounts(selectedUser);
+  }, [selectedUser]);
 
   const filtered = accounts.filter((a) =>
     a.user_name.toLowerCase().includes(search.toLowerCase()) ||
@@ -145,8 +161,22 @@ const AdminAccounts: React.FC = () => {
         {error && !modalOpen && <div className="rounded-xl bg-red-50 px-4 py-3 text-sm text-red-700">{error}</div>}
         <div className="flex flex-col gap-3 sm:flex-row sm:items-center">
           <input type="search" placeholder="Search accounts…" value={search} onChange={(e) => setSearch(e.target.value)} className="w-full rounded-xl border border-slate-200 px-4 py-2.5 text-sm outline-none focus:border-brand-500 focus:ring-2 focus:ring-brand-100 sm:w-72" />
-          <div className="text-sm text-slate-500 sm:ml-auto">{filtered.length} accounts</div>
-          <button type="button" onClick={openCreate} className="rounded-xl bg-brand-700 px-4 py-2.5 text-sm font-semibold text-white hover:bg-brand-800">New account</button>
+          <div className="flex w-full flex-wrap items-center gap-3 sm:ml-auto sm:w-auto">
+            <select
+              value={selectedUser}
+              onChange={(e) => setSelectedUser(e.target.value)}
+              className="rounded-xl border border-slate-200 bg-white px-3 py-2.5 text-sm text-slate-700 outline-none focus:border-brand-500"
+            >
+              <option value="all">All customers</option>
+              {customers.map((c) => (
+                <option key={c.id} value={c.id}>
+                  {c.full_name || c.username} ({c.email})
+                </option>
+              ))}
+            </select>
+            <div className="text-sm text-slate-500">{filtered.length} accounts</div>
+            <button type="button" onClick={openCreate} className="rounded-xl bg-brand-700 px-4 py-2.5 text-sm font-semibold text-white hover:bg-brand-800">New account</button>
+          </div>
         </div>
         <div className="overflow-hidden rounded-2xl border border-slate-100 bg-white shadow-sm">
           {loading ? <div className="p-10"><LoadingSpinner label="Loading accounts" /></div> : (

@@ -93,7 +93,7 @@ const securityBenefits = [
   {
     title: "Support when you need it",
     description:
-      "Get help through VelmontPrivate Bank support without losing track of what you were doing.",
+      "Get help through Velmont Bank support without losing track of what you were doing.",
   },
 ];
 
@@ -185,7 +185,7 @@ export default function Landing() {
           <a
             href="#top"
             onClick={(e) => handleSmoothScroll(e, "#top")}
-            aria-label="VelmontPrivate Bank home"
+            aria-label="Velmont Bank home"
             className="flex shrink-0 items-center"
           >
             <Brand />
@@ -229,7 +229,7 @@ export default function Landing() {
               onClick={(e) => handleSmoothScroll(e, "#about")}
               className="px-4 py-6 text-sm font-semibold text-slate-700 transition hover:text-blue-800"
             >
-              Why VelmontPrivate Bank
+              Why Velmont Bank
             </a>
           </nav>
 
@@ -274,7 +274,7 @@ export default function Landing() {
                   ["Cards", "#cards"],
                   ["Loans", "#loans"],
                   ["Digital Banking", "#digital"],
-                  ["Why VelmontPrivate Bank", "#about"],
+                  ["Why Velmont Bank", "#about"],
                   ["Help & Support", "#contact"],
                 ].map(([label, href]) => (
                   <a
@@ -375,7 +375,7 @@ export default function Landing() {
             <div className="relative min-h-[450px] lg:min-h-full">
               <img
                 src={officeImage}
-                alt="VelmontPrivate Bank banking experience"
+                alt="Velmont Bank banking experience"
                 className="absolute inset-0 h-full w-full object-cover"
               />
 
@@ -386,7 +386,7 @@ export default function Landing() {
                 <div className="flex items-start justify-between">
                   <div>
                     <p className="text-xs font-bold uppercase tracking-[0.15em] text-slate-500">
-                      VelmontPrivate Bank
+                      Velmont Bank
                     </p>
                     <p className="mt-1 text-sm font-semibold text-slate-800">
                       Everyday account
@@ -568,7 +568,7 @@ export default function Landing() {
                 <p className="mt-6 text-lg leading-8 text-slate-600">
                   Build a savings habit without losing sight of your everyday
                   finances. Keep your goals separate while managing everything
-                  through VelmontPrivate Bank.
+                  through Velmont Bank.
                 </p>
 
                 <ul className="mt-8 space-y-4">
@@ -698,7 +698,7 @@ export default function Landing() {
             <Reveal>
               <div>
                 <p className="text-sm font-bold uppercase tracking-[0.17em] text-blue-800">
-                  VelmontPrivate Bank cards
+                  Velmont Bank cards
                 </p>
 
                 <h2 className="mt-4 text-4xl font-semibold tracking-[-0.03em] text-slate-950 sm:text-5xl">
@@ -707,7 +707,7 @@ export default function Landing() {
 
                 <p className="mt-6 max-w-xl text-lg leading-8 text-slate-600">
                   Pay for the things that matter while keeping your account
-                  activity close at hand through VelmontPrivate Bank digital banking.
+                  activity close at hand through Velmont Bank digital banking.
                 </p>
 
                 <div className="mt-9 grid gap-6 sm:grid-cols-2">
@@ -750,7 +750,7 @@ export default function Landing() {
                 <div className="relative aspect-[1.58/1] w-full max-w-[510px] overflow-hidden rounded-[22px] border border-white/20 bg-gradient-to-br from-blue-700 via-blue-800 to-slate-950 p-7 text-white shadow-2xl sm:p-9">
                   <div className="flex items-start justify-between">
                     <div className="text-xl font-bold tracking-tight">
-                      VelmontPrivate Bank
+                      Velmont Bank
                     </div>
                     <CreditCardIcon className="h-8 w-8 text-white/85" />
                   </div>
@@ -768,7 +768,7 @@ export default function Landing() {
                       <p className="text-[10px] uppercase tracking-[0.15em] text-white/60">
                         Cardholder
                       </p>
-                      <p className="mt-1 text-sm font-semibold uppercase">VELMONTPRIVATE BANK</p>
+                      <p className="mt-1 text-sm font-semibold uppercase">VELMONT BANK</p>
                     </div>
 
                     <span className="text-lg font-bold italic">VISA</span>
@@ -802,7 +802,7 @@ export default function Landing() {
                 <div className="lg:pt-8">
                   <p className="max-w-2xl text-lg leading-8 text-slate-600">
                     When your next step requires more than what is sitting in
-                    your account today, VelmontPrivate Bank lending options can help you
+                    your account today, Velmont Bank lending options can help you
                     understand a clearer path forward.
                   </p>
                 </div>
@@ -824,7 +824,7 @@ export default function Landing() {
                 {
                   number: "03",
                   title: "Digital access",
-                  text: "See your finances in the same secure VelmontPrivate Bank experience you already use.",
+                  text: "See your finances in the same secure Velmont Bank experience you already use.",
                 },
               ].map((item, index) => (
                 <article
@@ -944,7 +944,7 @@ export default function Landing() {
                 </h2>
 
                 <p className="mt-6 text-lg leading-8 text-slate-600">
-                  VelmontPrivate Bank brings balances, transactions and everyday money
+                  Velmont Bank brings balances, transactions and everyday money
                   management together so you can take care of routine banking
                   from wherever you are.
                 </p>
@@ -979,7 +979,7 @@ export default function Landing() {
                   to="/login"
                   className="mt-9 inline-flex items-center gap-2 bg-blue-800 px-6 py-3.5 text-sm font-bold text-white transition hover:bg-blue-900"
                 >
-                  Sign in to VelmontPrivate Bank
+                  Sign in to Velmont Bank
                   <ArrowRightIcon className="h-4 w-4" />
                 </Link>
               </div>
@@ -1052,7 +1052,7 @@ export default function Landing() {
                 <SparklesIcon className="mx-auto h-8 w-8 text-blue-800" />
 
                 <p className="mt-6 text-sm font-bold uppercase tracking-[0.17em] text-blue-800">
-                  Why VelmontPrivate Bank
+                  Why Velmont Bank
                 </p>
 
                 <h2 className="mt-4 text-4xl font-semibold tracking-[-0.03em] text-slate-950 sm:text-5xl">
@@ -1061,7 +1061,7 @@ export default function Landing() {
 
                 <p className="mx-auto mt-6 max-w-3xl text-lg leading-8 text-slate-600">
                   We believe the experience of managing money should be easier
-                  to understand. VelmontPrivate Bank brings everyday banking into a
+                  to understand. Velmont Bank brings everyday banking into a
                   focused digital experience so customers can spend less time
                   figuring out their bank and more time using it.
                 </p>
@@ -1120,7 +1120,7 @@ export default function Landing() {
               </p>
 
               <h2 className="mt-2 max-w-3xl text-3xl font-semibold tracking-[-0.025em] sm:text-4xl">
-                Make VelmontPrivate Bank part of your everyday finances.
+                Make Velmont Bank part of your everyday finances.
               </h2>
             </div>
 
@@ -1157,7 +1157,7 @@ export default function Landing() {
                 Need help?
               </h2>
               <p className="mt-2 text-slate-600">
-                VelmontPrivate Bank support is here when you have questions about your
+                Velmont Bank support is here when you have questions about your
                 banking experience.
               </p>
             </div>
@@ -1222,11 +1222,11 @@ export default function Landing() {
             />
 
             <FooterColumn
-              title="VelmontPrivate Bank"
+              title="Velmont Bank"
               onLinkClick={handleSmoothScroll}
               links={[
                 ["About us", "#about"],
-                ["Why VelmontPrivate Bank", "#about"],
+                ["Why Velmont Bank", "#about"],
                 ["Help & support", "#contact"],
               ]}
             />
@@ -1245,7 +1245,7 @@ export default function Landing() {
 
           <div className="flex flex-col justify-between gap-5 py-7 text-xs text-slate-500 sm:flex-row sm:items-center">
             <p>
-              © {new Date().getFullYear()} VelmontPrivate Bank. All rights reserved.
+              © {new Date().getFullYear()} Velmont Bank. All rights reserved.
             </p>
 
             <div className="flex flex-wrap gap-x-6 gap-y-2">
@@ -1257,7 +1257,7 @@ export default function Landing() {
 
           <div className="border-t border-slate-200 py-7 text-xs leading-6 text-slate-400">
             <p>
-              VelmontPrivate Bank services and product availability may vary. Information
+              Velmont Bank services and product availability may vary. Information
               shown on this page is for general informational purposes.
             </p>
           </div>
@@ -1288,7 +1288,7 @@ export default function Landing() {
             <div className="flex items-start justify-between border-b border-slate-200 px-6 py-5 sm:px-8">
               <div>
                 <p className="text-xs font-bold uppercase tracking-[0.16em] text-blue-800">
-                  VelmontPrivate Bank
+                  Velmont Bank
                 </p>
                 <h2
                   id="signup-title"
@@ -1333,7 +1333,7 @@ export default function Landing() {
             ) : (
               <form onSubmit={handleSignup} className="px-6 py-7 sm:px-8">
                 <p className="mb-6 text-sm leading-6 text-slate-600">
-                  Enter your details to begin opening your VelmontPrivate Bank account. Please note that you will need to visit your nearest branch to complete registration.
+                  Enter your details to begin opening your Velmont Bank account. Please note that you will need to visit your nearest branch to complete registration.
                 </p>
 
                 <div className="grid gap-5 sm:grid-cols-2">
